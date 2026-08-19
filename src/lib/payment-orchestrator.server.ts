@@ -199,9 +199,36 @@ export async function initializePaymentWithProvider(
   }
 
   const claims = (ctx as any).claims ?? {};
-  const customerEmail: string | undefined = claims.email ?? claims.user_metadata?.email ?? undefined;
-  const customerName: string | undefined =
+  let customerEmail: string | undefined = claims.email ?? claims.user_metadata?.email ?? undefined;
+  let customerName: string | undefined =
     claims.user_metadata?.full_name ?? claims.user_metadata?.name ?? claims.name ?? undefined;
+
+  // The provider requires a valid customer.email. Claims are missing it for
+  // API-key callers and some sessions, so fall back to the auth record.
+  if (!customerEmail || !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(customerEmail)) {
+    customerEmail = undefined;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: authUser } = await (supabaseAdmin as any).auth.admin.getUserById(
+        (ctx as any).userId,
+      );
+      const email = authUser?.user?.email as string | undefined;
+      if (email && /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) customerEmail = email;
+      if (!customerName) {
+        customerName =
+          (authUser?.user?.user_metadata?.full_name as string | undefined) ??
+          (authUser?.user?.user_metadata?.name as string | undefined) ??
+          undefined;
+      }
+    } catch {
+      /* fall through to the synthetic address below */
+    }
+  }
+  if (!customerEmail) {
+    customerEmail = `billing+${String((ctx as any).userId ?? "user").slice(0, 8)}@trademall.co.ke`;
+  }
+  if (!customerName) customerName = "TradeMall Customer";
+
 
   const isDuplicateReference = (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
