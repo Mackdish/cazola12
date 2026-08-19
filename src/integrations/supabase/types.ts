@@ -925,49 +925,49 @@ export type Database = {
       }
       campaign_targeting: {
         Row: {
-          browsers: Database["public"]["Enums"]["browser_type"]
+          browsers: Database["public"]["Enums"]["browser_type"][]
           campaign_id: string
           cities: string[]
           counties: string[]
           countries: string[]
           created_at: string
-          devices: Database["public"]["Enums"]["device_type"]
+          devices: Database["public"]["Enums"]["device_type"][]
           id: string
-          operating_systems: Database["public"]["Enums"]["os_type"]
+          operating_systems: Database["public"]["Enums"]["os_type"][]
           organization_id: string
           schedule: Json
           updated_at: string
-          website_categories: Database["public"]["Enums"]["website_category"]
+          website_categories: Database["public"]["Enums"]["website_category"][]
         }
         Insert: {
-          browsers?: Database["public"]["Enums"]["browser_type"]
+          browsers?: Database["public"]["Enums"]["browser_type"][]
           campaign_id: string
           cities?: string[]
           counties?: string[]
           countries?: string[]
           created_at?: string
-          devices?: Database["public"]["Enums"]["device_type"]
+          devices?: Database["public"]["Enums"]["device_type"][]
           id?: string
-          operating_systems?: Database["public"]["Enums"]["os_type"]
+          operating_systems?: Database["public"]["Enums"]["os_type"][]
           organization_id: string
           schedule?: Json
           updated_at?: string
-          website_categories?: Database["public"]["Enums"]["website_category"]
+          website_categories?: Database["public"]["Enums"]["website_category"][]
         }
         Update: {
-          browsers?: Database["public"]["Enums"]["browser_type"]
+          browsers?: Database["public"]["Enums"]["browser_type"][]
           campaign_id?: string
           cities?: string[]
           counties?: string[]
           countries?: string[]
           created_at?: string
-          devices?: Database["public"]["Enums"]["device_type"]
+          devices?: Database["public"]["Enums"]["device_type"][]
           id?: string
-          operating_systems?: Database["public"]["Enums"]["os_type"]
+          operating_systems?: Database["public"]["Enums"]["os_type"][]
           organization_id?: string
           schedule?: Json
           updated_at?: string
-          website_categories?: Database["public"]["Enums"]["website_category"]
+          website_categories?: Database["public"]["Enums"]["website_category"][]
         }
         Relationships: [
           {
@@ -2290,7 +2290,7 @@ export type Database = {
           id?: string
           request_count?: number
           updated_at?: string
-          window_start: string
+          window_start?: string
         }
         Update: {
           action?: string
@@ -2699,7 +2699,433 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cancel_payment: {
+        Args: { _payment_id: string; _provider?: string }
+        Returns: {
+          payment_id: string
+          status: string
+        }[]
+      }
+      charge_campaign_event: {
+        Args: {
+          _ad_id: string
+          _ad_zone_id: string
+          _campaign_id: string
+          _event_type: Database["public"]["Enums"]["billing_event_type"]
+          _publisher_id: string
+          _request_id: string
+          _website_id: string
+        }
+        Returns: Json
+      }
+      check_rate_limit: {
+        Args: {
+          _action: string
+          _ip_address: string
+          _key: string
+          _limit: number
+          _organization_id?: string
+          _user_id?: string
+          _window_seconds: number
+        }
+        Returns: boolean
+      }
+      complete_payment: {
+        Args: {
+          _payment_id: string
+          _provider?: string
+          _provider_receipt?: string
+          _provider_reference?: string
+          _provider_transaction_id?: string
+        }
+        Returns: {
+          payment_id: string
+          status: string
+          wallet_balance: number
+        }[]
+      }
+      create_organization: {
+        Args: {
+          _name: string
+          _slug: string
+          _type: Database["public"]["Enums"]["organization_type"]
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          status: Database["public"]["Enums"]["entity_status"]
+          type: Database["public"]["Enums"]["organization_type"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_payment: {
+        Args: {
+          _amount?: number
+          _currency?: string
+          _id: string
+          _organization_id: string
+          _payment_url?: string
+          _phone_number?: string
+          _provider?: string
+          _reference?: string
+          _user_id: string
+          _wallet_id: string
+        }
+        Returns: {
+          id: string
+          payment_url: string
+          reference: string
+        }[]
+      }
+      deposit_to_wallet: {
+        Args: {
+          _amount: number
+          _description?: string
+          _idempotency_key: string
+          _organization_id: string
+        }
+        Returns: {
+          balance_amount: number
+          country_code: string
+          created_at: string
+          currency: string
+          id: string
+          lifetime_deposited: number
+          lifetime_spent: number
+          low_balance_threshold: number
+          organization_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      deposit_to_wallet_for_currency: {
+        Args: {
+          _amount: number
+          _currency?: string
+          _description?: string
+          _idempotency_key?: string
+          _organization_id: string
+        }
+        Returns: {
+          balance: number
+          currency: string
+          duplicate: boolean
+          ok: boolean
+        }[]
+      }
+      ensure_advertiser: {
+        Args: {
+          _business_name: string
+          _contact_email: string
+          _contact_phone?: string
+          _industry?: string
+          _organization_id: string
+        }
+        Returns: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          business_name: string
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          industry: string | null
+          organization_id: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["entity_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "advertisers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_profile: {
+        Args: { _full_name?: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          status: Database["public"]["Enums"]["entity_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_publisher: {
+        Args: {
+          _business_name: string
+          _contact_email: string
+          _contact_phone?: string
+          _organization_id: string
+          _website_url?: string
+        }
+        Returns: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          business_name: string
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["entity_status"]
+          updated_at: string
+          website_url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "publishers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_wallet: {
+        Args: { _organization_id: string }
+        Returns: {
+          balance_amount: number
+          country_code: string
+          created_at: string
+          currency: string
+          id: string
+          lifetime_deposited: number
+          lifetime_spent: number
+          low_balance_threshold: number
+          organization_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "wallets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_wallet_for_currency: {
+        Args: {
+          _country_code?: string
+          _currency?: string
+          _organization_id: string
+        }
+        Returns: {
+          balance_amount: number
+          country_code: string
+          created_at: string
+          currency: string
+          id: string
+          lifetime_deposited: number
+          lifetime_spent: number
+          low_balance_threshold: number
+          organization_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "wallets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      fail_payment: {
+        Args: {
+          _failure_reason?: string
+          _payment_id: string
+          _provider?: string
+        }
+        Returns: {
+          payment_id: string
+          status: string
+        }[]
+      }
+      generate_zone_key: { Args: never; Returns: string }
+      get_supported_payment_methods: {
+        Args: { _country_code: string; _currency: string }
+        Returns: {
+          description: string
+          display_name: string
+          icon_url: string
+          id: string
+          maximum_amount: number
+          minimum_amount: number
+          name: string
+          provider_id: string
+          provider_name: string
+        }[]
+      }
+      get_user_wallets: {
+        Args: { _organization_id: string }
+        Returns: {
+          balance_amount: number
+          country_code: string
+          currency: string
+          id: string
+          lifetime_deposited: number
+          lifetime_spent: number
+        }[]
+      }
+      is_org_admin: {
+        Args: { _organization_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _organization_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_staff: { Args: { _user_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _actor_email: string
+          _actor_id: string
+          _ip_address?: string
+          _metadata?: Json
+          _target_id: string
+          _target_label?: string
+          _target_type: string
+          _user_agent?: string
+        }
+        Returns: undefined
+      }
+      mark_payment_failed: {
+        Args: { _failure_reason?: string; _id: string }
+        Returns: {
+          payment_id: string
+          status: string
+        }[]
+      }
+      mature_publisher_earnings: {
+        Args: { _organization_id?: string }
+        Returns: undefined
+      }
+      refund_campaign_spend: {
+        Args: { _campaign_spend_id: string; _reason?: string }
+        Returns: Json
+      }
+      request_payout: {
+        Args: {
+          _destination: string
+          _method: string
+          _organization_id: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          destination: string
+          id: string
+          method: string
+          organization_id: string
+          paid_at: string | null
+          payment_reference: string | null
+          publisher_id: string
+          rejection_reason: string | null
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_payout: {
+        Args: {
+          _payment_reference?: string
+          _payout_id: string
+          _reason?: string
+          _status: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          destination: string
+          id: string
+          method: string
+          organization_id: string
+          paid_at: string | null
+          payment_reference: string | null
+          publisher_id: string
+          rejection_reason: string | null
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_payment_details: {
+        Args: { _id: string; _payment_url: string; _provider_reference: string }
+        Returns: {
+          id: string
+          payment_url: string
+          provider_reference: string
+        }[]
+      }
+      update_platform_billing_settings: {
+        Args: {
+          _earnings_hold_days: number
+          _minimum_payout_amount: number
+          _publisher_revenue_share: number
+        }
+        Returns: {
+          assumed_ctr: number
+          campaign_minimum_budget: number
+          created_at: string
+          currency: string
+          default_bid_amount: number
+          default_total_budget: number
+          earnings_hold_days: number
+          id: boolean
+          maximum_bid_amount: number
+          maximum_campaign_budget: number
+          maximum_creative_size_bytes: number
+          maximum_daily_budget: number
+          minimum_daily_budget: number
+          minimum_payout_amount: number
+          platform_status: string
+          publisher_revenue_share: number
+          starting_cpc: number
+          supported_countries: string[]
+          supported_currencies: string[]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       ad_format:
