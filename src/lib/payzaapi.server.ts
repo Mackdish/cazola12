@@ -220,6 +220,13 @@ export const payzaApiProvider: PaymentProvider = {
       ? input.callbackUrl
       : env.callbackUrl;
 
+    // The provider rejects blank/invalid emails with a 400.
+    const emailValid = (v?: string) => !!v && /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(v);
+    const customerEmail = emailValid(input.customerEmail)
+      ? (input.customerEmail as string)
+      : `billing+${input.reference.toLowerCase()}@trademall.co.ke`;
+    const customerName = input.customerName?.trim() || "TradeMall Customer";
+
     let body: Record<string, unknown>;
 
     if (input.hostedCheckout) {
@@ -232,8 +239,8 @@ export const payzaApiProvider: PaymentProvider = {
         currency: input.currency,
         reference: input.reference,
         customer: {
-          email: input.customerEmail ?? "",
-          name: input.customerName ?? "",
+          email: customerEmail,
+          name: customerName,
           ...(input.phoneNumber ? { phone: input.phoneNumber } : {}),
         },
         callback_url: callbackUrl,
@@ -259,8 +266,8 @@ export const payzaApiProvider: PaymentProvider = {
         currency: input.currency,
         reference: input.reference,
         customer: {
-          email: input.customerEmail ?? "",
-          name: input.customerName ?? "",
+          email: customerEmail,
+          name: customerName,
           phone: msisdn,
         },
         callback_url: callbackUrl,
