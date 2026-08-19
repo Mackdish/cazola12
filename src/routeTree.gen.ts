@@ -10,33 +10,1251 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdvertisersRouteImport } from './routes/advertisers'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PublishersRouteImport } from './routes/publishers'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedPublisherRouteImport } from './routes/_authenticated/publisher'
+import { Route as AdLoaderDotjsRouteImport } from './routes/ad/loader[.]js'
+import { Route as PaymentConfirmRouteImport } from './routes/payment.confirm'
+import { Route as PoliciesIndexRouteImport } from './routes/policies.index'
+import { Route as PoliciesSlugRouteImport } from './routes/policies.$slug'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminAdReportsRouteImport } from './routes/_authenticated/admin.ad-reports'
+import { Route as AuthenticatedAdminAdSafetyRouteImport } from './routes/_authenticated/admin.ad-safety'
+import { Route as AuthenticatedAdminAdZonesRouteImport } from './routes/_authenticated/admin.ad-zones'
+import { Route as AuthenticatedAdminAdsRouteImport } from './routes/_authenticated/admin.ads'
+import { Route as AuthenticatedAdminAdsTxtRouteImport } from './routes/_authenticated/admin.ads-txt'
+import { Route as AuthenticatedAdminAdvertisersRouteImport } from './routes/_authenticated/admin.advertisers'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminApiRouteImport } from './routes/_authenticated/admin.api'
+import { Route as AuthenticatedAdminApiDocsRouteImport } from './routes/_authenticated/admin.api-docs'
+import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin.campaigns'
+import { Route as AuthenticatedAdminCreativesRouteImport } from './routes/_authenticated/admin.creatives'
+import { Route as AuthenticatedAdminFraudRouteImport } from './routes/_authenticated/admin.fraud'
+import { Route as AuthenticatedAdminHealthRouteImport } from './routes/_authenticated/admin.health'
+import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authenticated/admin.payouts'
+import { Route as AuthenticatedAdminPoliciesRouteImport } from './routes/_authenticated/admin.policies'
+import { Route as AuthenticatedAdminPublishersRouteImport } from './routes/_authenticated/admin.publishers'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminTransactionsRouteImport } from './routes/_authenticated/admin.transactions'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedAdminViolationsRouteImport } from './routes/_authenticated/admin.violations'
+import { Route as AuthenticatedAdminWebsitesRouteImport } from './routes/_authenticated/admin.websites'
+import { Route as AuthenticatedAdvertiserIndexRouteImport } from './routes/_authenticated/advertiser.index'
+import { Route as AuthenticatedAdvertiserAdvertisementsRouteImport } from './routes/_authenticated/advertiser.advertisements'
+import { Route as AuthenticatedAdvertiserAnalyticsRouteImport } from './routes/_authenticated/advertiser.analytics'
+import { Route as AuthenticatedAdvertiserApiRouteImport } from './routes/_authenticated/advertiser.api'
+import { Route as AuthenticatedAdvertiserCreativesRouteImport } from './routes/_authenticated/advertiser.creatives'
+import { Route as AuthenticatedAdvertiserSettingsRouteImport } from './routes/_authenticated/advertiser.settings'
+import { Route as AuthenticatedAdvertiserTransactionsRouteImport } from './routes/_authenticated/advertiser.transactions'
+import { Route as AuthenticatedAdvertiserWalletRouteImport } from './routes/_authenticated/advertiser.wallet'
+import { Route as AuthenticatedPublisherIndexRouteImport } from './routes/_authenticated/publisher.index'
+import { Route as AuthenticatedPublisherAdPreviewRouteImport } from './routes/_authenticated/publisher.ad-preview'
+import { Route as AuthenticatedPublisherAdZonesRouteImport } from './routes/_authenticated/publisher.ad-zones'
+import { Route as AuthenticatedPublisherAnalyticsRouteImport } from './routes/_authenticated/publisher.analytics'
+import { Route as AuthenticatedPublisherApiRouteImport } from './routes/_authenticated/publisher.api'
+import { Route as AuthenticatedPublisherEarningsRouteImport } from './routes/_authenticated/publisher.earnings'
+import { Route as AuthenticatedPublisherGetStartedRouteImport } from './routes/_authenticated/publisher.get-started'
+import { Route as AuthenticatedPublisherPayoutsRouteImport } from './routes/_authenticated/publisher.payouts'
+import { Route as AuthenticatedPublisherPoliciesRouteImport } from './routes/_authenticated/publisher.policies'
+import { Route as AuthenticatedPublisherSandboxRouteImport } from './routes/_authenticated/publisher.sandbox'
+import { Route as AuthenticatedPublisherSettingsRouteImport } from './routes/_authenticated/publisher.settings'
+import { Route as ApiPublicAdRouteImport } from './routes/api/public/ad'
+import { Route as ApiPublicAdReportRouteImport } from './routes/api/public/ad-report'
+import { Route as ApiPublicClickRouteImport } from './routes/api/public/click'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicImpressionRouteImport } from './routes/api/public/impression'
+import { Route as ApiPublicOpenapiDotjsonRouteImport } from './routes/api/public/openapi[.]json'
+import { Route as ApiV1AnalyticsRouteImport } from './routes/api/v1/analytics'
+import { Route as ApiV1PayRouteImport } from './routes/api/v1/pay'
+import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
+import { Route as AuthenticatedAdminPoliciesContentRouteImport } from './routes/_authenticated/admin.policies.content'
+import { Route as AuthenticatedAdvertiserCampaignsIndexRouteImport } from './routes/_authenticated/advertiser.campaigns.index'
+import { Route as AuthenticatedAdvertiserCampaignsCampaignIdRouteImport } from './routes/_authenticated/advertiser.campaigns.$campaignId'
+import { Route as AuthenticatedPublisherWebsitesIndexRouteImport } from './routes/_authenticated/publisher.websites.index'
+import { Route as AuthenticatedPublisherWebsitesWebsiteIdRouteImport } from './routes/_authenticated/publisher.websites.$websiteId'
+import { Route as ApiPublicPayCallbackRouteImport } from './routes/api/public/pay/callback'
+import { Route as ApiV1AdZonesIndexRouteImport } from './routes/api/v1/ad-zones/index'
+import { Route as ApiV1AdZonesIdRouteImport } from './routes/api/v1/ad-zones/$id'
+import { Route as ApiV1AdsIndexRouteImport } from './routes/api/v1/ads/index'
+import { Route as ApiV1AdsIdRouteImport } from './routes/api/v1/ads/$id'
+import { Route as ApiV1AdsServeRouteImport } from './routes/api/v1/ads/serve'
+import { Route as ApiV1ApiKeysIndexRouteImport } from './routes/api/v1/api-keys/index'
+import { Route as ApiV1ApiKeysIdRouteImport } from './routes/api/v1/api-keys/$id'
+import { Route as ApiV1CampaignsIndexRouteImport } from './routes/api/v1/campaigns/index'
+import { Route as ApiV1CampaignsIdRouteImport } from './routes/api/v1/campaigns/$id'
+import { Route as ApiV1EventsClickRouteImport } from './routes/api/v1/events/click'
+import { Route as ApiV1EventsImpressionRouteImport } from './routes/api/v1/events/impression'
+import { Route as ApiV1PaymentsReferenceRouteImport } from './routes/api/v1/payments/$reference'
+import { Route as ApiV1WalletCurrenciesRouteImport } from './routes/api/v1/wallet/currencies'
+import { Route as ApiV1WalletPaymentMethodsRouteImport } from './routes/api/v1/wallet/payment-methods'
+import { Route as ApiV1WalletTransactionsRouteImport } from './routes/api/v1/wallet/transactions'
+import { Route as ApiV1WebsitesIndexRouteImport } from './routes/api/v1/websites/index'
+import { Route as ApiV1WebsitesIdRouteImport } from './routes/api/v1/websites/$id'
+import { Route as ApiV1CampaignsIdSubmitRouteImport } from './routes/api/v1/campaigns/$id/submit'
+import { Route as ApiV1WebsitesIdVerifyRouteImport } from './routes/api/v1/websites/$id/verify'
+import { Route as ApiV1AdsChar91DotDotChar93ServedRouteImport } from './routes/api/v1/ads/[...]/_served'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdvertisersRoute = AdvertisersRouteImport.update({
+  id: '/advertisers',
+  path: '/advertisers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublishersRoute = PublishersRouteImport.update({
+  id: '/publishers',
+  path: '/publishers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPublisherRoute = AuthenticatedPublisherRouteImport.update({
+  id: '/publisher',
+  path: '/publisher',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AdLoaderDotjsRoute = AdLoaderDotjsRouteImport.update({
+  id: '/ad/loader.js',
+  path: '/ad/loader.js',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentConfirmRoute = PaymentConfirmRouteImport.update({
+  id: '/payment/confirm',
+  path: '/payment/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesIndexRoute = PoliciesIndexRouteImport.update({
+  id: '/policies/',
+  path: '/policies/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesSlugRoute = PoliciesSlugRouteImport.update({
+  id: '/policies/$slug',
+  path: '/policies/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAdReportsRoute =
+  AuthenticatedAdminAdReportsRouteImport.update({
+    id: '/ad-reports',
+    path: '/ad-reports',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAdSafetyRoute =
+  AuthenticatedAdminAdSafetyRouteImport.update({
+    id: '/ad-safety',
+    path: '/ad-safety',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAdZonesRoute =
+  AuthenticatedAdminAdZonesRouteImport.update({
+    id: '/ad-zones',
+    path: '/ad-zones',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAdsRoute = AuthenticatedAdminAdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAdsTxtRoute =
+  AuthenticatedAdminAdsTxtRouteImport.update({
+    id: '/ads-txt',
+    path: '/ads-txt',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAdvertisersRoute =
+  AuthenticatedAdminAdvertisersRouteImport.update({
+    id: '/advertisers',
+    path: '/advertisers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminApiRoute = AuthenticatedAdminApiRouteImport.update({
+  id: '/api',
+  path: '/api',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminApiDocsRoute =
+  AuthenticatedAdminApiDocsRouteImport.update({
+    id: '/api-docs',
+    path: '/api-docs',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCampaignsRoute =
+  AuthenticatedAdminCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCreativesRoute =
+  AuthenticatedAdminCreativesRouteImport.update({
+    id: '/creatives',
+    path: '/creatives',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFraudRoute = AuthenticatedAdminFraudRouteImport.update({
+  id: '/fraud',
+  path: '/fraud',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminHealthRoute =
+  AuthenticatedAdminHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPayoutsRoute =
+  AuthenticatedAdminPayoutsRouteImport.update({
+    id: '/payouts',
+    path: '/payouts',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPoliciesRoute =
+  AuthenticatedAdminPoliciesRouteImport.update({
+    id: '/policies',
+    path: '/policies',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPublishersRoute =
+  AuthenticatedAdminPublishersRouteImport.update({
+    id: '/publishers',
+    path: '/publishers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminTransactionsRoute =
+  AuthenticatedAdminTransactionsRouteImport.update({
+    id: '/transactions',
+    path: '/transactions',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminViolationsRoute =
+  AuthenticatedAdminViolationsRouteImport.update({
+    id: '/violations',
+    path: '/violations',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminWebsitesRoute =
+  AuthenticatedAdminWebsitesRouteImport.update({
+    id: '/websites',
+    path: '/websites',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdvertiserIndexRoute =
+  AuthenticatedAdvertiserIndexRouteImport.update({
+    id: '/advertiser/',
+    path: '/advertiser/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserAdvertisementsRoute =
+  AuthenticatedAdvertiserAdvertisementsRouteImport.update({
+    id: '/advertiser/advertisements',
+    path: '/advertiser/advertisements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserAnalyticsRoute =
+  AuthenticatedAdvertiserAnalyticsRouteImport.update({
+    id: '/advertiser/analytics',
+    path: '/advertiser/analytics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserApiRoute =
+  AuthenticatedAdvertiserApiRouteImport.update({
+    id: '/advertiser/api',
+    path: '/advertiser/api',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserCreativesRoute =
+  AuthenticatedAdvertiserCreativesRouteImport.update({
+    id: '/advertiser/creatives',
+    path: '/advertiser/creatives',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserSettingsRoute =
+  AuthenticatedAdvertiserSettingsRouteImport.update({
+    id: '/advertiser/settings',
+    path: '/advertiser/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserTransactionsRoute =
+  AuthenticatedAdvertiserTransactionsRouteImport.update({
+    id: '/advertiser/transactions',
+    path: '/advertiser/transactions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserWalletRoute =
+  AuthenticatedAdvertiserWalletRouteImport.update({
+    id: '/advertiser/wallet',
+    path: '/advertiser/wallet',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPublisherIndexRoute =
+  AuthenticatedPublisherIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherAdPreviewRoute =
+  AuthenticatedPublisherAdPreviewRouteImport.update({
+    id: '/ad-preview',
+    path: '/ad-preview',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherAdZonesRoute =
+  AuthenticatedPublisherAdZonesRouteImport.update({
+    id: '/ad-zones',
+    path: '/ad-zones',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherAnalyticsRoute =
+  AuthenticatedPublisherAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherApiRoute =
+  AuthenticatedPublisherApiRouteImport.update({
+    id: '/api',
+    path: '/api',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherEarningsRoute =
+  AuthenticatedPublisherEarningsRouteImport.update({
+    id: '/earnings',
+    path: '/earnings',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherGetStartedRoute =
+  AuthenticatedPublisherGetStartedRouteImport.update({
+    id: '/get-started',
+    path: '/get-started',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherPayoutsRoute =
+  AuthenticatedPublisherPayoutsRouteImport.update({
+    id: '/payouts',
+    path: '/payouts',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherPoliciesRoute =
+  AuthenticatedPublisherPoliciesRouteImport.update({
+    id: '/policies',
+    path: '/policies',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherSandboxRoute =
+  AuthenticatedPublisherSandboxRouteImport.update({
+    id: '/sandbox',
+    path: '/sandbox',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherSettingsRoute =
+  AuthenticatedPublisherSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const ApiPublicAdRoute = ApiPublicAdRouteImport.update({
+  id: '/api/public/ad',
+  path: '/api/public/ad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAdReportRoute = ApiPublicAdReportRouteImport.update({
+  id: '/api/public/ad-report',
+  path: '/api/public/ad-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicClickRoute = ApiPublicClickRouteImport.update({
+  id: '/api/public/click',
+  path: '/api/public/click',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicImpressionRoute = ApiPublicImpressionRouteImport.update({
+  id: '/api/public/impression',
+  path: '/api/public/impression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOpenapiDotjsonRoute = ApiPublicOpenapiDotjsonRouteImport.update({
+  id: '/api/public/openapi.json',
+  path: '/api/public/openapi.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AnalyticsRoute = ApiV1AnalyticsRouteImport.update({
+  id: '/api/v1/analytics',
+  path: '/api/v1/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PayRoute = ApiV1PayRouteImport.update({
+  id: '/api/v1/pay',
+  path: '/api/v1/pay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletRoute = ApiV1WalletRouteImport.update({
+  id: '/api/v1/wallet',
+  path: '/api/v1/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminPoliciesContentRoute =
+  AuthenticatedAdminPoliciesContentRouteImport.update({
+    id: '/content',
+    path: '/content',
+    getParentRoute: () => AuthenticatedAdminPoliciesRoute,
+  } as any)
+const AuthenticatedAdvertiserCampaignsIndexRoute =
+  AuthenticatedAdvertiserCampaignsIndexRouteImport.update({
+    id: '/advertiser/campaigns/',
+    path: '/advertiser/campaigns/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdvertiserCampaignsCampaignIdRoute =
+  AuthenticatedAdvertiserCampaignsCampaignIdRouteImport.update({
+    id: '/advertiser/campaigns/$campaignId',
+    path: '/advertiser/campaigns/$campaignId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPublisherWebsitesIndexRoute =
+  AuthenticatedPublisherWebsitesIndexRouteImport.update({
+    id: '/websites/',
+    path: '/websites/',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const AuthenticatedPublisherWebsitesWebsiteIdRoute =
+  AuthenticatedPublisherWebsitesWebsiteIdRouteImport.update({
+    id: '/websites/$websiteId',
+    path: '/websites/$websiteId',
+    getParentRoute: () => AuthenticatedPublisherRoute,
+  } as any)
+const ApiPublicPayCallbackRoute = ApiPublicPayCallbackRouteImport.update({
+  id: '/api/public/pay/callback',
+  path: '/api/public/pay/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdZonesIndexRoute = ApiV1AdZonesIndexRouteImport.update({
+  id: '/api/v1/ad-zones/',
+  path: '/api/v1/ad-zones/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdZonesIdRoute = ApiV1AdZonesIdRouteImport.update({
+  id: '/api/v1/ad-zones/$id',
+  path: '/api/v1/ad-zones/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdsIndexRoute = ApiV1AdsIndexRouteImport.update({
+  id: '/api/v1/ads/',
+  path: '/api/v1/ads/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdsIdRoute = ApiV1AdsIdRouteImport.update({
+  id: '/api/v1/ads/$id',
+  path: '/api/v1/ads/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdsServeRoute = ApiV1AdsServeRouteImport.update({
+  id: '/api/v1/ads/serve',
+  path: '/api/v1/ads/serve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ApiKeysIndexRoute = ApiV1ApiKeysIndexRouteImport.update({
+  id: '/api/v1/api-keys/',
+  path: '/api/v1/api-keys/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ApiKeysIdRoute = ApiV1ApiKeysIdRouteImport.update({
+  id: '/api/v1/api-keys/$id',
+  path: '/api/v1/api-keys/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1CampaignsIndexRoute = ApiV1CampaignsIndexRouteImport.update({
+  id: '/api/v1/campaigns/',
+  path: '/api/v1/campaigns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1CampaignsIdRoute = ApiV1CampaignsIdRouteImport.update({
+  id: '/api/v1/campaigns/$id',
+  path: '/api/v1/campaigns/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1EventsClickRoute = ApiV1EventsClickRouteImport.update({
+  id: '/api/v1/events/click',
+  path: '/api/v1/events/click',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1EventsImpressionRoute = ApiV1EventsImpressionRouteImport.update({
+  id: '/api/v1/events/impression',
+  path: '/api/v1/events/impression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PaymentsReferenceRoute = ApiV1PaymentsReferenceRouteImport.update({
+  id: '/api/v1/payments/$reference',
+  path: '/api/v1/payments/$reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WalletCurrenciesRoute = ApiV1WalletCurrenciesRouteImport.update({
+  id: '/currencies',
+  path: '/currencies',
+  getParentRoute: () => ApiV1WalletRoute,
+} as any)
+const ApiV1WalletPaymentMethodsRoute =
+  ApiV1WalletPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => ApiV1WalletRoute,
+  } as any)
+const ApiV1WalletTransactionsRoute = ApiV1WalletTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => ApiV1WalletRoute,
+} as any)
+const ApiV1WebsitesIndexRoute = ApiV1WebsitesIndexRouteImport.update({
+  id: '/api/v1/websites/',
+  path: '/api/v1/websites/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1WebsitesIdRoute = ApiV1WebsitesIdRouteImport.update({
+  id: '/api/v1/websites/$id',
+  path: '/api/v1/websites/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1CampaignsIdSubmitRoute = ApiV1CampaignsIdSubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
+  getParentRoute: () => ApiV1CampaignsIdRoute,
+} as any)
+const ApiV1WebsitesIdVerifyRoute = ApiV1WebsitesIdVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => ApiV1WebsitesIdRoute,
+} as any)
+const ApiV1AdsChar91DotDotChar93ServedRoute =
+  ApiV1AdsChar91DotDotChar93ServedRouteImport.update({
+    id: '/api/v1/ads/[./.]/_served',
+    path: '/api/v1/ads/[./.]',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/advertisers': typeof AdvertisersRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/publishers': typeof PublishersRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/terms': typeof TermsRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/publisher': typeof AuthenticatedPublisherRouteWithChildren
+  '/ad/loader.js': typeof AdLoaderDotjsRoute
+  '/payment/confirm': typeof PaymentConfirmRoute
+  '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies/': typeof PoliciesIndexRoute
+  '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
+  '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
+  '/admin/ad-zones': typeof AuthenticatedAdminAdZonesRoute
+  '/admin/ads': typeof AuthenticatedAdminAdsRoute
+  '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
+  '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/api': typeof AuthenticatedAdminApiRoute
+  '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
+  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/creatives': typeof AuthenticatedAdminCreativesRoute
+  '/admin/fraud': typeof AuthenticatedAdminFraudRoute
+  '/admin/health': typeof AuthenticatedAdminHealthRoute
+  '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
+  '/admin/policies': typeof AuthenticatedAdminPoliciesRouteWithChildren
+  '/admin/publishers': typeof AuthenticatedAdminPublishersRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/transactions': typeof AuthenticatedAdminTransactionsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/violations': typeof AuthenticatedAdminViolationsRoute
+  '/admin/websites': typeof AuthenticatedAdminWebsitesRoute
+  '/advertiser/advertisements': typeof AuthenticatedAdvertiserAdvertisementsRoute
+  '/advertiser/analytics': typeof AuthenticatedAdvertiserAnalyticsRoute
+  '/advertiser/api': typeof AuthenticatedAdvertiserApiRoute
+  '/advertiser/creatives': typeof AuthenticatedAdvertiserCreativesRoute
+  '/advertiser/settings': typeof AuthenticatedAdvertiserSettingsRoute
+  '/advertiser/transactions': typeof AuthenticatedAdvertiserTransactionsRoute
+  '/advertiser/wallet': typeof AuthenticatedAdvertiserWalletRoute
+  '/publisher/ad-preview': typeof AuthenticatedPublisherAdPreviewRoute
+  '/publisher/ad-zones': typeof AuthenticatedPublisherAdZonesRoute
+  '/publisher/analytics': typeof AuthenticatedPublisherAnalyticsRoute
+  '/publisher/api': typeof AuthenticatedPublisherApiRoute
+  '/publisher/earnings': typeof AuthenticatedPublisherEarningsRoute
+  '/publisher/get-started': typeof AuthenticatedPublisherGetStartedRoute
+  '/publisher/payouts': typeof AuthenticatedPublisherPayoutsRoute
+  '/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
+  '/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
+  '/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/public/ad': typeof ApiPublicAdRoute
+  '/api/public/ad-report': typeof ApiPublicAdReportRoute
+  '/api/public/click': typeof ApiPublicClickRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/impression': typeof ApiPublicImpressionRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
+  '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/pay': typeof ApiV1PayRoute
+  '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/advertiser/': typeof AuthenticatedAdvertiserIndexRoute
+  '/publisher/': typeof AuthenticatedPublisherIndexRoute
+  '/admin/policies/content': typeof AuthenticatedAdminPoliciesContentRoute
+  '/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
+  '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
+  '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
+  '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
+  '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
+  '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
+  '/api/v1/campaigns/$id': typeof ApiV1CampaignsIdRouteWithChildren
+  '/api/v1/events/click': typeof ApiV1EventsClickRoute
+  '/api/v1/events/impression': typeof ApiV1EventsImpressionRoute
+  '/api/v1/payments/$reference': typeof ApiV1PaymentsReferenceRoute
+  '/api/v1/wallet/currencies': typeof ApiV1WalletCurrenciesRoute
+  '/api/v1/wallet/payment-methods': typeof ApiV1WalletPaymentMethodsRoute
+  '/api/v1/wallet/transactions': typeof ApiV1WalletTransactionsRoute
+  '/api/v1/websites/$id': typeof ApiV1WebsitesIdRouteWithChildren
+  '/advertiser/campaigns/': typeof AuthenticatedAdvertiserCampaignsIndexRoute
+  '/publisher/websites/': typeof AuthenticatedPublisherWebsitesIndexRoute
+  '/api/v1/ad-zones/': typeof ApiV1AdZonesIndexRoute
+  '/api/v1/ads/': typeof ApiV1AdsIndexRoute
+  '/api/v1/api-keys/': typeof ApiV1ApiKeysIndexRoute
+  '/api/v1/campaigns/': typeof ApiV1CampaignsIndexRoute
+  '/api/v1/websites/': typeof ApiV1WebsitesIndexRoute
+  '/api/v1/campaigns/$id/submit': typeof ApiV1CampaignsIdSubmitRoute
+  '/api/v1/websites/$id/verify': typeof ApiV1WebsitesIdVerifyRoute
+  '/api/v1/ads/[./.]': typeof ApiV1AdsChar91DotDotChar93ServedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/advertisers': typeof AdvertisersRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/publishers': typeof PublishersRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/terms': typeof TermsRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/ad/loader.js': typeof AdLoaderDotjsRoute
+  '/payment/confirm': typeof PaymentConfirmRoute
+  '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies': typeof PoliciesIndexRoute
+  '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
+  '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
+  '/admin/ad-zones': typeof AuthenticatedAdminAdZonesRoute
+  '/admin/ads': typeof AuthenticatedAdminAdsRoute
+  '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
+  '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/api': typeof AuthenticatedAdminApiRoute
+  '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
+  '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/admin/creatives': typeof AuthenticatedAdminCreativesRoute
+  '/admin/fraud': typeof AuthenticatedAdminFraudRoute
+  '/admin/health': typeof AuthenticatedAdminHealthRoute
+  '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
+  '/admin/policies': typeof AuthenticatedAdminPoliciesRouteWithChildren
+  '/admin/publishers': typeof AuthenticatedAdminPublishersRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/transactions': typeof AuthenticatedAdminTransactionsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/violations': typeof AuthenticatedAdminViolationsRoute
+  '/admin/websites': typeof AuthenticatedAdminWebsitesRoute
+  '/advertiser/advertisements': typeof AuthenticatedAdvertiserAdvertisementsRoute
+  '/advertiser/analytics': typeof AuthenticatedAdvertiserAnalyticsRoute
+  '/advertiser/api': typeof AuthenticatedAdvertiserApiRoute
+  '/advertiser/creatives': typeof AuthenticatedAdvertiserCreativesRoute
+  '/advertiser/settings': typeof AuthenticatedAdvertiserSettingsRoute
+  '/advertiser/transactions': typeof AuthenticatedAdvertiserTransactionsRoute
+  '/advertiser/wallet': typeof AuthenticatedAdvertiserWalletRoute
+  '/publisher/ad-preview': typeof AuthenticatedPublisherAdPreviewRoute
+  '/publisher/ad-zones': typeof AuthenticatedPublisherAdZonesRoute
+  '/publisher/analytics': typeof AuthenticatedPublisherAnalyticsRoute
+  '/publisher/api': typeof AuthenticatedPublisherApiRoute
+  '/publisher/earnings': typeof AuthenticatedPublisherEarningsRoute
+  '/publisher/get-started': typeof AuthenticatedPublisherGetStartedRoute
+  '/publisher/payouts': typeof AuthenticatedPublisherPayoutsRoute
+  '/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
+  '/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
+  '/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/public/ad': typeof ApiPublicAdRoute
+  '/api/public/ad-report': typeof ApiPublicAdReportRoute
+  '/api/public/click': typeof ApiPublicClickRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/impression': typeof ApiPublicImpressionRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
+  '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/pay': typeof ApiV1PayRoute
+  '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/advertiser': typeof AuthenticatedAdvertiserIndexRoute
+  '/publisher': typeof AuthenticatedPublisherIndexRoute
+  '/admin/policies/content': typeof AuthenticatedAdminPoliciesContentRoute
+  '/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
+  '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
+  '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
+  '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
+  '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
+  '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
+  '/api/v1/campaigns/$id': typeof ApiV1CampaignsIdRouteWithChildren
+  '/api/v1/events/click': typeof ApiV1EventsClickRoute
+  '/api/v1/events/impression': typeof ApiV1EventsImpressionRoute
+  '/api/v1/payments/$reference': typeof ApiV1PaymentsReferenceRoute
+  '/api/v1/wallet/currencies': typeof ApiV1WalletCurrenciesRoute
+  '/api/v1/wallet/payment-methods': typeof ApiV1WalletPaymentMethodsRoute
+  '/api/v1/wallet/transactions': typeof ApiV1WalletTransactionsRoute
+  '/api/v1/websites/$id': typeof ApiV1WebsitesIdRouteWithChildren
+  '/advertiser/campaigns': typeof AuthenticatedAdvertiserCampaignsIndexRoute
+  '/publisher/websites': typeof AuthenticatedPublisherWebsitesIndexRoute
+  '/api/v1/ad-zones': typeof ApiV1AdZonesIndexRoute
+  '/api/v1/ads': typeof ApiV1AdsIndexRoute
+  '/api/v1/api-keys': typeof ApiV1ApiKeysIndexRoute
+  '/api/v1/campaigns': typeof ApiV1CampaignsIndexRoute
+  '/api/v1/websites': typeof ApiV1WebsitesIndexRoute
+  '/api/v1/campaigns/$id/submit': typeof ApiV1CampaignsIdSubmitRoute
+  '/api/v1/websites/$id/verify': typeof ApiV1WebsitesIdVerifyRoute
+  '/api/v1/ads/[./.]': typeof ApiV1AdsChar91DotDotChar93ServedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/advertisers': typeof AdvertisersRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/publishers': typeof PublishersRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/terms': typeof TermsRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/publisher': typeof AuthenticatedPublisherRouteWithChildren
+  '/ad/loader.js': typeof AdLoaderDotjsRoute
+  '/payment/confirm': typeof PaymentConfirmRoute
+  '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies/': typeof PoliciesIndexRoute
+  '/_authenticated/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
+  '/_authenticated/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
+  '/_authenticated/admin/ad-zones': typeof AuthenticatedAdminAdZonesRoute
+  '/_authenticated/admin/ads': typeof AuthenticatedAdminAdsRoute
+  '/_authenticated/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
+  '/_authenticated/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/api': typeof AuthenticatedAdminApiRoute
+  '/_authenticated/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
+  '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
+  '/_authenticated/admin/creatives': typeof AuthenticatedAdminCreativesRoute
+  '/_authenticated/admin/fraud': typeof AuthenticatedAdminFraudRoute
+  '/_authenticated/admin/health': typeof AuthenticatedAdminHealthRoute
+  '/_authenticated/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
+  '/_authenticated/admin/policies': typeof AuthenticatedAdminPoliciesRouteWithChildren
+  '/_authenticated/admin/publishers': typeof AuthenticatedAdminPublishersRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/transactions': typeof AuthenticatedAdminTransactionsRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/violations': typeof AuthenticatedAdminViolationsRoute
+  '/_authenticated/admin/websites': typeof AuthenticatedAdminWebsitesRoute
+  '/_authenticated/advertiser/advertisements': typeof AuthenticatedAdvertiserAdvertisementsRoute
+  '/_authenticated/advertiser/analytics': typeof AuthenticatedAdvertiserAnalyticsRoute
+  '/_authenticated/advertiser/api': typeof AuthenticatedAdvertiserApiRoute
+  '/_authenticated/advertiser/creatives': typeof AuthenticatedAdvertiserCreativesRoute
+  '/_authenticated/advertiser/settings': typeof AuthenticatedAdvertiserSettingsRoute
+  '/_authenticated/advertiser/transactions': typeof AuthenticatedAdvertiserTransactionsRoute
+  '/_authenticated/advertiser/wallet': typeof AuthenticatedAdvertiserWalletRoute
+  '/_authenticated/publisher/ad-preview': typeof AuthenticatedPublisherAdPreviewRoute
+  '/_authenticated/publisher/ad-zones': typeof AuthenticatedPublisherAdZonesRoute
+  '/_authenticated/publisher/analytics': typeof AuthenticatedPublisherAnalyticsRoute
+  '/_authenticated/publisher/api': typeof AuthenticatedPublisherApiRoute
+  '/_authenticated/publisher/earnings': typeof AuthenticatedPublisherEarningsRoute
+  '/_authenticated/publisher/get-started': typeof AuthenticatedPublisherGetStartedRoute
+  '/_authenticated/publisher/payouts': typeof AuthenticatedPublisherPayoutsRoute
+  '/_authenticated/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
+  '/_authenticated/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
+  '/_authenticated/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/public/ad': typeof ApiPublicAdRoute
+  '/api/public/ad-report': typeof ApiPublicAdReportRoute
+  '/api/public/click': typeof ApiPublicClickRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/impression': typeof ApiPublicImpressionRoute
+  '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
+  '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/pay': typeof ApiV1PayRoute
+  '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/advertiser/': typeof AuthenticatedAdvertiserIndexRoute
+  '/_authenticated/publisher/': typeof AuthenticatedPublisherIndexRoute
+  '/_authenticated/admin/policies/content': typeof AuthenticatedAdminPoliciesContentRoute
+  '/_authenticated/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
+  '/_authenticated/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
+  '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
+  '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
+  '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
+  '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
+  '/api/v1/campaigns/$id': typeof ApiV1CampaignsIdRouteWithChildren
+  '/api/v1/events/click': typeof ApiV1EventsClickRoute
+  '/api/v1/events/impression': typeof ApiV1EventsImpressionRoute
+  '/api/v1/payments/$reference': typeof ApiV1PaymentsReferenceRoute
+  '/api/v1/wallet/currencies': typeof ApiV1WalletCurrenciesRoute
+  '/api/v1/wallet/payment-methods': typeof ApiV1WalletPaymentMethodsRoute
+  '/api/v1/wallet/transactions': typeof ApiV1WalletTransactionsRoute
+  '/api/v1/websites/$id': typeof ApiV1WebsitesIdRouteWithChildren
+  '/_authenticated/advertiser/campaigns/': typeof AuthenticatedAdvertiserCampaignsIndexRoute
+  '/_authenticated/publisher/websites/': typeof AuthenticatedPublisherWebsitesIndexRoute
+  '/api/v1/ad-zones/': typeof ApiV1AdZonesIndexRoute
+  '/api/v1/ads/': typeof ApiV1AdsIndexRoute
+  '/api/v1/api-keys/': typeof ApiV1ApiKeysIndexRoute
+  '/api/v1/campaigns/': typeof ApiV1CampaignsIndexRoute
+  '/api/v1/websites/': typeof ApiV1WebsitesIndexRoute
+  '/api/v1/campaigns/$id/submit': typeof ApiV1CampaignsIdSubmitRoute
+  '/api/v1/websites/$id/verify': typeof ApiV1WebsitesIdVerifyRoute
+  '/api/v1/ads/[./.]/_served': typeof ApiV1AdsChar91DotDotChar93ServedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/advertisers'
+    | '/auth'
+    | '/contact'
+    | '/forgot-password'
+    | '/help'
+    | '/pricing'
+    | '/privacy'
+    | '/publishers'
+    | '/reset-password'
+    | '/terms'
+    | '/account'
+    | '/admin'
+    | '/onboarding'
+    | '/publisher'
+    | '/ad/loader.js'
+    | '/payment/confirm'
+    | '/policies/$slug'
+    | '/policies/'
+    | '/admin/ad-reports'
+    | '/admin/ad-safety'
+    | '/admin/ad-zones'
+    | '/admin/ads'
+    | '/admin/ads-txt'
+    | '/admin/advertisers'
+    | '/admin/analytics'
+    | '/admin/api'
+    | '/admin/api-docs'
+    | '/admin/campaigns'
+    | '/admin/creatives'
+    | '/admin/fraud'
+    | '/admin/health'
+    | '/admin/payouts'
+    | '/admin/policies'
+    | '/admin/publishers'
+    | '/admin/settings'
+    | '/admin/transactions'
+    | '/admin/users'
+    | '/admin/violations'
+    | '/admin/websites'
+    | '/advertiser/advertisements'
+    | '/advertiser/analytics'
+    | '/advertiser/api'
+    | '/advertiser/creatives'
+    | '/advertiser/settings'
+    | '/advertiser/transactions'
+    | '/advertiser/wallet'
+    | '/publisher/ad-preview'
+    | '/publisher/ad-zones'
+    | '/publisher/analytics'
+    | '/publisher/api'
+    | '/publisher/earnings'
+    | '/publisher/get-started'
+    | '/publisher/payouts'
+    | '/publisher/policies'
+    | '/publisher/sandbox'
+    | '/publisher/settings'
+    | '/api/public/ad'
+    | '/api/public/ad-report'
+    | '/api/public/click'
+    | '/api/public/health'
+    | '/api/public/impression'
+    | '/api/public/openapi.json'
+    | '/api/v1/analytics'
+    | '/api/v1/pay'
+    | '/api/v1/wallet'
+    | '/admin/'
+    | '/advertiser/'
+    | '/publisher/'
+    | '/admin/policies/content'
+    | '/advertiser/campaigns/$campaignId'
+    | '/publisher/websites/$websiteId'
+    | '/api/public/pay/callback'
+    | '/api/v1/ad-zones/$id'
+    | '/api/v1/ads/$id'
+    | '/api/v1/ads/serve'
+    | '/api/v1/api-keys/$id'
+    | '/api/v1/campaigns/$id'
+    | '/api/v1/events/click'
+    | '/api/v1/events/impression'
+    | '/api/v1/payments/$reference'
+    | '/api/v1/wallet/currencies'
+    | '/api/v1/wallet/payment-methods'
+    | '/api/v1/wallet/transactions'
+    | '/api/v1/websites/$id'
+    | '/advertiser/campaigns/'
+    | '/publisher/websites/'
+    | '/api/v1/ad-zones/'
+    | '/api/v1/ads/'
+    | '/api/v1/api-keys/'
+    | '/api/v1/campaigns/'
+    | '/api/v1/websites/'
+    | '/api/v1/campaigns/$id/submit'
+    | '/api/v1/websites/$id/verify'
+    | '/api/v1/ads/[./.]'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/advertisers'
+    | '/auth'
+    | '/contact'
+    | '/forgot-password'
+    | '/help'
+    | '/pricing'
+    | '/privacy'
+    | '/publishers'
+    | '/reset-password'
+    | '/terms'
+    | '/account'
+    | '/onboarding'
+    | '/ad/loader.js'
+    | '/payment/confirm'
+    | '/policies/$slug'
+    | '/policies'
+    | '/admin/ad-reports'
+    | '/admin/ad-safety'
+    | '/admin/ad-zones'
+    | '/admin/ads'
+    | '/admin/ads-txt'
+    | '/admin/advertisers'
+    | '/admin/analytics'
+    | '/admin/api'
+    | '/admin/api-docs'
+    | '/admin/campaigns'
+    | '/admin/creatives'
+    | '/admin/fraud'
+    | '/admin/health'
+    | '/admin/payouts'
+    | '/admin/policies'
+    | '/admin/publishers'
+    | '/admin/settings'
+    | '/admin/transactions'
+    | '/admin/users'
+    | '/admin/violations'
+    | '/admin/websites'
+    | '/advertiser/advertisements'
+    | '/advertiser/analytics'
+    | '/advertiser/api'
+    | '/advertiser/creatives'
+    | '/advertiser/settings'
+    | '/advertiser/transactions'
+    | '/advertiser/wallet'
+    | '/publisher/ad-preview'
+    | '/publisher/ad-zones'
+    | '/publisher/analytics'
+    | '/publisher/api'
+    | '/publisher/earnings'
+    | '/publisher/get-started'
+    | '/publisher/payouts'
+    | '/publisher/policies'
+    | '/publisher/sandbox'
+    | '/publisher/settings'
+    | '/api/public/ad'
+    | '/api/public/ad-report'
+    | '/api/public/click'
+    | '/api/public/health'
+    | '/api/public/impression'
+    | '/api/public/openapi.json'
+    | '/api/v1/analytics'
+    | '/api/v1/pay'
+    | '/api/v1/wallet'
+    | '/admin'
+    | '/advertiser'
+    | '/publisher'
+    | '/admin/policies/content'
+    | '/advertiser/campaigns/$campaignId'
+    | '/publisher/websites/$websiteId'
+    | '/api/public/pay/callback'
+    | '/api/v1/ad-zones/$id'
+    | '/api/v1/ads/$id'
+    | '/api/v1/ads/serve'
+    | '/api/v1/api-keys/$id'
+    | '/api/v1/campaigns/$id'
+    | '/api/v1/events/click'
+    | '/api/v1/events/impression'
+    | '/api/v1/payments/$reference'
+    | '/api/v1/wallet/currencies'
+    | '/api/v1/wallet/payment-methods'
+    | '/api/v1/wallet/transactions'
+    | '/api/v1/websites/$id'
+    | '/advertiser/campaigns'
+    | '/publisher/websites'
+    | '/api/v1/ad-zones'
+    | '/api/v1/ads'
+    | '/api/v1/api-keys'
+    | '/api/v1/campaigns'
+    | '/api/v1/websites'
+    | '/api/v1/campaigns/$id/submit'
+    | '/api/v1/websites/$id/verify'
+    | '/api/v1/ads/[./.]'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/advertisers'
+    | '/auth'
+    | '/contact'
+    | '/forgot-password'
+    | '/help'
+    | '/pricing'
+    | '/privacy'
+    | '/publishers'
+    | '/reset-password'
+    | '/terms'
+    | '/_authenticated/account'
+    | '/_authenticated/admin'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/publisher'
+    | '/ad/loader.js'
+    | '/payment/confirm'
+    | '/policies/$slug'
+    | '/policies/'
+    | '/_authenticated/admin/ad-reports'
+    | '/_authenticated/admin/ad-safety'
+    | '/_authenticated/admin/ad-zones'
+    | '/_authenticated/admin/ads'
+    | '/_authenticated/admin/ads-txt'
+    | '/_authenticated/admin/advertisers'
+    | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/api'
+    | '/_authenticated/admin/api-docs'
+    | '/_authenticated/admin/campaigns'
+    | '/_authenticated/admin/creatives'
+    | '/_authenticated/admin/fraud'
+    | '/_authenticated/admin/health'
+    | '/_authenticated/admin/payouts'
+    | '/_authenticated/admin/policies'
+    | '/_authenticated/admin/publishers'
+    | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/transactions'
+    | '/_authenticated/admin/users'
+    | '/_authenticated/admin/violations'
+    | '/_authenticated/admin/websites'
+    | '/_authenticated/advertiser/advertisements'
+    | '/_authenticated/advertiser/analytics'
+    | '/_authenticated/advertiser/api'
+    | '/_authenticated/advertiser/creatives'
+    | '/_authenticated/advertiser/settings'
+    | '/_authenticated/advertiser/transactions'
+    | '/_authenticated/advertiser/wallet'
+    | '/_authenticated/publisher/ad-preview'
+    | '/_authenticated/publisher/ad-zones'
+    | '/_authenticated/publisher/analytics'
+    | '/_authenticated/publisher/api'
+    | '/_authenticated/publisher/earnings'
+    | '/_authenticated/publisher/get-started'
+    | '/_authenticated/publisher/payouts'
+    | '/_authenticated/publisher/policies'
+    | '/_authenticated/publisher/sandbox'
+    | '/_authenticated/publisher/settings'
+    | '/api/public/ad'
+    | '/api/public/ad-report'
+    | '/api/public/click'
+    | '/api/public/health'
+    | '/api/public/impression'
+    | '/api/public/openapi.json'
+    | '/api/v1/analytics'
+    | '/api/v1/pay'
+    | '/api/v1/wallet'
+    | '/_authenticated/admin/'
+    | '/_authenticated/advertiser/'
+    | '/_authenticated/publisher/'
+    | '/_authenticated/admin/policies/content'
+    | '/_authenticated/advertiser/campaigns/$campaignId'
+    | '/_authenticated/publisher/websites/$websiteId'
+    | '/api/public/pay/callback'
+    | '/api/v1/ad-zones/$id'
+    | '/api/v1/ads/$id'
+    | '/api/v1/ads/serve'
+    | '/api/v1/api-keys/$id'
+    | '/api/v1/campaigns/$id'
+    | '/api/v1/events/click'
+    | '/api/v1/events/impression'
+    | '/api/v1/payments/$reference'
+    | '/api/v1/wallet/currencies'
+    | '/api/v1/wallet/payment-methods'
+    | '/api/v1/wallet/transactions'
+    | '/api/v1/websites/$id'
+    | '/_authenticated/advertiser/campaigns/'
+    | '/_authenticated/publisher/websites/'
+    | '/api/v1/ad-zones/'
+    | '/api/v1/ads/'
+    | '/api/v1/api-keys/'
+    | '/api/v1/campaigns/'
+    | '/api/v1/websites/'
+    | '/api/v1/campaigns/$id/submit'
+    | '/api/v1/websites/$id/verify'
+    | '/api/v1/ads/[./.]/_served'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdvertisersRoute: typeof AdvertisersRoute
+  AuthRoute: typeof AuthRoute
+  ContactRoute: typeof ContactRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  HelpRoute: typeof HelpRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  PublishersRoute: typeof PublishersRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  TermsRoute: typeof TermsRoute
+  AdLoaderDotjsRoute: typeof AdLoaderDotjsRoute
+  PaymentConfirmRoute: typeof PaymentConfirmRoute
+  PoliciesSlugRoute: typeof PoliciesSlugRoute
+  PoliciesIndexRoute: typeof PoliciesIndexRoute
+  ApiPublicAdRoute: typeof ApiPublicAdRoute
+  ApiPublicAdReportRoute: typeof ApiPublicAdReportRoute
+  ApiPublicClickRoute: typeof ApiPublicClickRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicImpressionRoute: typeof ApiPublicImpressionRoute
+  ApiPublicOpenapiDotjsonRoute: typeof ApiPublicOpenapiDotjsonRoute
+  ApiV1AnalyticsRoute: typeof ApiV1AnalyticsRoute
+  ApiV1PayRoute: typeof ApiV1PayRoute
+  ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
+  ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
+  ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
+  ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
+  ApiV1AdsServeRoute: typeof ApiV1AdsServeRoute
+  ApiV1ApiKeysIdRoute: typeof ApiV1ApiKeysIdRoute
+  ApiV1CampaignsIdRoute: typeof ApiV1CampaignsIdRouteWithChildren
+  ApiV1EventsClickRoute: typeof ApiV1EventsClickRoute
+  ApiV1EventsImpressionRoute: typeof ApiV1EventsImpressionRoute
+  ApiV1PaymentsReferenceRoute: typeof ApiV1PaymentsReferenceRoute
+  ApiV1WebsitesIdRoute: typeof ApiV1WebsitesIdRouteWithChildren
+  ApiV1AdZonesIndexRoute: typeof ApiV1AdZonesIndexRoute
+  ApiV1AdsIndexRoute: typeof ApiV1AdsIndexRoute
+  ApiV1ApiKeysIndexRoute: typeof ApiV1ApiKeysIndexRoute
+  ApiV1CampaignsIndexRoute: typeof ApiV1CampaignsIndexRoute
+  ApiV1WebsitesIndexRoute: typeof ApiV1WebsitesIndexRoute
+  ApiV1AdsChar91DotDotChar93ServedRoute: typeof ApiV1AdsChar91DotDotChar93ServedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +1266,905 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/advertisers': {
+      id: '/advertisers'
+      path: '/advertisers'
+      fullPath: '/advertisers'
+      preLoaderRoute: typeof AdvertisersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publishers': {
+      id: '/publishers'
+      path: '/publishers'
+      fullPath: '/publishers'
+      preLoaderRoute: typeof PublishersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/publisher': {
+      id: '/_authenticated/publisher'
+      path: '/publisher'
+      fullPath: '/publisher'
+      preLoaderRoute: typeof AuthenticatedPublisherRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/ad/loader.js': {
+      id: '/ad/loader.js'
+      path: '/ad/loader.js'
+      fullPath: '/ad/loader.js'
+      preLoaderRoute: typeof AdLoaderDotjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/confirm': {
+      id: '/payment/confirm'
+      path: '/payment/confirm'
+      fullPath: '/payment/confirm'
+      preLoaderRoute: typeof PaymentConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/': {
+      id: '/policies/'
+      path: '/policies'
+      fullPath: '/policies/'
+      preLoaderRoute: typeof PoliciesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/$slug': {
+      id: '/policies/$slug'
+      path: '/policies/$slug'
+      fullPath: '/policies/$slug'
+      preLoaderRoute: typeof PoliciesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ad-reports': {
+      id: '/_authenticated/admin/ad-reports'
+      path: '/ad-reports'
+      fullPath: '/admin/ad-reports'
+      preLoaderRoute: typeof AuthenticatedAdminAdReportsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ad-safety': {
+      id: '/_authenticated/admin/ad-safety'
+      path: '/ad-safety'
+      fullPath: '/admin/ad-safety'
+      preLoaderRoute: typeof AuthenticatedAdminAdSafetyRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ad-zones': {
+      id: '/_authenticated/admin/ad-zones'
+      path: '/ad-zones'
+      fullPath: '/admin/ad-zones'
+      preLoaderRoute: typeof AuthenticatedAdminAdZonesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ads': {
+      id: '/_authenticated/admin/ads'
+      path: '/ads'
+      fullPath: '/admin/ads'
+      preLoaderRoute: typeof AuthenticatedAdminAdsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ads-txt': {
+      id: '/_authenticated/admin/ads-txt'
+      path: '/ads-txt'
+      fullPath: '/admin/ads-txt'
+      preLoaderRoute: typeof AuthenticatedAdminAdsTxtRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/advertisers': {
+      id: '/_authenticated/admin/advertisers'
+      path: '/advertisers'
+      fullPath: '/admin/advertisers'
+      preLoaderRoute: typeof AuthenticatedAdminAdvertisersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/api': {
+      id: '/_authenticated/admin/api'
+      path: '/api'
+      fullPath: '/admin/api'
+      preLoaderRoute: typeof AuthenticatedAdminApiRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/api-docs': {
+      id: '/_authenticated/admin/api-docs'
+      path: '/api-docs'
+      fullPath: '/admin/api-docs'
+      preLoaderRoute: typeof AuthenticatedAdminApiDocsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/campaigns': {
+      id: '/_authenticated/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns'
+      preLoaderRoute: typeof AuthenticatedAdminCampaignsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/creatives': {
+      id: '/_authenticated/admin/creatives'
+      path: '/creatives'
+      fullPath: '/admin/creatives'
+      preLoaderRoute: typeof AuthenticatedAdminCreativesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/fraud': {
+      id: '/_authenticated/admin/fraud'
+      path: '/fraud'
+      fullPath: '/admin/fraud'
+      preLoaderRoute: typeof AuthenticatedAdminFraudRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/health': {
+      id: '/_authenticated/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AuthenticatedAdminHealthRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/payouts': {
+      id: '/_authenticated/admin/payouts'
+      path: '/payouts'
+      fullPath: '/admin/payouts'
+      preLoaderRoute: typeof AuthenticatedAdminPayoutsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/policies': {
+      id: '/_authenticated/admin/policies'
+      path: '/policies'
+      fullPath: '/admin/policies'
+      preLoaderRoute: typeof AuthenticatedAdminPoliciesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/publishers': {
+      id: '/_authenticated/admin/publishers'
+      path: '/publishers'
+      fullPath: '/admin/publishers'
+      preLoaderRoute: typeof AuthenticatedAdminPublishersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/transactions': {
+      id: '/_authenticated/admin/transactions'
+      path: '/transactions'
+      fullPath: '/admin/transactions'
+      preLoaderRoute: typeof AuthenticatedAdminTransactionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/violations': {
+      id: '/_authenticated/admin/violations'
+      path: '/violations'
+      fullPath: '/admin/violations'
+      preLoaderRoute: typeof AuthenticatedAdminViolationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/websites': {
+      id: '/_authenticated/admin/websites'
+      path: '/websites'
+      fullPath: '/admin/websites'
+      preLoaderRoute: typeof AuthenticatedAdminWebsitesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/advertiser/': {
+      id: '/_authenticated/advertiser/'
+      path: '/advertiser'
+      fullPath: '/advertiser/'
+      preLoaderRoute: typeof AuthenticatedAdvertiserIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/advertisements': {
+      id: '/_authenticated/advertiser/advertisements'
+      path: '/advertiser/advertisements'
+      fullPath: '/advertiser/advertisements'
+      preLoaderRoute: typeof AuthenticatedAdvertiserAdvertisementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/analytics': {
+      id: '/_authenticated/advertiser/analytics'
+      path: '/advertiser/analytics'
+      fullPath: '/advertiser/analytics'
+      preLoaderRoute: typeof AuthenticatedAdvertiserAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/api': {
+      id: '/_authenticated/advertiser/api'
+      path: '/advertiser/api'
+      fullPath: '/advertiser/api'
+      preLoaderRoute: typeof AuthenticatedAdvertiserApiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/creatives': {
+      id: '/_authenticated/advertiser/creatives'
+      path: '/advertiser/creatives'
+      fullPath: '/advertiser/creatives'
+      preLoaderRoute: typeof AuthenticatedAdvertiserCreativesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/settings': {
+      id: '/_authenticated/advertiser/settings'
+      path: '/advertiser/settings'
+      fullPath: '/advertiser/settings'
+      preLoaderRoute: typeof AuthenticatedAdvertiserSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/transactions': {
+      id: '/_authenticated/advertiser/transactions'
+      path: '/advertiser/transactions'
+      fullPath: '/advertiser/transactions'
+      preLoaderRoute: typeof AuthenticatedAdvertiserTransactionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/wallet': {
+      id: '/_authenticated/advertiser/wallet'
+      path: '/advertiser/wallet'
+      fullPath: '/advertiser/wallet'
+      preLoaderRoute: typeof AuthenticatedAdvertiserWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/publisher/': {
+      id: '/_authenticated/publisher/'
+      path: '/'
+      fullPath: '/publisher/'
+      preLoaderRoute: typeof AuthenticatedPublisherIndexRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/ad-preview': {
+      id: '/_authenticated/publisher/ad-preview'
+      path: '/ad-preview'
+      fullPath: '/publisher/ad-preview'
+      preLoaderRoute: typeof AuthenticatedPublisherAdPreviewRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/ad-zones': {
+      id: '/_authenticated/publisher/ad-zones'
+      path: '/ad-zones'
+      fullPath: '/publisher/ad-zones'
+      preLoaderRoute: typeof AuthenticatedPublisherAdZonesRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/analytics': {
+      id: '/_authenticated/publisher/analytics'
+      path: '/analytics'
+      fullPath: '/publisher/analytics'
+      preLoaderRoute: typeof AuthenticatedPublisherAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/api': {
+      id: '/_authenticated/publisher/api'
+      path: '/api'
+      fullPath: '/publisher/api'
+      preLoaderRoute: typeof AuthenticatedPublisherApiRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/earnings': {
+      id: '/_authenticated/publisher/earnings'
+      path: '/earnings'
+      fullPath: '/publisher/earnings'
+      preLoaderRoute: typeof AuthenticatedPublisherEarningsRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/get-started': {
+      id: '/_authenticated/publisher/get-started'
+      path: '/get-started'
+      fullPath: '/publisher/get-started'
+      preLoaderRoute: typeof AuthenticatedPublisherGetStartedRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/payouts': {
+      id: '/_authenticated/publisher/payouts'
+      path: '/payouts'
+      fullPath: '/publisher/payouts'
+      preLoaderRoute: typeof AuthenticatedPublisherPayoutsRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/policies': {
+      id: '/_authenticated/publisher/policies'
+      path: '/policies'
+      fullPath: '/publisher/policies'
+      preLoaderRoute: typeof AuthenticatedPublisherPoliciesRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/sandbox': {
+      id: '/_authenticated/publisher/sandbox'
+      path: '/sandbox'
+      fullPath: '/publisher/sandbox'
+      preLoaderRoute: typeof AuthenticatedPublisherSandboxRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/settings': {
+      id: '/_authenticated/publisher/settings'
+      path: '/settings'
+      fullPath: '/publisher/settings'
+      preLoaderRoute: typeof AuthenticatedPublisherSettingsRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/api/public/ad': {
+      id: '/api/public/ad'
+      path: '/api/public/ad'
+      fullPath: '/api/public/ad'
+      preLoaderRoute: typeof ApiPublicAdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ad-report': {
+      id: '/api/public/ad-report'
+      path: '/api/public/ad-report'
+      fullPath: '/api/public/ad-report'
+      preLoaderRoute: typeof ApiPublicAdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/click': {
+      id: '/api/public/click'
+      path: '/api/public/click'
+      fullPath: '/api/public/click'
+      preLoaderRoute: typeof ApiPublicClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/impression': {
+      id: '/api/public/impression'
+      path: '/api/public/impression'
+      fullPath: '/api/public/impression'
+      preLoaderRoute: typeof ApiPublicImpressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/openapi.json': {
+      id: '/api/public/openapi.json'
+      path: '/api/public/openapi.json'
+      fullPath: '/api/public/openapi.json'
+      preLoaderRoute: typeof ApiPublicOpenapiDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/analytics': {
+      id: '/api/v1/analytics'
+      path: '/api/v1/analytics'
+      fullPath: '/api/v1/analytics'
+      preLoaderRoute: typeof ApiV1AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/pay': {
+      id: '/api/v1/pay'
+      path: '/api/v1/pay'
+      fullPath: '/api/v1/pay'
+      preLoaderRoute: typeof ApiV1PayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet': {
+      id: '/api/v1/wallet'
+      path: '/api/v1/wallet'
+      fullPath: '/api/v1/wallet'
+      preLoaderRoute: typeof ApiV1WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/policies/content': {
+      id: '/_authenticated/admin/policies/content'
+      path: '/content'
+      fullPath: '/admin/policies/content'
+      preLoaderRoute: typeof AuthenticatedAdminPoliciesContentRouteImport
+      parentRoute: typeof AuthenticatedAdminPoliciesRoute
+    }
+    '/_authenticated/advertiser/campaigns/': {
+      id: '/_authenticated/advertiser/campaigns/'
+      path: '/advertiser/campaigns'
+      fullPath: '/advertiser/campaigns/'
+      preLoaderRoute: typeof AuthenticatedAdvertiserCampaignsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/advertiser/campaigns/$campaignId': {
+      id: '/_authenticated/advertiser/campaigns/$campaignId'
+      path: '/advertiser/campaigns/$campaignId'
+      fullPath: '/advertiser/campaigns/$campaignId'
+      preLoaderRoute: typeof AuthenticatedAdvertiserCampaignsCampaignIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/publisher/websites/': {
+      id: '/_authenticated/publisher/websites/'
+      path: '/websites'
+      fullPath: '/publisher/websites/'
+      preLoaderRoute: typeof AuthenticatedPublisherWebsitesIndexRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/_authenticated/publisher/websites/$websiteId': {
+      id: '/_authenticated/publisher/websites/$websiteId'
+      path: '/websites/$websiteId'
+      fullPath: '/publisher/websites/$websiteId'
+      preLoaderRoute: typeof AuthenticatedPublisherWebsitesWebsiteIdRouteImport
+      parentRoute: typeof AuthenticatedPublisherRoute
+    }
+    '/api/public/pay/callback': {
+      id: '/api/public/pay/callback'
+      path: '/api/public/pay/callback'
+      fullPath: '/api/public/pay/callback'
+      preLoaderRoute: typeof ApiPublicPayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ad-zones/': {
+      id: '/api/v1/ad-zones/'
+      path: '/api/v1/ad-zones'
+      fullPath: '/api/v1/ad-zones/'
+      preLoaderRoute: typeof ApiV1AdZonesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ad-zones/$id': {
+      id: '/api/v1/ad-zones/$id'
+      path: '/api/v1/ad-zones/$id'
+      fullPath: '/api/v1/ad-zones/$id'
+      preLoaderRoute: typeof ApiV1AdZonesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ads/': {
+      id: '/api/v1/ads/'
+      path: '/api/v1/ads'
+      fullPath: '/api/v1/ads/'
+      preLoaderRoute: typeof ApiV1AdsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ads/$id': {
+      id: '/api/v1/ads/$id'
+      path: '/api/v1/ads/$id'
+      fullPath: '/api/v1/ads/$id'
+      preLoaderRoute: typeof ApiV1AdsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ads/serve': {
+      id: '/api/v1/ads/serve'
+      path: '/api/v1/ads/serve'
+      fullPath: '/api/v1/ads/serve'
+      preLoaderRoute: typeof ApiV1AdsServeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/api-keys/': {
+      id: '/api/v1/api-keys/'
+      path: '/api/v1/api-keys'
+      fullPath: '/api/v1/api-keys/'
+      preLoaderRoute: typeof ApiV1ApiKeysIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/api-keys/$id': {
+      id: '/api/v1/api-keys/$id'
+      path: '/api/v1/api-keys/$id'
+      fullPath: '/api/v1/api-keys/$id'
+      preLoaderRoute: typeof ApiV1ApiKeysIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/campaigns/': {
+      id: '/api/v1/campaigns/'
+      path: '/api/v1/campaigns'
+      fullPath: '/api/v1/campaigns/'
+      preLoaderRoute: typeof ApiV1CampaignsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/campaigns/$id': {
+      id: '/api/v1/campaigns/$id'
+      path: '/api/v1/campaigns/$id'
+      fullPath: '/api/v1/campaigns/$id'
+      preLoaderRoute: typeof ApiV1CampaignsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/events/click': {
+      id: '/api/v1/events/click'
+      path: '/api/v1/events/click'
+      fullPath: '/api/v1/events/click'
+      preLoaderRoute: typeof ApiV1EventsClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/events/impression': {
+      id: '/api/v1/events/impression'
+      path: '/api/v1/events/impression'
+      fullPath: '/api/v1/events/impression'
+      preLoaderRoute: typeof ApiV1EventsImpressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/payments/$reference': {
+      id: '/api/v1/payments/$reference'
+      path: '/api/v1/payments/$reference'
+      fullPath: '/api/v1/payments/$reference'
+      preLoaderRoute: typeof ApiV1PaymentsReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/wallet/currencies': {
+      id: '/api/v1/wallet/currencies'
+      path: '/currencies'
+      fullPath: '/api/v1/wallet/currencies'
+      preLoaderRoute: typeof ApiV1WalletCurrenciesRouteImport
+      parentRoute: typeof ApiV1WalletRoute
+    }
+    '/api/v1/wallet/payment-methods': {
+      id: '/api/v1/wallet/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/api/v1/wallet/payment-methods'
+      preLoaderRoute: typeof ApiV1WalletPaymentMethodsRouteImport
+      parentRoute: typeof ApiV1WalletRoute
+    }
+    '/api/v1/wallet/transactions': {
+      id: '/api/v1/wallet/transactions'
+      path: '/transactions'
+      fullPath: '/api/v1/wallet/transactions'
+      preLoaderRoute: typeof ApiV1WalletTransactionsRouteImport
+      parentRoute: typeof ApiV1WalletRoute
+    }
+    '/api/v1/websites/': {
+      id: '/api/v1/websites/'
+      path: '/api/v1/websites'
+      fullPath: '/api/v1/websites/'
+      preLoaderRoute: typeof ApiV1WebsitesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/websites/$id': {
+      id: '/api/v1/websites/$id'
+      path: '/api/v1/websites/$id'
+      fullPath: '/api/v1/websites/$id'
+      preLoaderRoute: typeof ApiV1WebsitesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/campaigns/$id/submit': {
+      id: '/api/v1/campaigns/$id/submit'
+      path: '/submit'
+      fullPath: '/api/v1/campaigns/$id/submit'
+      preLoaderRoute: typeof ApiV1CampaignsIdSubmitRouteImport
+      parentRoute: typeof ApiV1CampaignsIdRoute
+    }
+    '/api/v1/websites/$id/verify': {
+      id: '/api/v1/websites/$id/verify'
+      path: '/verify'
+      fullPath: '/api/v1/websites/$id/verify'
+      preLoaderRoute: typeof ApiV1WebsitesIdVerifyRouteImport
+      parentRoute: typeof ApiV1WebsitesIdRoute
+    }
+    '/api/v1/ads/[./.]/_served': {
+      id: '/api/v1/ads/[./.]/_served'
+      path: '/api/v1/ads/[./.]'
+      fullPath: '/api/v1/ads/[./.]'
+      preLoaderRoute: typeof ApiV1AdsChar91DotDotChar93ServedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedAdminPoliciesRouteChildren {
+  AuthenticatedAdminPoliciesContentRoute: typeof AuthenticatedAdminPoliciesContentRoute
+}
+
+const AuthenticatedAdminPoliciesRouteChildren: AuthenticatedAdminPoliciesRouteChildren =
+  {
+    AuthenticatedAdminPoliciesContentRoute:
+      AuthenticatedAdminPoliciesContentRoute,
+  }
+
+const AuthenticatedAdminPoliciesRouteWithChildren =
+  AuthenticatedAdminPoliciesRoute._addFileChildren(
+    AuthenticatedAdminPoliciesRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAdReportsRoute: typeof AuthenticatedAdminAdReportsRoute
+  AuthenticatedAdminAdSafetyRoute: typeof AuthenticatedAdminAdSafetyRoute
+  AuthenticatedAdminAdZonesRoute: typeof AuthenticatedAdminAdZonesRoute
+  AuthenticatedAdminAdsRoute: typeof AuthenticatedAdminAdsRoute
+  AuthenticatedAdminAdsTxtRoute: typeof AuthenticatedAdminAdsTxtRoute
+  AuthenticatedAdminAdvertisersRoute: typeof AuthenticatedAdminAdvertisersRoute
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminApiRoute: typeof AuthenticatedAdminApiRoute
+  AuthenticatedAdminApiDocsRoute: typeof AuthenticatedAdminApiDocsRoute
+  AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
+  AuthenticatedAdminCreativesRoute: typeof AuthenticatedAdminCreativesRoute
+  AuthenticatedAdminFraudRoute: typeof AuthenticatedAdminFraudRoute
+  AuthenticatedAdminHealthRoute: typeof AuthenticatedAdminHealthRoute
+  AuthenticatedAdminPayoutsRoute: typeof AuthenticatedAdminPayoutsRoute
+  AuthenticatedAdminPoliciesRoute: typeof AuthenticatedAdminPoliciesRouteWithChildren
+  AuthenticatedAdminPublishersRoute: typeof AuthenticatedAdminPublishersRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminTransactionsRoute: typeof AuthenticatedAdminTransactionsRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminViolationsRoute: typeof AuthenticatedAdminViolationsRoute
+  AuthenticatedAdminWebsitesRoute: typeof AuthenticatedAdminWebsitesRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAdReportsRoute: AuthenticatedAdminAdReportsRoute,
+  AuthenticatedAdminAdSafetyRoute: AuthenticatedAdminAdSafetyRoute,
+  AuthenticatedAdminAdZonesRoute: AuthenticatedAdminAdZonesRoute,
+  AuthenticatedAdminAdsRoute: AuthenticatedAdminAdsRoute,
+  AuthenticatedAdminAdsTxtRoute: AuthenticatedAdminAdsTxtRoute,
+  AuthenticatedAdminAdvertisersRoute: AuthenticatedAdminAdvertisersRoute,
+  AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminApiRoute: AuthenticatedAdminApiRoute,
+  AuthenticatedAdminApiDocsRoute: AuthenticatedAdminApiDocsRoute,
+  AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
+  AuthenticatedAdminCreativesRoute: AuthenticatedAdminCreativesRoute,
+  AuthenticatedAdminFraudRoute: AuthenticatedAdminFraudRoute,
+  AuthenticatedAdminHealthRoute: AuthenticatedAdminHealthRoute,
+  AuthenticatedAdminPayoutsRoute: AuthenticatedAdminPayoutsRoute,
+  AuthenticatedAdminPoliciesRoute: AuthenticatedAdminPoliciesRouteWithChildren,
+  AuthenticatedAdminPublishersRoute: AuthenticatedAdminPublishersRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminTransactionsRoute: AuthenticatedAdminTransactionsRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedAdminViolationsRoute: AuthenticatedAdminViolationsRoute,
+  AuthenticatedAdminWebsitesRoute: AuthenticatedAdminWebsitesRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
+interface AuthenticatedPublisherRouteChildren {
+  AuthenticatedPublisherAdPreviewRoute: typeof AuthenticatedPublisherAdPreviewRoute
+  AuthenticatedPublisherAdZonesRoute: typeof AuthenticatedPublisherAdZonesRoute
+  AuthenticatedPublisherAnalyticsRoute: typeof AuthenticatedPublisherAnalyticsRoute
+  AuthenticatedPublisherApiRoute: typeof AuthenticatedPublisherApiRoute
+  AuthenticatedPublisherEarningsRoute: typeof AuthenticatedPublisherEarningsRoute
+  AuthenticatedPublisherGetStartedRoute: typeof AuthenticatedPublisherGetStartedRoute
+  AuthenticatedPublisherPayoutsRoute: typeof AuthenticatedPublisherPayoutsRoute
+  AuthenticatedPublisherPoliciesRoute: typeof AuthenticatedPublisherPoliciesRoute
+  AuthenticatedPublisherSandboxRoute: typeof AuthenticatedPublisherSandboxRoute
+  AuthenticatedPublisherSettingsRoute: typeof AuthenticatedPublisherSettingsRoute
+  AuthenticatedPublisherIndexRoute: typeof AuthenticatedPublisherIndexRoute
+  AuthenticatedPublisherWebsitesWebsiteIdRoute: typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
+  AuthenticatedPublisherWebsitesIndexRoute: typeof AuthenticatedPublisherWebsitesIndexRoute
+}
+
+const AuthenticatedPublisherRouteChildren: AuthenticatedPublisherRouteChildren =
+  {
+    AuthenticatedPublisherAdPreviewRoute: AuthenticatedPublisherAdPreviewRoute,
+    AuthenticatedPublisherAdZonesRoute: AuthenticatedPublisherAdZonesRoute,
+    AuthenticatedPublisherAnalyticsRoute: AuthenticatedPublisherAnalyticsRoute,
+    AuthenticatedPublisherApiRoute: AuthenticatedPublisherApiRoute,
+    AuthenticatedPublisherEarningsRoute: AuthenticatedPublisherEarningsRoute,
+    AuthenticatedPublisherGetStartedRoute:
+      AuthenticatedPublisherGetStartedRoute,
+    AuthenticatedPublisherPayoutsRoute: AuthenticatedPublisherPayoutsRoute,
+    AuthenticatedPublisherPoliciesRoute: AuthenticatedPublisherPoliciesRoute,
+    AuthenticatedPublisherSandboxRoute: AuthenticatedPublisherSandboxRoute,
+    AuthenticatedPublisherSettingsRoute: AuthenticatedPublisherSettingsRoute,
+    AuthenticatedPublisherIndexRoute: AuthenticatedPublisherIndexRoute,
+    AuthenticatedPublisherWebsitesWebsiteIdRoute:
+      AuthenticatedPublisherWebsitesWebsiteIdRoute,
+    AuthenticatedPublisherWebsitesIndexRoute:
+      AuthenticatedPublisherWebsitesIndexRoute,
+  }
+
+const AuthenticatedPublisherRouteWithChildren =
+  AuthenticatedPublisherRoute._addFileChildren(
+    AuthenticatedPublisherRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPublisherRoute: typeof AuthenticatedPublisherRouteWithChildren
+  AuthenticatedAdvertiserAdvertisementsRoute: typeof AuthenticatedAdvertiserAdvertisementsRoute
+  AuthenticatedAdvertiserAnalyticsRoute: typeof AuthenticatedAdvertiserAnalyticsRoute
+  AuthenticatedAdvertiserApiRoute: typeof AuthenticatedAdvertiserApiRoute
+  AuthenticatedAdvertiserCreativesRoute: typeof AuthenticatedAdvertiserCreativesRoute
+  AuthenticatedAdvertiserSettingsRoute: typeof AuthenticatedAdvertiserSettingsRoute
+  AuthenticatedAdvertiserTransactionsRoute: typeof AuthenticatedAdvertiserTransactionsRoute
+  AuthenticatedAdvertiserWalletRoute: typeof AuthenticatedAdvertiserWalletRoute
+  AuthenticatedAdvertiserIndexRoute: typeof AuthenticatedAdvertiserIndexRoute
+  AuthenticatedAdvertiserCampaignsCampaignIdRoute: typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
+  AuthenticatedAdvertiserCampaignsIndexRoute: typeof AuthenticatedAdvertiserCampaignsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPublisherRoute: AuthenticatedPublisherRouteWithChildren,
+  AuthenticatedAdvertiserAdvertisementsRoute:
+    AuthenticatedAdvertiserAdvertisementsRoute,
+  AuthenticatedAdvertiserAnalyticsRoute: AuthenticatedAdvertiserAnalyticsRoute,
+  AuthenticatedAdvertiserApiRoute: AuthenticatedAdvertiserApiRoute,
+  AuthenticatedAdvertiserCreativesRoute: AuthenticatedAdvertiserCreativesRoute,
+  AuthenticatedAdvertiserSettingsRoute: AuthenticatedAdvertiserSettingsRoute,
+  AuthenticatedAdvertiserTransactionsRoute:
+    AuthenticatedAdvertiserTransactionsRoute,
+  AuthenticatedAdvertiserWalletRoute: AuthenticatedAdvertiserWalletRoute,
+  AuthenticatedAdvertiserIndexRoute: AuthenticatedAdvertiserIndexRoute,
+  AuthenticatedAdvertiserCampaignsCampaignIdRoute:
+    AuthenticatedAdvertiserCampaignsCampaignIdRoute,
+  AuthenticatedAdvertiserCampaignsIndexRoute:
+    AuthenticatedAdvertiserCampaignsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface ApiV1WalletRouteChildren {
+  ApiV1WalletCurrenciesRoute: typeof ApiV1WalletCurrenciesRoute
+  ApiV1WalletPaymentMethodsRoute: typeof ApiV1WalletPaymentMethodsRoute
+  ApiV1WalletTransactionsRoute: typeof ApiV1WalletTransactionsRoute
+}
+
+const ApiV1WalletRouteChildren: ApiV1WalletRouteChildren = {
+  ApiV1WalletCurrenciesRoute: ApiV1WalletCurrenciesRoute,
+  ApiV1WalletPaymentMethodsRoute: ApiV1WalletPaymentMethodsRoute,
+  ApiV1WalletTransactionsRoute: ApiV1WalletTransactionsRoute,
+}
+
+const ApiV1WalletRouteWithChildren = ApiV1WalletRoute._addFileChildren(
+  ApiV1WalletRouteChildren,
+)
+
+interface ApiV1CampaignsIdRouteChildren {
+  ApiV1CampaignsIdSubmitRoute: typeof ApiV1CampaignsIdSubmitRoute
+}
+
+const ApiV1CampaignsIdRouteChildren: ApiV1CampaignsIdRouteChildren = {
+  ApiV1CampaignsIdSubmitRoute: ApiV1CampaignsIdSubmitRoute,
+}
+
+const ApiV1CampaignsIdRouteWithChildren =
+  ApiV1CampaignsIdRoute._addFileChildren(ApiV1CampaignsIdRouteChildren)
+
+interface ApiV1WebsitesIdRouteChildren {
+  ApiV1WebsitesIdVerifyRoute: typeof ApiV1WebsitesIdVerifyRoute
+}
+
+const ApiV1WebsitesIdRouteChildren: ApiV1WebsitesIdRouteChildren = {
+  ApiV1WebsitesIdVerifyRoute: ApiV1WebsitesIdVerifyRoute,
+}
+
+const ApiV1WebsitesIdRouteWithChildren = ApiV1WebsitesIdRoute._addFileChildren(
+  ApiV1WebsitesIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdvertisersRoute: AdvertisersRoute,
+  AuthRoute: AuthRoute,
+  ContactRoute: ContactRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  HelpRoute: HelpRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  PublishersRoute: PublishersRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  TermsRoute: TermsRoute,
+  AdLoaderDotjsRoute: AdLoaderDotjsRoute,
+  PaymentConfirmRoute: PaymentConfirmRoute,
+  PoliciesSlugRoute: PoliciesSlugRoute,
+  PoliciesIndexRoute: PoliciesIndexRoute,
+  ApiPublicAdRoute: ApiPublicAdRoute,
+  ApiPublicAdReportRoute: ApiPublicAdReportRoute,
+  ApiPublicClickRoute: ApiPublicClickRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicImpressionRoute: ApiPublicImpressionRoute,
+  ApiPublicOpenapiDotjsonRoute: ApiPublicOpenapiDotjsonRoute,
+  ApiV1AnalyticsRoute: ApiV1AnalyticsRoute,
+  ApiV1PayRoute: ApiV1PayRoute,
+  ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
+  ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
+  ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
+  ApiV1AdsIdRoute: ApiV1AdsIdRoute,
+  ApiV1AdsServeRoute: ApiV1AdsServeRoute,
+  ApiV1ApiKeysIdRoute: ApiV1ApiKeysIdRoute,
+  ApiV1CampaignsIdRoute: ApiV1CampaignsIdRouteWithChildren,
+  ApiV1EventsClickRoute: ApiV1EventsClickRoute,
+  ApiV1EventsImpressionRoute: ApiV1EventsImpressionRoute,
+  ApiV1PaymentsReferenceRoute: ApiV1PaymentsReferenceRoute,
+  ApiV1WebsitesIdRoute: ApiV1WebsitesIdRouteWithChildren,
+  ApiV1AdZonesIndexRoute: ApiV1AdZonesIndexRoute,
+  ApiV1AdsIndexRoute: ApiV1AdsIndexRoute,
+  ApiV1ApiKeysIndexRoute: ApiV1ApiKeysIndexRoute,
+  ApiV1CampaignsIndexRoute: ApiV1CampaignsIndexRoute,
+  ApiV1WebsitesIndexRoute: ApiV1WebsitesIndexRoute,
+  ApiV1AdsChar91DotDotChar93ServedRoute: ApiV1AdsChar91DotDotChar93ServedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
