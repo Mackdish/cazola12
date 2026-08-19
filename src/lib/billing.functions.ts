@@ -38,9 +38,14 @@ export const fetchWallet = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
     z.object({ organizationId: uuid, currency: z.string().length(3).optional() }).parse(data),
   )
-  .handler(({ data, context }) =>
-    getWallet(context, data.organizationId, data.currency ?? "KES"),
+  .handler(async ({ data, context }) =>
+    getWallet(
+      await paymentCtx(context as never, data.organizationId),
+      data.organizationId,
+      data.currency ?? "KES",
+    ),
   );
+
 
 export const fetchWallets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
