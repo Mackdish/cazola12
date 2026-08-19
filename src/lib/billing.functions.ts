@@ -260,6 +260,35 @@ export const fetchAdminDeposits = createServerFn({ method: "GET" })
 
 // ------------------------------------------------------------------- payments
 
+/**
+ * Payment flows touch SECURITY DEFINER money functions that signed-in users
+ * cannot execute directly. We authorize the caller against the organization
+ * first, then run the flow with the trusted server client.
+ */
+async function paymentCtx(context: { supabase: any; userId: string }, organizationId: string) {
+  const { data: isMember, error } = await context.supabase.rpc("is_org_member", {
+    _organization_id: organizationId,
+    _user_id: context.userId,
+  });
+  if (error || !isMember) throw new Error("You don't have access to this organization.");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return { supabase: supabaseAdmin as never, userId: context.userId } as never;
+}
+
+async function paymentCtxForReference(
+  context: { supabase: any; userId: string },
+  reference: string,
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: payment } = await (supabaseAdmin as any)
+    .from("payments")
+    .select("organization_id")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!payment) throw new Error("Payment not found.");
+  return paymentCtx(context, payment.organization_id as string);
+}
+
 export const initiatePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) =>
@@ -274,8 +303,8 @@ export const initiatePayment = createServerFn({ method: "POST" })
       })
       .parse(data),
   )
-  .handler(({ data, context }) =>
-    initializePayment(context, {
+  .handler(async ({ data, context }) =>
+    initializePayment(await paymentCtx(context as never, data.organizationId), {
       organizationId: data.organizationId,
       amount: data.amount,
       countryCode: data.countryCode,
@@ -290,7 +319,10 @@ export const fetchPaymentStatus = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
     z.object({ reference: z.string().min(1) }).parse(data),
   )
-  .handler(({ data, context }) => getPaymentStatus(context, data.reference));
+  .handler(async ({ data, context }) =>
+    getPaymentStatus(await paymentCtxForReference(context as never, data.reference), data.reference),
+  );
+
 
 /**
  * Confirmation-page fallback: if the webhook hasn't landed yet, verify the
