@@ -333,7 +333,8 @@ export const confirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ reference: z.string().min(1).max(120) }).parse(data))
   .handler(async ({ data, context }) => {
-    const current = await getPaymentStatus(context, data.reference);
+    const ctx = await paymentCtxForReference(context as never, data.reference);
+    const current = await getPaymentStatus(ctx, data.reference);
     if (current.status === "completed" || current.status === "failed" || current.status === "cancelled") {
       return { ...current, verified: false };
     }
@@ -341,7 +342,7 @@ export const confirmPayment = createServerFn({ method: "POST" })
     const { verifyAndCompletePayment } = await import("@/lib/payment-orchestrator.server");
     try {
       const result = await verifyAndCompletePayment(
-        context,
+        ctx,
         data.reference,
         current.provider ?? "payzaapi",
       );
