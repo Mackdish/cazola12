@@ -2939,12 +2939,6 @@ export type Database = {
           organization_id: string
           updated_at: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "wallets"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       fail_payment: {
         Args: {
