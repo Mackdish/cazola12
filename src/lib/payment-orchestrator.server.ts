@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult, WebhookVerificationResult } from "@/lib/payment-provider.interface";
 import { payzaApiProvider, normalizeMpesaPhone, getCallbackUrl, getAppBaseUrl, CurrencyUnavailableError } from "@/lib/payzaapi.server";
+import { optimaPayProvider } from "@/lib/optimapay.server";
 import { logAuditEvent } from "@/lib/audit-log.server";
 import { getSupportedCurrencies } from "@/lib/payment-config.server";
 
@@ -24,6 +25,7 @@ function fail(message: string): never {
 
 const providers = new Map<string, PaymentProvider>([
   ["payzaapi", payzaApiProvider],
+  ["optimapay", optimaPayProvider],
 ]);
 
 export function registerProvider(provider: PaymentProvider): void {
