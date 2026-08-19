@@ -50,7 +50,10 @@ export const fetchWallet = createServerFn({ method: "GET" })
 export const fetchWallets = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => orgInput.parse(data))
-  .handler(({ data, context }) => getWallets(context, data.organizationId));
+  .handler(async ({ data, context }) =>
+    getWallets(await paymentCtx(context as never, data.organizationId), data.organizationId),
+  );
+
 
 export const fetchSupportedCurrencies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
