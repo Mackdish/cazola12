@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { ArrowRight, ChevronRight, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { toast } from "sonner";
 import { pageMetadata } from "@/lib/seo";
+import { supabase } from "@/integrations/supabase/client";
+
+const contactSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+  email: z.string().email("Enter a valid email address").max(254),
+  subject: z.string().min(1, "Subject is required").max(200),
+  message: z.string().min(1, "Message is required").max(5000),
+  website: z.string().max(0, "Honeypot must be empty").optional(),
+});
 
 export const Route = createFileRoute("/contact")({
   head: () => pageMetadata({
@@ -36,24 +46,39 @@ function ContactPage() {
     setError(null);
     setSubmitted(false);
 
-    if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
-      setError("Please fill in all fields.");
+    const websiteValue = (e.currentTarget.elements.namedItem("website") as HTMLInputElement | null)?.value || "";
+
+    const formData = {
+      name: name.trim(),
+      email: email.trim(),
+      subject: subject.trim(),
+      message: message.trim(),
+      website: websiteValue,
+    };
+
+    const parsed = contactSchema.safeParse(formData);
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const firstError = Object.values(fieldErrors).flat()[0];
+      setError(firstError || "Please check your input.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/v1/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }),
+      const { data, error: invokeError } = await supabase.functions.invoke("submit-contact", {
+        body: {
+          name: parsed.data.name,
+          email: parsed.data.email,
+          subject: parsed.data.subject,
+          message: parsed.data.message,
+        },
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Something went wrong. Please try again.");
+      if (invokeError || !data?.ok) {
+        const message = data?.message || invokeError?.message || "Something went wrong. Please try again.";
+        throw new Error(message);
       }
 
       setSubmitted(true);
@@ -113,6 +138,7 @@ function ContactPage() {
                       <Label htmlFor="name">Name</Label>
                       <Input
                         id="name"
+                        name="name"
                         placeholder="Your name"
                         required
                         value={name}
@@ -124,6 +150,7 @@ function ContactPage() {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
+                        name="email"
                         type="email"
                         placeholder="you@example.com"
                         required
@@ -136,6 +163,7 @@ function ContactPage() {
                       <Label htmlFor="subject">Subject</Label>
                       <Input
                         id="subject"
+                        name="subject"
                         placeholder="How can we help?"
                         required
                         value={subject}
@@ -147,6 +175,7 @@ function ContactPage() {
                       <Label htmlFor="message">Message</Label>
                       <Textarea
                         id="message"
+                        name="message"
                         placeholder="Tell us more..."
                         rows={5}
                         required
@@ -155,6 +184,15 @@ function ContactPage() {
                         disabled={submitting}
                       />
                     </div>
+                    <input
+                      type="text"
+                      name="website"
+                      className="hidden"
+                      value=""
+                      autoComplete="off"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    />
                     {error && (
                       <p className="text-sm text-destructive">{error}</p>
                     )}
