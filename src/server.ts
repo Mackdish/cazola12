@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { captureRuntimeEnv } from "./lib/runtime-env.server";
 import {
   ACTIVE_SUPABASE_URL,
   ACTIVE_SUPABASE_PUBLISHABLE_KEY,
@@ -77,10 +78,16 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      // Cloudflare passes secrets on `env`, not process.env — copy them in first.
+      // Cloudflare passes secrets on `env`, not process.env — cache them and
+      // mirror into process.env where the runtime allows writes.
+      captureRuntimeEnv(env);
       if (env && typeof env === "object") {
         for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
-          if (typeof value === "string" && !process.env[key]) process.env[key] = value;
+          try {
+            if (typeof value === "string" && !process.env[key]) process.env[key] = value;
+          } catch {
+            // process.env may be read-only; the runtime-env cache still has it.
+          }
         }
       }
       applyExternalSupabaseEnv();
