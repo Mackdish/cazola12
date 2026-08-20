@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import logoAsset from "@/assets/trademall-logo.png.asset.json";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2.5">
       <img
-        src={logoAsset.url}
+        src="/trademall-logo.png"
         alt="TradeMall logo"
         className="size-8 rounded-md object-cover"
       />

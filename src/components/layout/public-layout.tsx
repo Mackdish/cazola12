@@ -8,7 +8,6 @@ import {
   Megaphone,
 } from "lucide-react";
 
-import logoAsset from "@/assets/trademall-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/footer";
 
@@ -27,7 +26,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <img
-              src={logoAsset.url}
+              src="/trademall-logo.png"
               alt="TradeMall logo"
               className="size-8 rounded-md object-cover"
             />

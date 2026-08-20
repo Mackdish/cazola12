@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Building2, HelpCircle } from "lucide-react";
 
-import logoAsset from "@/assets/trademall-logo.png.asset.json";
 
 export function Footer() {
   return (
@@ -11,7 +10,7 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2.5">
               <img
-                src={logoAsset.url}
+                src="/trademall-logo.png"
                 alt="TradeMall logo"
                 className="size-8 rounded-md object-cover"
               />
