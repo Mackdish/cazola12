@@ -15,17 +15,15 @@ import {
 } from "@/components/ui/select";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { useBillingSettings } from "@/hooks/use-billing";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Pricing — TradeMall" },
-      {
-        name: "description",
-        content:
-          "Transparent pricing for advertisers and publishers on TradeMall. No hidden fees. Pay only for results.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Pricing — TradeMall",
+    description:
+      "Transparent pricing for advertisers and publishers on TradeMall. No hidden fees. Pay only for results.",
+    path: "/pricing",
+    image: "/trademall-logo.png",
   }),
   component: PricingPage,
 });

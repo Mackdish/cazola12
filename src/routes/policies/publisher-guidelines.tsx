@@ -9,17 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/policies/publisher-guidelines")({
-  head: () => ({
-    meta: [
-      { title: "Publisher Guidelines — TradeMall" },
-      {
-        name: "description",
-        content:
-          "TradeMall publisher guidelines covering website eligibility, ad placement, traffic quality, and policy enforcement.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Publisher Guidelines — TradeMall",
+    description:
+      "TradeMall publisher guidelines covering website eligibility, ad placement, traffic quality, and policy enforcement.",
+    path: "/policies/publisher-guidelines",
+    image: "/trademall-logo.png",
   }),
   component: PublisherGuidelinesPage,
 });

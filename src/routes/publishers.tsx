@@ -4,17 +4,15 @@ import { ArrowRight, ChevronRight, Globe, BarChart3, Shield, Wallet } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/publishers")({
-  head: () => ({
-    meta: [
-      { title: "Publishers — TradeMall" },
-      {
-        name: "description",
-        content:
-          "Monetize your website with TradeMall. Fast approval, simple integration, transparent earnings, and local payment options.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Publishers — TradeMall",
+    description:
+      "Monetize your website with TradeMall. Fast approval, simple integration, transparent earnings, and local payment options.",
+    path: "/publishers",
+    image: "/trademall-logo.png",
   }),
   component: PublishersPage,
 });

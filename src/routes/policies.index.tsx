@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { usePublishedPolicies, useSearchPolicies } from "@/hooks/use-policies";
+import { pageMetadata } from "@/lib/seo";
 
 const POLICY_CATEGORIES = [
   {
@@ -53,15 +54,12 @@ const POLICY_CATEGORIES = [
 ];
 
 export const Route = createFileRoute("/policies/")({
-  head: () => ({
-    meta: [
-      { title: "Policies — TradeMall" },
-      {
-        name: "description",
-        content:
-          "TradeMall platform policies, ad policies, traffic quality standards, and compliance guidelines.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Policies — TradeMall",
+    description:
+      "TradeMall platform policies, ad policies, traffic quality standards, and compliance guidelines.",
+    path: "/policies",
+    image: "/trademall-logo.png",
   }),
   component: PoliciesPage,
 });

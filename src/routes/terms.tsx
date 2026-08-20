@@ -4,16 +4,14 @@ import { ArrowRight, ChevronRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({
-    meta: [
-      { title: "Terms of Service — TradeMall" },
-      {
-        name: "description",
-        content: "TradeMall terms of service. Rules and agreements for using the platform.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Terms of Service — TradeMall",
+    description: "TradeMall terms of service. Rules and agreements for using the platform.",
+    path: "/terms",
+    image: "/trademall-logo.png",
   }),
   component: TermsPage,
 });

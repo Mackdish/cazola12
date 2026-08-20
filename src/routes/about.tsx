@@ -21,17 +21,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About Us — TradeMall" },
-      {
-        name: "description",
-        content:
-          "TradeMall is building the future of digital commerce and advertising in Africa. Learn our story, mission, and vision.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "About Us — TradeMall",
+    description:
+      "TradeMall is building the future of digital commerce and advertising in Africa. Learn our story, mission, and vision.",
+    path: "/about",
+    image: "/trademall-logo.png",
   }),
   component: AboutPage,
 });

@@ -33,6 +33,7 @@ import { Route as PoliciesSlugRouteImport } from './routes/policies.$slug'
 import { Route as PoliciesAdPlacementRouteImport } from './routes/policies/ad-placement'
 import { Route as PoliciesInvalidTrafficRouteImport } from './routes/policies/invalid-traffic'
 import { Route as PoliciesPublisherGuidelinesRouteImport } from './routes/policies/publisher-guidelines'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAdReportsRouteImport } from './routes/_authenticated/admin.ad-reports'
 import { Route as AuthenticatedAdminAdSafetyRouteImport } from './routes/_authenticated/admin.ad-safety'
@@ -231,6 +232,11 @@ const PoliciesPublisherGuidelinesRoute =
     path: '/policies/publisher-guidelines',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -683,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/policies/ad-placement': typeof PoliciesAdPlacementRoute
   '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
   '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/policies/': typeof PoliciesIndexRoute
   '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -783,6 +790,7 @@ export interface FileRoutesByTo {
   '/policies/ad-placement': typeof PoliciesAdPlacementRoute
   '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
   '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/policies': typeof PoliciesIndexRoute
   '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -887,6 +895,7 @@ export interface FileRoutesById {
   '/policies/ad-placement': typeof PoliciesAdPlacementRoute
   '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
   '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/policies/': typeof PoliciesIndexRoute
   '/_authenticated/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/_authenticated/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -991,6 +1000,7 @@ export interface FileRouteTypes {
     | '/policies/ad-placement'
     | '/policies/invalid-traffic'
     | '/policies/publisher-guidelines'
+    | '/sitemap/xml'
     | '/policies/'
     | '/admin/ad-reports'
     | '/admin/ad-safety'
@@ -1091,6 +1101,7 @@ export interface FileRouteTypes {
     | '/policies/ad-placement'
     | '/policies/invalid-traffic'
     | '/policies/publisher-guidelines'
+    | '/sitemap/xml'
     | '/policies'
     | '/admin/ad-reports'
     | '/admin/ad-safety'
@@ -1194,6 +1205,7 @@ export interface FileRouteTypes {
     | '/policies/ad-placement'
     | '/policies/invalid-traffic'
     | '/policies/publisher-guidelines'
+    | '/sitemap/xml'
     | '/policies/'
     | '/_authenticated/admin/ad-reports'
     | '/_authenticated/admin/ad-safety'
@@ -1294,6 +1306,7 @@ export interface RootRouteChildren {
   PoliciesAdPlacementRoute: typeof PoliciesAdPlacementRoute
   PoliciesInvalidTrafficRoute: typeof PoliciesInvalidTrafficRoute
   PoliciesPublisherGuidelinesRoute: typeof PoliciesPublisherGuidelinesRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
   PoliciesIndexRoute: typeof PoliciesIndexRoute
   ApiPublicAdRoute: typeof ApiPublicAdRoute
   ApiPublicAdReportRoute: typeof ApiPublicAdReportRoute
@@ -1491,6 +1504,13 @@ declare module '@tanstack/react-router' {
       path: '/policies/publisher-guidelines'
       fullPath: '/policies/publisher-guidelines'
       preLoaderRoute: typeof PoliciesPublisherGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -2244,6 +2264,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliciesAdPlacementRoute: PoliciesAdPlacementRoute,
   PoliciesInvalidTrafficRoute: PoliciesInvalidTrafficRoute,
   PoliciesPublisherGuidelinesRoute: PoliciesPublisherGuidelinesRoute,
+  SitemapXmlRoute: SitemapXmlRoute,
   PoliciesIndexRoute: PoliciesIndexRoute,
   ApiPublicAdRoute: ApiPublicAdRoute,
   ApiPublicAdReportRoute: ApiPublicAdReportRoute,

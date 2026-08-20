@@ -63,7 +63,7 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-white">Company</h3>
             <ul className="mt-4 space-y-3">
-              <li><Link to="/" className="text-sm text-slate-400 hover:text-white transition-colors">About TradeMall</Link></li>
+              <li><Link to="/about" className="text-sm text-slate-400 hover:text-white transition-colors">About TradeMall</Link></li>
               <li><Link to="/contact" className="text-sm text-slate-400 hover:text-white transition-colors">Contact</Link></li>
               <li><Link to="/contact" className="text-sm text-slate-400 hover:text-white transition-colors">Careers</Link></li>
             </ul>

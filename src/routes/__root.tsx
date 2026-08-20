@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
+import { seoDefaults, organizationStructuredData, websiteStructuredData } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -80,21 +81,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TradeMall — Digital advertising network" },
+      { title: seoDefaults.defaultTitle },
       {
         name: "description",
-        content:
-          "TradeMall connects advertisers and publishers in a transparent, auditable digital advertising network.",
+        content: seoDefaults.defaultDescription,
       },
-      { name: "author", content: "TradeMall" },
-      { property: "og:title", content: "TradeMall — Digital advertising network" },
+      { name: "author", content: seoDefaults.siteName },
+      { name: "robots", content: "index, follow" },
+      { name: "theme-color", content: "#0B1220" },
+      { rel: "canonical", href: seoDefaults.siteUrl },
+      { property: "og:title", content: seoDefaults.defaultTitle },
       {
         property: "og:description",
-        content: "A transparent digital advertising network for advertisers and publishers.",
+        content: seoDefaults.defaultDescription,
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: seoDefaults.siteUrl },
+      { property: "og:image", content: `${seoDefaults.siteUrl}${seoDefaults.defaultImage}` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: seoDefaults.siteName },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: seoDefaults.twitterHandle },
+      { name: "twitter:title", content: seoDefaults.defaultTitle },
+      { name: "twitter:description", content: seoDefaults.defaultDescription },
+      { name: "twitter:image", content: `${seoDefaults.siteUrl}${seoDefaults.defaultImage}` },
     ],
     links: [
       {
@@ -102,6 +113,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify([organizationStructuredData, websiteStructuredData]),
+      },
     ],
   }),
   shellComponent: RootShell,

@@ -4,16 +4,14 @@ import { ArrowRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "Privacy Policy — TradeMall" },
-      {
-        name: "description",
-        content: "TradeMall privacy policy. Learn how we collect, use, and protect your data.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Privacy Policy — TradeMall",
+    description: "TradeMall privacy policy. Learn how we collect, use, and protect your data.",
+    path: "/privacy",
+    image: "/trademall-logo.png",
   }),
   component: PrivacyPage,
 });

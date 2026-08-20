@@ -9,17 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { toast } from "sonner";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — TradeMall" },
-      {
-        name: "description",
-        content:
-          "Get in touch with TradeMall. We're here to help with advertising, publishing, and platform questions.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Contact — TradeMall",
+    description:
+      "Get in touch with TradeMall. We're here to help with advertising, publishing, and platform questions.",
+    path: "/contact",
+    image: "/trademall-logo.png",
   }),
   component: ContactPage,
 });

@@ -30,23 +30,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Footer } from "@/components/layout/footer";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "TradeMall — Built for Africa's Digital Ecosystem" },
-      {
-        name: "description",
-        content:
-          "TradeMall is a premium digital advertising platform built for Africa. Advertise to local audiences or monetize your website with transparent, data-driven tools.",
-      },
-      { property: "og:title", content: "TradeMall — Built for Africa's Digital Ecosystem" },
-      {
-        property: "og:description",
-        content:
-          "Local audiences. Local advertisers. Local payment options. The advertising platform built for Africa.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "TradeMall — Built for Africa's Digital Ecosystem",
+    description:
+      "TradeMall is a premium digital advertising platform built for Africa. Advertise to local audiences or monetize your website with transparent, data-driven tools.",
+    path: "/",
+    image: "/trademall-logo.png",
   }),
   component: Landing,
 });

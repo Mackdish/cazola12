@@ -9,17 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/policies/invalid-traffic")({
-  head: () => ({
-    meta: [
-      { title: "Invalid Traffic Policy — TradeMall" },
-      {
-        name: "description",
-        content:
-          "TradeMall invalid traffic policy protecting advertisers from bot traffic, click fraud, and artificial engagement.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Invalid Traffic Policy — TradeMall",
+    description:
+      "TradeMall invalid traffic policy protecting advertisers from bot traffic, click fraud, and artificial engagement.",
+    path: "/policies/invalid-traffic",
+    image: "/trademall-logo.png",
   }),
   component: InvalidTrafficPage,
 });

@@ -14,17 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/advertisers")({
-  head: () => ({
-    meta: [
-      { title: "Advertisers — TradeMall" },
-      {
-        name: "description",
-        content:
-          "Reach the right audience across Africa with TradeMall. Targeted campaigns, real-time analytics, and brand-safe inventory.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Advertisers — TradeMall",
+    description:
+      "Reach the right audience across Africa with TradeMall. Targeted campaigns, real-time analytics, and brand-safe inventory.",
+    path: "/advertisers",
+    image: "/trademall-logo.png",
   }),
   component: AdvertisersPage,
 });

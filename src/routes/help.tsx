@@ -16,17 +16,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({
-    meta: [
-      { title: "Help Center — TradeMall" },
-      {
-        name: "description",
-        content:
-          "Get help with TradeMall. Documentation, guides, and support for advertisers and publishers.",
-      },
-    ],
+  head: () => pageMetadata({
+    title: "Help Center — TradeMall",
+    description:
+      "Get help with TradeMall. Documentation, guides, and support for advertisers and publishers.",
+    path: "/help",
+    image: "/trademall-logo.png",
   }),
   component: HelpPage,
 });
