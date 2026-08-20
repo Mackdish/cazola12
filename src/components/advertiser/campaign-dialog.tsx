@@ -122,7 +122,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
           New campaign
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90svh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Create a campaign</DialogTitle>
           <DialogDescription>
@@ -130,6 +130,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto -mx-2 px-2">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="campaign-name">Campaign name</Label>
@@ -225,6 +226,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
               <Input
                 id="campaign-start"
                 type="date"
+                className="w-full"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -234,6 +236,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
               <Input
                 id="campaign-end"
                 type="date"
+                className="w-full"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
@@ -250,8 +253,9 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
             />
           </div>
         </div>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
           <Button
             variant="ghost"
             onClick={() => setOpen(false)}
