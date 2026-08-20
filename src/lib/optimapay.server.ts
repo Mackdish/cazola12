@@ -18,14 +18,15 @@ import type {
   PaymentVerificationResult,
 } from "@/lib/payment-provider.interface";
 import { normalizeMpesaPhone, normalizePaymentStatus, getCallbackUrl } from "@/lib/payzaapi.server";
+import { readEnv } from "@/lib/runtime-env.server";
 
 const DEFAULT_BASE_URL = "https://optimapaybridge.co.ke";
 
 function getEnv() {
-  const apiKey = process.env["X_API_KEY"];
-  const apiSecret = process.env["X_API_SECRET"];
-  const baseUrl = (process.env["OPTIMA_API_BASE_URL"] ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const paymentAccountId = process.env["OPTIMA_PAYMENT_ACCOUNT_ID"];
+  const apiKey = readEnv("X_API_KEY", "OPTIMA_API_KEY", "X-API-KEY");
+  const apiSecret = readEnv("X_API_SECRET", "OPTIMA_API_SECRET", "X-API-SECRET");
+  const baseUrl = (readEnv("OPTIMA_API_BASE_URL") ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const paymentAccountId = readEnv("OPTIMA_PAYMENT_ACCOUNT_ID", "OPTIMA_ACCOUNT_ID", "PAYMENT_ACCOUNT_ID");
 
   if (!apiKey || !apiSecret) {
     const missing = [
