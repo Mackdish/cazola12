@@ -10,7 +10,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult, WebhookVerificationResult } from "@/lib/payment-provider.interface";
 import { payzaApiProvider, normalizeMpesaPhone, getCallbackUrl, getAppBaseUrl, CurrencyUnavailableError } from "@/lib/payzaapi.server";
-import { optimaPayProvider } from "@/lib/optimapay.server";
 import { logAuditEvent } from "@/lib/audit-log.server";
 import { getSupportedCurrencies } from "@/lib/payment-config.server";
 
@@ -23,22 +22,26 @@ function fail(message: string): never {
   throw new PaymentOrchestratorError(message);
 }
 
+// PayzaAPI handles every currency, including KES M-PESA STK push.
 const providers = new Map<string, PaymentProvider>([
   ["payzaapi", payzaApiProvider],
-  ["optimapay", optimaPayProvider],
 ]);
+
 
 export function registerProvider(provider: PaymentProvider): void {
   providers.set(provider.name, provider);
 }
 
 export function getProvider(name: string): PaymentProvider {
+  // Legacy rows/payments may still reference the retired M-PESA provider.
+  if (name === "optimapay") return payzaApiProvider;
   const provider = providers.get(name);
   if (!provider) {
     fail(`Payment provider "${name}" is not configured.`);
   }
   return provider;
 }
+
 
 export async function resolveProviderForPayment(
   supabase: Client,
@@ -350,6 +353,8 @@ export async function initializePaymentWithProvider(
         paymentUrl: providerResult.paymentUrl || null,
       };
     } catch (error) {
+
+
       const providerPayload = {
         amount: input.amount,
         currency: normalizedCurrency,
@@ -376,6 +381,7 @@ export async function initializePaymentWithProvider(
         _id: created.id,
         _failure_reason: error instanceof Error ? error.message : "Initialization failed",
       } as never);
+
 
       lastError = error;
       if (error instanceof CurrencyUnavailableError) {

@@ -89,7 +89,6 @@ import { Route as AuthenticatedAdvertiserCampaignsCampaignIdRouteImport } from '
 import { Route as AuthenticatedPublisherWebsitesIndexRouteImport } from './routes/_authenticated/publisher.websites.index'
 import { Route as AuthenticatedPublisherWebsitesWebsiteIdRouteImport } from './routes/_authenticated/publisher.websites.$websiteId'
 import { Route as ApiPublicPayCallbackRouteImport } from './routes/api/public/pay/callback'
-import { Route as ApiPublicPayOptimaCallbackRouteImport } from './routes/api/public/pay/optima-callback'
 import { Route as ApiV1AdZonesIndexRouteImport } from './routes/api/v1/ad-zones/index'
 import { Route as ApiV1AdZonesIdRouteImport } from './routes/api/v1/ad-zones/$id'
 import { Route as ApiV1AdsIndexRouteImport } from './routes/api/v1/ads/index'
@@ -552,12 +551,6 @@ const ApiPublicPayCallbackRoute = ApiPublicPayCallbackRouteImport.update({
   path: '/api/public/pay/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPayOptimaCallbackRoute =
-  ApiPublicPayOptimaCallbackRouteImport.update({
-    id: '/api/public/pay/optima-callback',
-    path: '/api/public/pay/optima-callback',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiV1AdZonesIndexRoute = ApiV1AdZonesIndexRouteImport.update({
   id: '/api/v1/ad-zones/',
   path: '/api/v1/ad-zones/',
@@ -739,7 +732,6 @@ export interface FileRoutesByFullPath {
   '/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
-  '/api/public/pay/optima-callback': typeof ApiPublicPayOptimaCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
@@ -839,7 +831,6 @@ export interface FileRoutesByTo {
   '/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
-  '/api/public/pay/optima-callback': typeof ApiPublicPayOptimaCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
@@ -943,7 +934,6 @@ export interface FileRoutesById {
   '/_authenticated/advertiser/campaigns/$campaignId': typeof AuthenticatedAdvertiserCampaignsCampaignIdRoute
   '/_authenticated/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
-  '/api/public/pay/optima-callback': typeof ApiPublicPayOptimaCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
@@ -1047,7 +1037,6 @@ export interface FileRouteTypes {
     | '/advertiser/campaigns/$campaignId'
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
-    | '/api/public/pay/optima-callback'
     | '/api/v1/ad-zones/$id'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
@@ -1147,7 +1136,6 @@ export interface FileRouteTypes {
     | '/advertiser/campaigns/$campaignId'
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
-    | '/api/public/pay/optima-callback'
     | '/api/v1/ad-zones/$id'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
@@ -1250,7 +1238,6 @@ export interface FileRouteTypes {
     | '/_authenticated/advertiser/campaigns/$campaignId'
     | '/_authenticated/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
-    | '/api/public/pay/optima-callback'
     | '/api/v1/ad-zones/$id'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
@@ -1306,7 +1293,6 @@ export interface RootRouteChildren {
   ApiV1PayRoute: typeof ApiV1PayRoute
   ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
-  ApiPublicPayOptimaCallbackRoute: typeof ApiPublicPayOptimaCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
   ApiV1AdsServeRoute: typeof ApiV1AdsServeRoute
@@ -1886,13 +1872,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPayCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/pay/optima-callback': {
-      id: '/api/public/pay/optima-callback'
-      path: '/api/public/pay/optima-callback'
-      fullPath: '/api/public/pay/optima-callback'
-      preLoaderRoute: typeof ApiPublicPayOptimaCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/ad-zones/': {
       id: '/api/v1/ad-zones/'
       path: '/api/v1/ad-zones'
@@ -2256,7 +2235,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PayRoute: ApiV1PayRoute,
   ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
-  ApiPublicPayOptimaCallbackRoute: ApiPublicPayOptimaCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,
   ApiV1AdsServeRoute: ApiV1AdsServeRoute,

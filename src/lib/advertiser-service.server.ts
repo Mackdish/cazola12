@@ -57,8 +57,25 @@ async function loadPlatformSettings(ctx: Ctx) {
 
 // -------------------------------------------------------------- advertiser
 
+/** Verifies the signed-in user belongs to the organization (trusted lookup). */
+async function assertOrgMember(ctx: Ctx, organizationId: string) {
+  const db = await admin();
+  const { data, error } = await db
+    .from("organization_members")
+    .select("id, role, status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", ctx.userId)
+    .maybeSingle();
+  if (error) fail("We couldn't verify your organization access.");
+  if (!data || data.status !== "active")
+    fail("You don't have permission to manage this organization.");
+  return data;
+}
+
 export async function getAdvertiserProfile(ctx: Ctx, organizationId: string) {
-  const { data, error } = await ctx.supabase
+  await assertOrgMember(ctx, organizationId);
+  const db = await admin();
+  const { data, error } = await db
     .from("advertisers")
     .select("*")
     .eq("organization_id", organizationId)
@@ -77,7 +94,9 @@ export async function saveAdvertiserProfile(
     contactPhone?: string | null | undefined;
   },
 ) {
-  const { data, error } = await ctx.supabase.rpc("ensure_advertiser", {
+  await assertOrgMember(ctx, input.organizationId);
+  const db = await admin();
+  const { data, error } = await db.rpc("ensure_advertiser", {
     _organization_id: input.organizationId,
     _business_name: input.businessName,
     _contact_email: input.contactEmail,
@@ -93,6 +112,7 @@ export async function saveAdvertiserProfile(
   }
   return Array.isArray(data) ? data[0]! : data!;
 }
+
 
 export async function requireAdvertiser(ctx: Ctx, organizationId: string) {
   const advertiser = await getAdvertiserProfile(ctx, organizationId);
