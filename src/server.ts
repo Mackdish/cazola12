@@ -15,6 +15,12 @@ try {
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
   process.env["SUPABASE_ANON_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
   process.env["SUPABASE_PROJECT_ID"] = ACTIVE_SUPABASE_PROJECT_ID;
+  // Privileged key for the external project (managed SUPABASE_* secrets cannot
+  // be overwritten, so it is supplied under this name).
+  const externalServiceKey = process.env["EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"];
+  if (externalServiceKey) {
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] = externalServiceKey;
+  }
 } catch {
   // process.env may be read-only in some runtimes; client env still applies.
 }
