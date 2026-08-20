@@ -10,7 +10,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult, WebhookVerificationResult } from "@/lib/payment-provider.interface";
 import { payzaApiProvider, normalizeMpesaPhone, getCallbackUrl, getAppBaseUrl, CurrencyUnavailableError } from "@/lib/payzaapi.server";
-import { optimaPayProvider } from "@/lib/optimapay.server";
 import { logAuditEvent } from "@/lib/audit-log.server";
 import { getSupportedCurrencies } from "@/lib/payment-config.server";
 
@@ -23,22 +22,26 @@ function fail(message: string): never {
   throw new PaymentOrchestratorError(message);
 }
 
+// PayzaAPI handles every currency, including KES M-PESA STK push.
 const providers = new Map<string, PaymentProvider>([
   ["payzaapi", payzaApiProvider],
-  ["optimapay", optimaPayProvider],
 ]);
+
 
 export function registerProvider(provider: PaymentProvider): void {
   providers.set(provider.name, provider);
 }
 
 export function getProvider(name: string): PaymentProvider {
+  // Legacy rows/payments may still reference the retired M-PESA provider.
+  if (name === "optimapay") return payzaApiProvider;
   const provider = providers.get(name);
   if (!provider) {
     fail(`Payment provider "${name}" is not configured.`);
   }
   return provider;
 }
+
 
 export async function resolveProviderForPayment(
   supabase: Client,
@@ -350,62 +353,7 @@ export async function initializePaymentWithProvider(
         paymentUrl: providerResult.paymentUrl || null,
       };
     } catch (error) {
-      // OptimaPay's M-PESA channel can reject a collection (HTTP 402) even
-      // though our request is valid. Rather than dead-ending the deposit, fall
-      // back to PayzaAPI's hosted checkout for the same payment record.
-      if ((error as any)?.providerUnavailable && provider.name === "optimapay") {
-        try {
-          const fallback = await payzaApiProvider.initializePayment({
-            amount: input.amount,
-            currency: normalizedCurrency,
-            reference: created.reference,
-            ...(normalizedPhone ? { phoneNumber: normalizedPhone } : {}),
-            description: `Wallet deposit ${created.reference}`,
-            ...(customerEmail ? { customerEmail } : {}),
-            ...(customerName ? { customerName } : {}),
-            callbackUrl: getCallbackUrl(),
-            hostedCheckout: true,
-            redirectUrl: `${getAppBaseUrl()}/payment/confirm?reference=${encodeURIComponent(created.reference)}`,
-            cancelUrl: `${getAppBaseUrl()}/advertiser/wallet`,
-          });
 
-          await ctx.supabase.rpc("update_payment_details" as never, {
-            _id: created.id,
-            _payment_url: fallback.paymentUrl || null,
-            _provider_reference: fallback.providerReference ?? null,
-          } as never);
-
-          await logAuditEvent(ctx, {
-            action: "payment.initiated",
-            targetType: "payment",
-            targetId: created.id,
-            metadata: {
-              reference: created.reference,
-              amount: input.amount,
-              currency: normalizedCurrency,
-              provider: payzaApiProvider.name,
-              paymentMethod: selectedMethod.name,
-              countryCode: normalizedCountry,
-              fallbackFrom: provider.name,
-            },
-          });
-
-          return {
-            paymentId: created.id,
-            reference: created.reference,
-            amount: input.amount,
-            currency: normalizedCurrency,
-            countryCode: normalizedCountry,
-            symbol: selectedMethod.display_name,
-            provider: payzaApiProvider.name,
-            paymentMethod: selectedMethod.name,
-            status: fallback.status || "pending",
-            paymentUrl: fallback.paymentUrl || null,
-          };
-        } catch (fallbackError) {
-          console.error("[payment-orchestrator] fallback to payzaapi failed", fallbackError);
-        }
-      }
 
       const providerPayload = {
         amount: input.amount,
