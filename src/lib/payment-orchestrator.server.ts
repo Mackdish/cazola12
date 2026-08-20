@@ -350,62 +350,7 @@ export async function initializePaymentWithProvider(
         paymentUrl: providerResult.paymentUrl || null,
       };
     } catch (error) {
-      // OptimaPay's M-PESA channel can reject a collection (HTTP 402) even
-      // though our request is valid. Rather than dead-ending the deposit, fall
-      // back to PayzaAPI's hosted checkout for the same payment record.
-      if ((error as any)?.providerUnavailable && provider.name === "optimapay") {
-        try {
-          const fallback = await payzaApiProvider.initializePayment({
-            amount: input.amount,
-            currency: normalizedCurrency,
-            reference: created.reference,
-            ...(normalizedPhone ? { phoneNumber: normalizedPhone } : {}),
-            description: `Wallet deposit ${created.reference}`,
-            ...(customerEmail ? { customerEmail } : {}),
-            ...(customerName ? { customerName } : {}),
-            callbackUrl: getCallbackUrl(),
-            hostedCheckout: true,
-            redirectUrl: `${getAppBaseUrl()}/payment/confirm?reference=${encodeURIComponent(created.reference)}`,
-            cancelUrl: `${getAppBaseUrl()}/advertiser/wallet`,
-          });
 
-          await ctx.supabase.rpc("update_payment_details" as never, {
-            _id: created.id,
-            _payment_url: fallback.paymentUrl || null,
-            _provider_reference: fallback.providerReference ?? null,
-          } as never);
-
-          await logAuditEvent(ctx, {
-            action: "payment.initiated",
-            targetType: "payment",
-            targetId: created.id,
-            metadata: {
-              reference: created.reference,
-              amount: input.amount,
-              currency: normalizedCurrency,
-              provider: payzaApiProvider.name,
-              paymentMethod: selectedMethod.name,
-              countryCode: normalizedCountry,
-              fallbackFrom: provider.name,
-            },
-          });
-
-          return {
-            paymentId: created.id,
-            reference: created.reference,
-            amount: input.amount,
-            currency: normalizedCurrency,
-            countryCode: normalizedCountry,
-            symbol: selectedMethod.display_name,
-            provider: payzaApiProvider.name,
-            paymentMethod: selectedMethod.name,
-            status: fallback.status || "pending",
-            paymentUrl: fallback.paymentUrl || null,
-          };
-        } catch (fallbackError) {
-          console.error("[payment-orchestrator] fallback to payzaapi failed", fallbackError);
-        }
-      }
 
       const providerPayload = {
         amount: input.amount,
