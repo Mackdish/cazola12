@@ -11,9 +11,8 @@ import {
   ACTIVE_SUPABASE_PROJECT_ID,
 } from "./src/lib/supabase-target";
 
-const ACTIVE_SUPABASE_URL = "https://yluzbglqjlvcdpodabuz.supabase.co";
-const ACTIVE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_H89LlG8L1f1kUWymtZ36kg_yaHffySb";
-const ACTIVE_SUPABASE_PROJECT_ID = "yluzbglqjlvcdpodabuz";
+
+
 
 export default defineConfig({
   tanstackStart: {
