@@ -4,6 +4,7 @@ import {
   BarChart3,
   Globe,
   HelpCircle,
+  Info,
   LayoutDashboard,
   Megaphone,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { Footer } from "@/components/layout/footer";
 
 const NAV_LINKS = [
   { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/about", label: "About", icon: Info },
   { to: "/advertisers", label: "Advertisers", icon: Megaphone },
   { to: "/publishers", label: "Publishers", icon: Globe },
   { to: "/pricing", label: "Pricing", icon: BarChart3 },

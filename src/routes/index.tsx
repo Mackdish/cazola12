@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Globe,
   Globe2,
+  Info,
   LineChart,
   MapPin,
   Megaphone,
@@ -223,6 +224,13 @@ function Landing() {
             >
               <ShieldCheck className="size-4" />
               Policies
+            </Link>
+            <Link
+              to="/about"
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Info className="size-4" />
+              About
             </Link>
           </div>
           <div className="flex items-center gap-3">
