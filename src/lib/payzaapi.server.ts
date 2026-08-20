@@ -10,16 +10,17 @@
  */
 
 import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult } from "@/lib/payment-provider.interface";
+import { readEnv } from "@/lib/runtime-env.server";
 
 const DEFAULT_BASE_URL = "https://payzaapi.co.ke";
 const DEFAULT_APP_URL = "https://trademall.co.ke";
 
 export function getAppBaseUrl(): string {
-  return (process.env["APP_BASE_URL"] ?? DEFAULT_APP_URL).replace(/\/+$/, "");
+  return (readEnv("APP_BASE_URL") ?? DEFAULT_APP_URL).replace(/\/+$/, "");
 }
 
 export function getCallbackUrl(): string {
-  const explicit = process.env["PAYZA_CALLBACK_URL"];
+  const explicit = readEnv("PAYZA_CALLBACK_URL");
   if (explicit) return explicit;
   return `${getAppBaseUrl()}/api/public/pay/callback`;
 }
@@ -48,9 +49,9 @@ function isSafaricomNumber(msisdn: string): boolean {
 }
 
 function getEnv() {
-  const publicKey = process.env["PAYZA_PUBLIC_KEY"];
-  const secretKey = process.env["PAYZA_SECRET_KEY"];
-  const baseUrl = process.env["PAYZA_API_BASE_URL"] ?? DEFAULT_BASE_URL;
+  const publicKey = readEnv("PAYZA_PUBLIC_KEY", "PAYZA_PUBLIC", "X_PUBLIC_KEY");
+  const secretKey = readEnv("PAYZA_SECRET_KEY", "PAYZA_SECRET", "X_SECRET_KEY");
+  const baseUrl = readEnv("PAYZA_API_BASE_URL") ?? DEFAULT_BASE_URL;
 
   if (!publicKey || !secretKey) {
     const missing = [
