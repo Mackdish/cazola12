@@ -11,7 +11,6 @@ import type { Database } from "@/integrations/supabase/types";
 import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult, WebhookVerificationResult } from "@/lib/payment-provider.interface";
 import { payzaApiProvider, normalizeMpesaPhone, getCallbackUrl, getAppBaseUrl, CurrencyUnavailableError } from "@/lib/payzaapi.server";
 import { logAuditEvent } from "@/lib/audit-log.server";
-import { logAuditEvent } from "@/lib/audit-log.server";
 import { getSupportedCurrencies } from "@/lib/payment-config.server";
 
 type Client = SupabaseClient<Database>;
@@ -23,10 +22,11 @@ function fail(message: string): never {
   throw new PaymentOrchestratorError(message);
 }
 
+// PayzaAPI handles every currency, including KES M-PESA STK push.
 const providers = new Map<string, PaymentProvider>([
   ["payzaapi", payzaApiProvider],
-  ["optimapay", optimaPayProvider],
 ]);
+
 
 export function registerProvider(provider: PaymentProvider): void {
   providers.set(provider.name, provider);
