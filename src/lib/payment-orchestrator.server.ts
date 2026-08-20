@@ -33,12 +33,15 @@ export function registerProvider(provider: PaymentProvider): void {
 }
 
 export function getProvider(name: string): PaymentProvider {
+  // Legacy rows/payments may still reference the retired M-PESA provider.
+  if (name === "optimapay") return payzaApiProvider;
   const provider = providers.get(name);
   if (!provider) {
     fail(`Payment provider "${name}" is not configured.`);
   }
   return provider;
 }
+
 
 export async function resolveProviderForPayment(
   supabase: Client,
