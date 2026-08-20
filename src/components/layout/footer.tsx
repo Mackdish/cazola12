@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Building2, HelpCircle } from "lucide-react";
 
-import logoAsset from "@/assets/trademall-logo.png.asset.json";
+import { TradeMallLogo } from "@/components/branding/trademall-logo";
 
 export function Footer() {
   return (
@@ -9,13 +9,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2.5">
-              <img
-                src={logoAsset.url}
-                alt="TradeMall logo"
-                className="size-8 rounded-md object-cover"
-              />
-              <span className="text-sm font-semibold tracking-tight text-white">TradeMall</span>
+            <Link to="/" className="flex items-center gap-2.5 text-white">
+              <TradeMallLogo />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
               Africa's advertising marketplace connecting advertisers with quality publishers.
@@ -36,9 +31,9 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-white">For Publishers</h3>
             <ul className="mt-4 space-y-3">
               <li><Link to="/auth" className="text-sm text-slate-400 hover:text-white transition-colors">Publisher Dashboard</Link></li>
-              <li><Link to="/policies/$slug" params={{ slug: "publisher-guidelines" }} className="text-sm text-slate-400 hover:text-white transition-colors">Publisher Guidelines</Link></li>
+              <li><Link to="/policies/publisher-guidelines" className="text-sm text-slate-400 hover:text-white transition-colors">Publisher Guidelines</Link></li>
               <li><Link to="/publishers" className="text-sm text-slate-400 hover:text-white transition-colors">Monetization</Link></li>
-              <li><Link to="/policies/$slug" params={{ slug: "traffic-quality" }} className="text-sm text-slate-400 hover:text-white transition-colors">Traffic Quality</Link></li>
+              <li><Link to="/policies/invalid-traffic" className="text-sm text-slate-400 hover:text-white transition-colors">Traffic Quality</Link></li>
             </ul>
           </div>
 
@@ -57,9 +52,9 @@ export function Footer() {
             <ul className="mt-4 space-y-3">
               <li><Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link to="/policies/$slug" params={{ slug: "data-privacy" }} className="text-sm text-slate-400 hover:text-white transition-colors">Cookie / Consent Policy</Link></li>
-              <li><Link to="/policies/$slug" params={{ slug: "traffic-quality" }} className="text-sm text-slate-400 hover:text-white transition-colors">Invalid Traffic Policy</Link></li>
-              <li><Link to="/policies/$slug" params={{ slug: "ad-policies" }} className="text-sm text-slate-400 hover:text-white transition-colors">Ad Placement Guidelines</Link></li>
+              <li><Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Cookie / Consent Policy</Link></li>
+              <li><Link to="/policies/invalid-traffic" className="text-sm text-slate-400 hover:text-white transition-colors">Invalid Traffic Policy</Link></li>
+              <li><Link to="/policies/ad-placement" className="text-sm text-slate-400 hover:text-white transition-colors">Ad Placement Guidelines</Link></li>
             </ul>
           </div>
         </div>

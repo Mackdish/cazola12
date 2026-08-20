@@ -29,6 +29,9 @@ import { Route as AdLoaderDotjsRouteImport } from './routes/ad/loader[.]js'
 import { Route as PaymentConfirmRouteImport } from './routes/payment.confirm'
 import { Route as PoliciesIndexRouteImport } from './routes/policies.index'
 import { Route as PoliciesSlugRouteImport } from './routes/policies.$slug'
+import { Route as PoliciesAdPlacementRouteImport } from './routes/policies/ad-placement'
+import { Route as PoliciesInvalidTrafficRouteImport } from './routes/policies/invalid-traffic'
+import { Route as PoliciesPublisherGuidelinesRouteImport } from './routes/policies/publisher-guidelines'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAdReportsRouteImport } from './routes/_authenticated/admin.ad-reports'
 import { Route as AuthenticatedAdminAdSafetyRouteImport } from './routes/_authenticated/admin.ad-safety'
@@ -206,6 +209,22 @@ const PoliciesSlugRoute = PoliciesSlugRouteImport.update({
   path: '/policies/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PoliciesAdPlacementRoute = PoliciesAdPlacementRouteImport.update({
+  id: '/policies/ad-placement',
+  path: '/policies/ad-placement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesInvalidTrafficRoute = PoliciesInvalidTrafficRouteImport.update({
+  id: '/policies/invalid-traffic',
+  path: '/policies/invalid-traffic',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesPublisherGuidelinesRoute =
+  PoliciesPublisherGuidelinesRouteImport.update({
+    id: '/policies/publisher-guidelines',
+    path: '/policies/publisher-guidelines',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -655,6 +674,9 @@ export interface FileRoutesByFullPath {
   '/ad/loader.js': typeof AdLoaderDotjsRoute
   '/payment/confirm': typeof PaymentConfirmRoute
   '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies/ad-placement': typeof PoliciesAdPlacementRoute
+  '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
+  '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
   '/policies/': typeof PoliciesIndexRoute
   '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -751,6 +773,9 @@ export interface FileRoutesByTo {
   '/ad/loader.js': typeof AdLoaderDotjsRoute
   '/payment/confirm': typeof PaymentConfirmRoute
   '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies/ad-placement': typeof PoliciesAdPlacementRoute
+  '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
+  '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
   '/policies': typeof PoliciesIndexRoute
   '/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -851,6 +876,9 @@ export interface FileRoutesById {
   '/ad/loader.js': typeof AdLoaderDotjsRoute
   '/payment/confirm': typeof PaymentConfirmRoute
   '/policies/$slug': typeof PoliciesSlugRoute
+  '/policies/ad-placement': typeof PoliciesAdPlacementRoute
+  '/policies/invalid-traffic': typeof PoliciesInvalidTrafficRoute
+  '/policies/publisher-guidelines': typeof PoliciesPublisherGuidelinesRoute
   '/policies/': typeof PoliciesIndexRoute
   '/_authenticated/admin/ad-reports': typeof AuthenticatedAdminAdReportsRoute
   '/_authenticated/admin/ad-safety': typeof AuthenticatedAdminAdSafetyRoute
@@ -951,6 +979,9 @@ export interface FileRouteTypes {
     | '/ad/loader.js'
     | '/payment/confirm'
     | '/policies/$slug'
+    | '/policies/ad-placement'
+    | '/policies/invalid-traffic'
+    | '/policies/publisher-guidelines'
     | '/policies/'
     | '/admin/ad-reports'
     | '/admin/ad-safety'
@@ -1047,6 +1078,9 @@ export interface FileRouteTypes {
     | '/ad/loader.js'
     | '/payment/confirm'
     | '/policies/$slug'
+    | '/policies/ad-placement'
+    | '/policies/invalid-traffic'
+    | '/policies/publisher-guidelines'
     | '/policies'
     | '/admin/ad-reports'
     | '/admin/ad-safety'
@@ -1146,6 +1180,9 @@ export interface FileRouteTypes {
     | '/ad/loader.js'
     | '/payment/confirm'
     | '/policies/$slug'
+    | '/policies/ad-placement'
+    | '/policies/invalid-traffic'
+    | '/policies/publisher-guidelines'
     | '/policies/'
     | '/_authenticated/admin/ad-reports'
     | '/_authenticated/admin/ad-safety'
@@ -1242,6 +1279,9 @@ export interface RootRouteChildren {
   AdLoaderDotjsRoute: typeof AdLoaderDotjsRoute
   PaymentConfirmRoute: typeof PaymentConfirmRoute
   PoliciesSlugRoute: typeof PoliciesSlugRoute
+  PoliciesAdPlacementRoute: typeof PoliciesAdPlacementRoute
+  PoliciesInvalidTrafficRoute: typeof PoliciesInvalidTrafficRoute
+  PoliciesPublisherGuidelinesRoute: typeof PoliciesPublisherGuidelinesRoute
   PoliciesIndexRoute: typeof PoliciesIndexRoute
   ApiPublicAdRoute: typeof ApiPublicAdRoute
   ApiPublicAdReportRoute: typeof ApiPublicAdReportRoute
@@ -1411,6 +1451,27 @@ declare module '@tanstack/react-router' {
       path: '/policies/$slug'
       fullPath: '/policies/$slug'
       preLoaderRoute: typeof PoliciesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/ad-placement': {
+      id: '/policies/ad-placement'
+      path: '/policies/ad-placement'
+      fullPath: '/policies/ad-placement'
+      preLoaderRoute: typeof PoliciesAdPlacementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/invalid-traffic': {
+      id: '/policies/invalid-traffic'
+      path: '/policies/invalid-traffic'
+      fullPath: '/policies/invalid-traffic'
+      preLoaderRoute: typeof PoliciesInvalidTrafficRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies/publisher-guidelines': {
+      id: '/policies/publisher-guidelines'
+      path: '/policies/publisher-guidelines'
+      fullPath: '/policies/publisher-guidelines'
+      preLoaderRoute: typeof PoliciesPublisherGuidelinesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -2160,6 +2221,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdLoaderDotjsRoute: AdLoaderDotjsRoute,
   PaymentConfirmRoute: PaymentConfirmRoute,
   PoliciesSlugRoute: PoliciesSlugRoute,
+  PoliciesAdPlacementRoute: PoliciesAdPlacementRoute,
+  PoliciesInvalidTrafficRoute: PoliciesInvalidTrafficRoute,
+  PoliciesPublisherGuidelinesRoute: PoliciesPublisherGuidelinesRoute,
   PoliciesIndexRoute: PoliciesIndexRoute,
   ApiPublicAdRoute: ApiPublicAdRoute,
   ApiPublicAdReportRoute: ApiPublicAdReportRoute,

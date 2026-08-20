@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import logoAsset from "@/assets/trademall-logo.png.asset.json";
+import { TradeMallLogo } from "@/components/branding/trademall-logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,13 +49,8 @@ function initialsOf(name: string | null, email: string | null): string {
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2.5">
-      <img
-        src={logoAsset.url}
-        alt="TradeMall logo"
-        className="size-8 rounded-md object-cover"
-      />
-      <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">TradeMall</span>
+    <Link to="/" className="flex items-center gap-2.5 text-sidebar-foreground">
+      <TradeMallLogo />
     </Link>
   );
 }
