@@ -2,6 +2,29 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  ACTIVE_SUPABASE_URL,
+  ACTIVE_SUPABASE_PUBLISHABLE_KEY,
+  ACTIVE_SUPABASE_PROJECT_ID,
+} from "./lib/supabase-target";
+
+// Point every server-side Supabase client at the external project, overriding
+// the managed env vars injected for the built-in project.
+try {
+  process.env["SUPABASE_URL"] = ACTIVE_SUPABASE_URL;
+  process.env["SUPABASE_PUBLISHABLE_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
+  process.env["SUPABASE_ANON_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
+  process.env["SUPABASE_PROJECT_ID"] = ACTIVE_SUPABASE_PROJECT_ID;
+  // Privileged key for the external project (managed SUPABASE_* secrets cannot
+  // be overwritten, so it is supplied under this name).
+  const externalServiceKey = process.env["EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"];
+  if (externalServiceKey) {
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] = externalServiceKey;
+  }
+} catch {
+  // process.env may be read-only in some runtimes; client env still applies.
+}
+
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
