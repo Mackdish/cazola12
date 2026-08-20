@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronRight, Mail, MapPin, MessageSquare } from "lucide-react";
+import { ArrowRight, ChevronRight, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,14 +29,48 @@ function ContactPage() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Thanks for reaching out! Our team will get back to you within 24 hours.");
-    setName("");
-    setEmail("");
-    setSubject("");
-    setMessage("");
+    setError(null);
+    setSubmitted(false);
+
+    if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch("/api/v1/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Something went wrong. Please try again.");
+      }
+
+      setSubmitted(true);
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+      toast.success(data.message || "Thanks for reaching out! Our team will get back to you within 24 hours.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -58,58 +92,101 @@ function ContactPage() {
                 <CardTitle>Send us a message</CardTitle>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Your name"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
+                {submitted ? (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                      Message sent successfully
+                    </p>
+                    <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                      Our team will get back to you within 24 hours.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => setSubmitted(false)}
+                    >
+                      Send another message
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      placeholder="How can we help?"
-                      required
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Tell us more..."
-                      rows={5}
-                      required
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" size="lg" className="w-full">
-                    Send Message
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Button>
-                </form>
+                ) : (
+                  <form className="space-y-4" onSubmit={handleSubmit}>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input
+                        id="name"
+                        placeholder="Your name"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input
+                        id="subject"
+                        placeholder="How can we help?"
+                        required
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="message">Message</Label>
+                      <Textarea
+                        id="message"
+                        placeholder="Tell us more..."
+                        rows={5}
+                        required
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        disabled={submitting}
+                      />
+                    </div>
+                    {error && (
+                      <p className="text-sm text-destructive">{error}</p>
+                    )}
+                    <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                      {submitting ? "Sending..." : "Send Message"}
+                      {!submitting && <ArrowRight className="ml-1.5 size-4" />}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
 
             <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="size-5 text-accent" />
+                    Phone
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <a
+                    href="tel:+254705186502"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    0705186502
+                  </a>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -118,7 +195,12 @@ function ContactPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">support@trademall.co.ke</p>
+                  <a
+                    href="mailto:support@trademall.co.ke"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    support@trademall.co.ke
+                  </a>
                 </CardContent>
               </Card>
 
@@ -171,3 +253,4 @@ function ContactPage() {
     </PublicLayout>
   );
 }
+

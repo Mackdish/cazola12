@@ -80,6 +80,7 @@ import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicImpressionRouteImport } from './routes/api/public/impression'
 import { Route as ApiPublicOpenapiDotjsonRouteImport } from './routes/api/public/openapi[.]json'
 import { Route as ApiV1AnalyticsRouteImport } from './routes/api/v1/analytics'
+import { Route as ApiV1ContactRouteImport } from './routes/api/v1/contact'
 import { Route as ApiV1PayRouteImport } from './routes/api/v1/pay'
 import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
 import { Route as AuthenticatedAdminPoliciesContentRouteImport } from './routes/_authenticated/admin.policies.content'
@@ -501,6 +502,11 @@ const ApiV1AnalyticsRoute = ApiV1AnalyticsRouteImport.update({
   path: '/api/v1/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ContactRoute = ApiV1ContactRouteImport.update({
+  id: '/api/v1/contact',
+  path: '/api/v1/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1PayRoute = ApiV1PayRouteImport.update({
   id: '/api/v1/pay',
   path: '/api/v1/pay',
@@ -723,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -822,6 +829,7 @@ export interface FileRoutesByTo {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -925,6 +933,7 @@ export interface FileRoutesById {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -1028,6 +1037,7 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
+    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/admin/'
@@ -1127,6 +1137,7 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
+    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/admin'
@@ -1229,6 +1240,7 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
+    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/_authenticated/admin/'
@@ -1290,6 +1302,7 @@ export interface RootRouteChildren {
   ApiPublicImpressionRoute: typeof ApiPublicImpressionRoute
   ApiPublicOpenapiDotjsonRoute: typeof ApiPublicOpenapiDotjsonRoute
   ApiV1AnalyticsRoute: typeof ApiV1AnalyticsRoute
+  ApiV1ContactRoute: typeof ApiV1ContactRoute
   ApiV1PayRoute: typeof ApiV1PayRoute
   ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
@@ -1810,6 +1823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/contact': {
+      id: '/api/v1/contact'
+      path: '/api/v1/contact'
+      fullPath: '/api/v1/contact'
+      preLoaderRoute: typeof ApiV1ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/pay': {
       id: '/api/v1/pay'
       path: '/api/v1/pay'
@@ -2232,6 +2252,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicImpressionRoute: ApiPublicImpressionRoute,
   ApiPublicOpenapiDotjsonRoute: ApiPublicOpenapiDotjsonRoute,
   ApiV1AnalyticsRoute: ApiV1AnalyticsRoute,
+  ApiV1ContactRoute: ApiV1ContactRoute,
   ApiV1PayRoute: ApiV1PayRoute,
   ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,

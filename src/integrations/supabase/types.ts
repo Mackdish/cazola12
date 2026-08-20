@@ -1158,7 +1158,40 @@ export type Database = {
           },
         ]
       }
-      domain_verifications: {
+    }
+    contact_submissions: {
+      Row: {
+        created_at: string
+        email: string
+        id: string
+        message: string
+        name: string
+        status: string
+        subject: string
+        updated_at: string
+      }
+      Insert: {
+        created_at?: string
+        email: string
+        id?: string
+        message: string
+        name: string
+        status?: string
+        subject: string
+        updated_at?: string
+      }
+      Update: {
+        created_at?: string
+        email?: string
+        message?: string
+        name?: string
+        status?: string
+        subject?: string
+        updated_at?: string
+      }
+      Relationships: []
+    }
+    domain_verifications: {
         Row: {
           attempts: number
           created_at: string
