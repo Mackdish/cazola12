@@ -9,21 +9,28 @@ import {
 } from "./lib/supabase-target";
 
 // Point every server-side Supabase client at the external project, overriding
-// the managed env vars injected for the built-in project.
-try {
-  process.env["SUPABASE_URL"] = ACTIVE_SUPABASE_URL;
-  process.env["SUPABASE_PUBLISHABLE_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
-  process.env["SUPABASE_ANON_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
-  process.env["SUPABASE_PROJECT_ID"] = ACTIVE_SUPABASE_PROJECT_ID;
-  // Privileged key for the external project (managed SUPABASE_* secrets cannot
-  // be overwritten, so it is supplied under this name).
-  const externalServiceKey = process.env["EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"];
-  if (externalServiceKey) {
-    process.env["SUPABASE_SERVICE_ROLE_KEY"] = externalServiceKey;
+// the managed env vars injected for the built-in project. Cloudflare injects env
+// per request, so this also runs on every fetch (see applyExternalSupabaseEnv).
+function applyExternalSupabaseEnv() {
+  try {
+    process.env["SUPABASE_URL"] = ACTIVE_SUPABASE_URL;
+    process.env["SUPABASE_PUBLISHABLE_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
+    process.env["SUPABASE_ANON_KEY"] = ACTIVE_SUPABASE_PUBLISHABLE_KEY;
+    process.env["SUPABASE_PROJECT_ID"] = ACTIVE_SUPABASE_PROJECT_ID;
+    // Privileged key for the external project (managed SUPABASE_* secrets cannot
+    // be overwritten, so it is supplied under one of these names).
+    const externalServiceKey =
+      process.env["EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"] || process.env["SERVICE_ROLE_KEY"];
+    if (externalServiceKey) {
+      process.env["SUPABASE_SERVICE_ROLE_KEY"] = externalServiceKey;
+    }
+  } catch {
+    // process.env may be read-only in some runtimes; client env still applies.
   }
-} catch {
-  // process.env may be read-only in some runtimes; client env still applies.
 }
+
+applyExternalSupabaseEnv();
+
 
 
 type ServerEntry = {
@@ -70,9 +77,17 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Cloudflare passes secrets on `env`, not process.env — copy them in first.
+      if (env && typeof env === "object") {
+        for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
+          if (typeof value === "string" && !process.env[key]) process.env[key] = value;
+        }
+      }
+      applyExternalSupabaseEnv();
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
+
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
