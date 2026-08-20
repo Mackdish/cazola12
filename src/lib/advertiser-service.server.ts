@@ -191,6 +191,7 @@ export async function createCampaign(
   },
 ) {
   const advertiser = await requireAdvertiser(ctx, input.organizationId);
+  const db = await admin();
   const landing = normalizeDestinationUrl(input.landingPageUrl);
   if (!landing) fail("Enter a valid https landing page URL.");
   if (input.startDate && input.endDate && input.endDate < input.startDate) {
@@ -220,7 +221,7 @@ export async function createCampaign(
     fail(`Daily budget cannot exceed ${settings.maximumDailyBudget}.`);
   }
 
-  const { data, error } = await ctx.supabase
+  const { data, error } = await db
     .from("campaigns")
     .insert({
       advertiser_id: advertiser.id,
@@ -246,7 +247,7 @@ export async function createCampaign(
   }
 
   // Every campaign starts with a default ad group so ads always have a home.
-  const { error: groupError } = await ctx.supabase.from("ad_groups").insert({
+  const { error: groupError } = await db.from("ad_groups").insert({
     campaign_id: data!.id,
     organization_id: input.organizationId,
     name: "Default ad group",
@@ -319,7 +320,8 @@ export async function updateCampaign(
     fail(`Daily budget cannot exceed ${settings.maximumDailyBudget}.`);
   }
 
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("campaigns")
     .update(patch)
     .eq("id", input.campaignId)
@@ -331,7 +333,8 @@ export async function updateCampaign(
 }
 
 async function loadOwnCampaign(ctx: Ctx, campaignId: string) {
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("campaigns")
     .select("*")
     .eq("id", campaignId)
@@ -360,7 +363,8 @@ export async function setCampaignStatus(
   const patch: CampaignUpdate = { status: input.status };
   if (input.status === "pending_review") patch.submitted_at = new Date().toISOString();
 
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("campaigns")
     .update(patch)
     .eq("id", input.campaignId)
