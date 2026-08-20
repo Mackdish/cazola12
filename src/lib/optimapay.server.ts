@@ -80,11 +80,22 @@ async function optimaFetch(endpoint: string, body: Record<string, unknown>): Pro
       pick<string>(json, ["message", "error", "ResultDesc", "detail"]) ??
       text.slice(0, 300) ??
       `HTTP ${response.status}`;
-    const error = new Error(`OptimaPay request failed (${response.status}): ${message}`);
+    // 402 means OptimaPay accepted our request shape but its own M-PESA
+    // channel rejected the collection (account not enabled / float / Daraja
+    // credentials). It is not a caller error, so mark it as "provider
+    // unavailable" and let the orchestrator fall back to another provider.
+    const unavailable = response.status === 402 || response.status >= 500;
+    const error = new Error(
+      unavailable
+        ? `M-PESA is temporarily unavailable through our provider (${message.trim()}).`
+        : `OptimaPay request failed (${response.status}): ${message}`,
+    );
     (error as any).status = response.status;
     (error as any).body = text;
+    if (unavailable) (error as any).providerUnavailable = true;
     throw error;
   }
+
 
   return json ?? {};
 }
