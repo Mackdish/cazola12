@@ -6,10 +6,6 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-const ACTIVE_SUPABASE_URL = "https://yluzbglqjlvcdpodabuz.supabase.co";
-const ACTIVE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_H89LlG8L1f1kUWymtZ36kg_yaHffySb";
-const ACTIVE_SUPABASE_PROJECT_ID = "yluzbglqjlvcdpodabuz";
-
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
