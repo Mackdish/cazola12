@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Image, Search, Upload } from "lucide-react";
 
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/patterns/page-header";
@@ -48,6 +49,8 @@ function CreativeCard({
     file_size: number;
     status: string;
     created_at: string;
+    bucket: string;
+    storage_path: string;
   };
   previewUrl: string | null;
 }) {
@@ -190,9 +193,12 @@ function Page() {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((asset) => (
-              <CreativeCard key={asset.id} asset={asset} previewUrl={null} />
-            ))}
+            {filtered.map((asset) => {
+              const publicUrl = supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl;
+              return (
+                <CreativeCard key={asset.id} asset={asset} previewUrl={publicUrl} />
+              );
+            })}
           </div>
         </>
       )}
