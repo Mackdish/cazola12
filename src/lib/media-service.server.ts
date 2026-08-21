@@ -26,6 +26,20 @@ const SIGNED_URL_TTL_SECONDS = 60 * 10;
 
 export class MediaError extends Error {}
 
+/** Verifies the signed-in user belongs to the organization (trusted lookup). */
+async function assertOrgMember(ctx: Ctx, organizationId: string) {
+  const db = await admin();
+  const { data, error } = await db
+    .from("organization_members")
+    .select("id, status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", ctx.userId)
+    .maybeSingle();
+  if (error) fail("We couldn't verify your organization access.");
+  if (!data || data.status !== "active")
+    fail("You don't have permission to manage this organization.");
+}
+
 function fail(message: string): never {
   throw new MediaError(message);
 }
@@ -109,7 +123,9 @@ export async function registerUploadedCreative(
 
   const checksum = await sha256Hex(bytes);
 
-  const { data, error } = await ctx.supabase
+  await assertOrgMember(ctx, input.organizationId);
+
+  const { data, error } = await service
     .from("media_assets")
     .insert({
       organization_id: input.organizationId,
@@ -147,7 +163,8 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 
 /** Short-lived signed URL for a creative the caller can already read via RLS. */
 export async function signedCreativeUrl(ctx: Ctx, assetId: string) {
-  const { data: asset, error } = await ctx.supabase
+  const db = await admin();
+  const { data: asset, error } = await db
     .from("media_assets")
     .select("id, bucket, storage_path, storage_provider, status")
     .eq("id", assetId)
@@ -169,7 +186,9 @@ export async function signedCreativeUrl(ctx: Ctx, assetId: string) {
 }
 
 export async function listMediaAssets(ctx: Ctx, organizationId: string) {
-  const { data, error } = await ctx.supabase
+  await assertOrgMember(ctx, organizationId);
+  const db = await admin();
+  const { data, error } = await db
     .from("media_assets")
     .select("*")
     .eq("organization_id", organizationId)
@@ -179,7 +198,8 @@ export async function listMediaAssets(ctx: Ctx, organizationId: string) {
 }
 
 export async function archiveMediaAsset(ctx: Ctx, assetId: string) {
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("media_assets")
     .update({ status: "archived" })
     .eq("id", assetId)
