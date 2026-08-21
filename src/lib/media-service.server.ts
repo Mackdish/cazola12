@@ -50,6 +50,27 @@ export function plannedUploadTarget(input: {
 }
 
 /**
+ * Signed upload token for the planned path.
+ *
+ * Issued server-side with the service client, so the browser never needs
+ * storage write policies and can only write to the exact path we chose.
+ */
+export async function signedUploadTarget(input: {
+  organizationId: string;
+  advertiserId: string;
+  assetId: string;
+  mimeType: string;
+}) {
+  const target = plannedUploadTarget(input);
+  const service = await admin();
+  const signed = await service.storage.from(target.bucket).createSignedUploadUrl(target.path);
+  if (signed.error || !signed.data)
+    fail("We couldn't prepare that upload. Please try again in a moment.");
+  return { ...target, token: signed.data.token };
+}
+
+
+/**
  * Registers an already-uploaded object as a media asset.
  *
  * The uploaded bytes are re-read server-side, so the recorded mime type, size
