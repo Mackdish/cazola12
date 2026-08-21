@@ -33,7 +33,7 @@ import {
 import {
   archiveMediaAsset,
   listMediaAssets,
-  plannedUploadTarget,
+  signedUploadTarget,
   registerUploadedCreative,
   signedCreativeUrl,
 } from "@/lib/media-service.server";
@@ -250,9 +250,9 @@ export const prepareCreativeUpload = createServerFn({ method: "POST" })
   .validator((data: unknown) =>
     z.object({ organizationId: uuid, advertiserId: uuid, mimeType: mimeEnum }).parse(data),
   )
-  .handler(({ data }) => {
+  .handler(async ({ data }) => {
     const assetId = crypto.randomUUID();
-    return { assetId, ...plannedUploadTarget({ ...data, assetId }) };
+    return { assetId, ...(await signedUploadTarget({ ...data, assetId })) };
   });
 
 export const registerCreative = createServerFn({ method: "POST" })
