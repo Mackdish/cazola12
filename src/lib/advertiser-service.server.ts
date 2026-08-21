@@ -123,7 +123,8 @@ export async function requireAdvertiser(ctx: Ctx, organizationId: string) {
 // ---------------------------------------------------------------- campaigns
 
 export async function listCampaigns(ctx: Ctx, organizationId: string) {
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("campaigns")
     .select("*, ads(id, status, approval_status), ad_groups(id)")
     .eq("organization_id", organizationId)
@@ -139,7 +140,8 @@ export async function listCampaigns(ctx: Ctx, organizationId: string) {
 }
 
 export async function getCampaignDetail(ctx: Ctx, campaignId: string) {
-  const campaign = await ctx.supabase
+  const db = await admin();
+  const campaign = await db
     .from("campaigns")
     .select("*")
     .eq("id", campaignId)
@@ -148,14 +150,14 @@ export async function getCampaignDetail(ctx: Ctx, campaignId: string) {
   if (!campaign.data) fail("That campaign doesn't exist, or you don't have access to it.");
 
   const [groups, ads, targeting, assets] = await Promise.all([
-    ctx.supabase.from("ad_groups").select("*").eq("campaign_id", campaignId).order("created_at"),
-    ctx.supabase
+    db.from("ad_groups").select("*").eq("campaign_id", campaignId).order("created_at"),
+    db
       .from("ads")
       .select("*")
       .eq("campaign_id", campaignId)
       .order("created_at", { ascending: false }),
-    ctx.supabase.from("campaign_targeting").select("*").eq("campaign_id", campaignId).maybeSingle(),
-    ctx.supabase
+    db.from("campaign_targeting").select("*").eq("campaign_id", campaignId).maybeSingle(),
+    db
       .from("media_assets")
       .select("*")
       .eq("organization_id", campaign.data.organization_id)
