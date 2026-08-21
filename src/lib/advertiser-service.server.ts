@@ -183,6 +183,7 @@ export async function getCampaignDetail(ctx: Ctx, campaignId: string) {
       .from("media_assets")
       .select("*")
       .eq("organization_id", campaign.data.organization_id)
+      .neq("status", "archived")
       .order("created_at", { ascending: false }),
   ]);
   if (groups.error) fail("We couldn't load ad groups.");

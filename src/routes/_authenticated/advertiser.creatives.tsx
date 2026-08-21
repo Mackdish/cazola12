@@ -144,7 +144,13 @@ function Page() {
           void refetch();
         },
         onError: (error) => {
-          toast.error(toFriendlyError(error, "We couldn't delete that creative.").message);
+          const message = toFriendlyError(error, "We couldn't delete that creative.").message;
+          if (message.includes("doesn't exist")) {
+            toast.success("Creative was already removed.");
+            void refetch();
+            return;
+          }
+          toast.error(message);
         },
       },
     );

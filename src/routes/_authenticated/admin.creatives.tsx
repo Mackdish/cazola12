@@ -69,7 +69,14 @@ function Page() {
           toast.success(`"${fileName}" deleted.`);
         }
       },
-      onError: (error: Error) => toast.error(error.message),
+      onError: (error: Error) => {
+        const message = error.message ?? "We couldn't delete that creative.";
+        if (message.includes("doesn't exist")) {
+          toast.success(`"${fileName}" was already removed.`);
+          return;
+        }
+        toast.error(message);
+      },
     });
   }
 

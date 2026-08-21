@@ -194,6 +194,7 @@ export async function listMediaAssets(ctx: Ctx, organizationId: string) {
     .from("media_assets")
     .select("*")
     .eq("organization_id", organizationId)
+    .neq("status", "archived")
     .order("created_at", { ascending: false });
   if (error) fail("We couldn't load your creatives.");
   return data ?? [];
