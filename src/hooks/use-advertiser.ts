@@ -311,8 +311,15 @@ export function useUploadCreative() {
 
       const upload = await supabase.storage
         .from(target.bucket)
-        .upload(target.path, input.file, { contentType: input.file.type, upsert: false });
-      if (upload.error) throw new Error("We couldn't upload that file. Please try again.");
+        .uploadToSignedUrl(target.path, target.token, input.file, {
+          contentType: input.file.type,
+        });
+      if (upload.error)
+        throw new Error(
+          upload.error.message
+            ? `We couldn't upload that file: ${upload.error.message}`
+            : "We couldn't upload that file. Please try again.",
+        );
 
       return register({
         data: {
