@@ -252,10 +252,10 @@ export async function uploadCreativeToR2(
   }
 
   const bucket = getR2Bucket();
-  if (!bucket) fail("Storage isn't available right now. Please try again shortly.");
+  if (!bucket) fail("R2 storage binding is not available. Check your Cloudflare Worker R2 binding configuration.");
 
   const publicBase = readEnv("R2_PUBLIC_URL");
-  if (!publicBase) fail("Storage isn't fully configured yet. Please try again shortly.");
+  if (!publicBase) fail("R2_PUBLIC_URL is not configured. Set it in your Cloudflare Worker environment variables.");
 
   const assetId = crypto.randomUUID();
   const path = creativeStoragePath({

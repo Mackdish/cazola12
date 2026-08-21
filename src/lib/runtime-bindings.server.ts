@@ -19,6 +19,12 @@ export function captureRuntimeBindings(env: unknown): void {
   const bucket = (env as Record<string, unknown>)[name];
   if (bucket && typeof bucket === "object" && "put" in bucket) {
     r2Bucket = bucket as R2BucketLike;
+  } else {
+    const keys = Object.keys(env as Record<string, unknown>).filter((key) => {
+      const value = (env as Record<string, unknown>)[key];
+      return value && typeof value === "object" && "put" in value;
+    });
+    console.warn(`[R2] Binding "${name}" not found on env. Object-like keys with put(): ${JSON.stringify(keys)}`);
   }
 }
 
