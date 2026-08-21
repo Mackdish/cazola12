@@ -12,6 +12,7 @@ import { WorkspaceGuard } from "@/components/shell/workspace-guard";
 import { useCreatives, useAdvertiserOrg, useAdvertiserProfile, useDeleteCreative } from "@/hooks/use-advertiser";
 import { toast } from "sonner";
 import { CreativeUpload } from "@/components/advertiser/creative-upload";
+import { toFriendlyError } from "@/lib/errors";
 import {
   Dialog,
   DialogContent,
@@ -134,12 +135,16 @@ function Page() {
     deleteCreative.mutate(
       { assetId },
       {
-        onSuccess: () => {
-          toast.success("Creative deleted.");
+        onSuccess: (data) => {
+          if (data?.archived) {
+            toast.success("Creative archived because it's being used by an active ad.");
+          } else {
+            toast.success("Creative deleted.");
+          }
           void refetch();
         },
-        onError: () => {
-          toast.error("We couldn't delete that creative.");
+        onError: (error) => {
+          toast.error(toFriendlyError(error, "We couldn't delete that creative.").message);
         },
       },
     );

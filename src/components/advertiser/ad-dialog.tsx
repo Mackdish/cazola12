@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Monitor, Smartphone, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -95,6 +96,8 @@ export function AdDialog({
   const [brandName, setBrandName] = useState("");
   const [logoAssetId, setLogoAssetId] = useState<string>("");
   const [creativeAssetId, setCreativeAssetId] = useState<string>("");
+  const [creativeSelectOpen, setCreativeSelectOpen] = useState(false);
+  const [logoSelectOpen, setLogoSelectOpen] = useState(false);
   const [headlines, setHeadlines] = useState<string[]>(["", "", "", "", ""]);
   const [longHeadline, setLongHeadline] = useState("");
   const [descriptions, setDescriptions] = useState<string[]>(["", "", "", "", ""]);
@@ -443,13 +446,60 @@ export function AdDialog({
                   </Button>
                 </div>
               ) : (
-                <CreativeUpload
-                  organizationId={organizationId}
-                  advertiserId={advertiserId}
-                  campaignId={campaignId}
-                  onUploaded={(id) => setLogoAssetId(id)}
-                  label="Upload a logo"
-                />
+                <div className="flex flex-wrap gap-2">
+                  <CreativeUpload
+                    organizationId={organizationId}
+                    advertiserId={advertiserId}
+                    campaignId={campaignId}
+                    onUploaded={(id) => setLogoAssetId(id)}
+                    label="Upload a logo"
+                  />
+                  {mediaAssets.length > 0 ? (
+                    <Dialog open={logoSelectOpen} onOpenChange={setLogoSelectOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Select existing
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-h-[70vh] overflow-y-auto sm:max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Select existing logo</DialogTitle>
+                          <DialogDescription>
+                            Choose a logo from your organization's existing media assets.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {mediaAssets.map((asset) => (
+                            <button
+                              key={asset.id}
+                              type="button"
+                              onClick={() => {
+                                setLogoAssetId(asset.id);
+                                setLogoSelectOpen(false);
+                              }}
+                              className="flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:border-primary"
+                            >
+                              <img
+                                src={
+                                  asset.storage_provider === "cloudflare_r2"
+                                    ? asset.storage_path
+                                    : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl
+                                }
+                                alt={asset.file_name}
+                                className="h-16 w-16 rounded object-contain"
+                              />
+                              <span className="truncate text-xs font-medium">{asset.file_name}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {asset.mime_type.split("/")[1]?.toUpperCase() ?? asset.mime_type}
+                                {asset.width && asset.height ? ` · ${asset.width}×${asset.height}` : ""}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ) : null}
+                </div>
               )}
             </div>
           </div>
@@ -475,13 +525,60 @@ export function AdDialog({
                 )}
               </div>
             ) : (
-              <CreativeUpload
-                organizationId={organizationId}
-                advertiserId={advertiserId}
-                campaignId={campaignId}
-                onUploaded={(id) => setCreativeAssetId(id)}
-                label="Upload a creative"
-              />
+              <div className="flex flex-wrap gap-2">
+                <CreativeUpload
+                  organizationId={organizationId}
+                  advertiserId={advertiserId}
+                  campaignId={campaignId}
+                  onUploaded={(id) => setCreativeAssetId(id)}
+                  label="Upload a creative"
+                />
+                {mediaAssets.length > 0 ? (
+                  <Dialog open={creativeSelectOpen} onOpenChange={setCreativeSelectOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Select existing
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[70vh] overflow-y-auto sm:max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Select existing creative</DialogTitle>
+                        <DialogDescription>
+                          Choose a creative from your organization's existing media assets.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {mediaAssets.map((asset) => (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => {
+                              setCreativeAssetId(asset.id);
+                              setCreativeSelectOpen(false);
+                            }}
+                            className="flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:border-primary"
+                          >
+                            <img
+                              src={
+                                asset.storage_provider === "cloudflare_r2"
+                                  ? asset.storage_path
+                                  : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl
+                              }
+                              alt={asset.file_name}
+                              className="h-16 w-16 rounded object-contain"
+                            />
+                            <span className="truncate text-xs font-medium">{asset.file_name}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {asset.mime_type.split("/")[1]?.toUpperCase() ?? asset.mime_type}
+                              {asset.width && asset.height ? ` · ${asset.width}×${asset.height}` : ""}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ) : null}
+              </div>
             )}
 
             <div className="space-y-2">

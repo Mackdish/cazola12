@@ -62,7 +62,13 @@ function Page() {
 
   function handleDelete(assetId: string, fileName: string) {
     deleteCreative.mutate(assetId, {
-      onSuccess: () => toast.success(`"${fileName}" deleted.`),
+      onSuccess: (data) => {
+        if (data?.archived) {
+          toast.success(`"${fileName}" archived because it's being used by an active ad.`);
+        } else {
+          toast.success(`"${fileName}" deleted.`);
+        }
+      },
       onError: (error: Error) => toast.error(error.message),
     });
   }

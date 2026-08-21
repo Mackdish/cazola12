@@ -8,6 +8,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
+import { getR2Bucket } from "@/lib/runtime-bindings.server";
+import { readEnv } from "@/lib/runtime-env.server";
 import {
   adFormatSpec,
   assertTransition,
@@ -75,6 +77,26 @@ async function assertOrgMember(ctx: Ctx, organizationId: string) {
 export async function getAdvertiserProfile(ctx: Ctx, organizationId: string) {
   await assertOrgMember(ctx, organizationId);
   const db = await admin();
+
+async function isCreativeReferenced(ctx: Ctx, assetId: string): Promise<boolean> {
+  const db = await admin();
+  const [main, logo] = await Promise.all([
+    db.from("ads").select("id").eq("media_asset_id", assetId).maybeSingle(),
+    db.from("ads").select("id").eq("logo_media_asset_id", assetId).maybeSingle(),
+  ]);
+  if (main.error || logo.error) fail("We couldn't check whether this creative is in use.");
+  return !!(main.data || logo.data);
+}
+
+async function deleteR2Object(path: string): void {
+  const bucket = getR2Bucket();
+  if (!bucket) return;
+  try {
+    await bucket.delete(path);
+  } catch {
+    // best-effort cleanup
+  }
+}
   const { data, error } = await db
     .from("advertisers")
     .select("*")
@@ -1006,7 +1028,7 @@ export async function adminListCreatives(
 export async function deleteMediaAsset(ctx: Ctx, assetId: string) {
   const asset = await ctx.supabase
     .from("media_assets")
-    .select("id, organization_id, bucket, storage_path, storage_provider, file_name")
+    .select("id, organization_id, bucket, storage_path, storage_provider, file_name, status")
     .eq("id", assetId)
     .maybeSingle();
   if (asset.error) fail("We couldn't load that creative.");
@@ -1014,11 +1036,40 @@ export async function deleteMediaAsset(ctx: Ctx, assetId: string) {
 
   await assertOrgMember(ctx, asset.data.organization_id);
 
-  const service = await admin();
-  if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
-    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+  if (asset.data.status === "archived") {
+    fail("This creative is already archived.");
   }
 
+  const referenced = await isCreativeReferenced(ctx, assetId);
+  if (referenced) {
+    const service = await admin();
+    const { error } = await service
+      .from("media_assets")
+      .update({ status: "archived" })
+      .eq("id", assetId)
+      .select("*")
+      .maybeSingle();
+    if (error) fail("We couldn't update that creative.");
+
+    const { logAuditEvent } = await import("@/lib/audit-log.server");
+    await logAuditEvent(ctx, {
+      action: "creative.archive",
+      targetType: "media_asset",
+      targetId: assetId,
+      metadata: { fileName: asset.data.file_name, reason: "in_use" },
+    });
+
+    return { ok: true, archived: true };
+  }
+
+  if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
+    const service = await admin();
+    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+  } else if (asset.data.storage_provider === "cloudflare_r2" && asset.data.storage_path) {
+    await deleteR2Object(asset.data.storage_path);
+  }
+
+  const service = await admin();
   const { error } = await service.from("media_assets").delete().eq("id", assetId);
   if (error) fail("We couldn't delete that creative.");
 
@@ -1030,7 +1081,7 @@ export async function deleteMediaAsset(ctx: Ctx, assetId: string) {
     metadata: { fileName: asset.data.file_name },
   });
 
-  return { ok: true };
+  return { ok: true, archived: false };
 }
 
 export async function adminDeleteCreative(ctx: Ctx, assetId: string) {
@@ -1039,11 +1090,40 @@ export async function adminDeleteCreative(ctx: Ctx, assetId: string) {
   if (asset.error) fail("We couldn't load that creative.");
   if (!asset.data) fail("That creative doesn't exist.");
 
-  const service = await admin();
-  if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
-    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+  if (asset.data.status === "archived") {
+    fail("This creative is already archived.");
   }
 
+  const referenced = await isCreativeReferenced(ctx, assetId);
+  if (referenced) {
+    const service = await admin();
+    const { error } = await service
+      .from("media_assets")
+      .update({ status: "archived" })
+      .eq("id", assetId)
+      .select("*")
+      .maybeSingle();
+    if (error) fail("We couldn't update that creative.");
+
+    const { logAuditEvent } = await import("@/lib/audit-log.server");
+    await logAuditEvent(ctx, {
+      action: "creative.archive",
+      targetType: "media_asset",
+      targetId: assetId,
+      metadata: { fileName: asset.data.file_name, reason: "in_use" },
+    });
+
+    return { ok: true, archived: true };
+  }
+
+  if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
+    const service = await admin();
+    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+  } else if (asset.data.storage_provider === "cloudflare_r2" && asset.data.storage_path) {
+    await deleteR2Object(asset.data.storage_path);
+  }
+
+  const service = await admin();
   const { error } = await service.from("media_assets").delete().eq("id", assetId);
   if (error) fail("We couldn't delete that creative.");
 
@@ -1055,5 +1135,5 @@ export async function adminDeleteCreative(ctx: Ctx, assetId: string) {
     metadata: { fileName: asset.data.file_name },
   });
 
-  return { ok: true };
+  return { ok: true, archived: false };
 }
