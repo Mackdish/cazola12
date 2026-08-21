@@ -1,0 +1,11 @@
+{
+  "name": "pixel-perfect-frame-34",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [
+    { "binding": "R2", "bucket_name": "trademall" }
+  ],
+  "vars": {
+    "R2_PUBLIC_URL": "https://pub-af1dd31544db4b12a899e7e5a284dba8.r2.dev"
+  }
+}
