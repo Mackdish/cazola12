@@ -161,18 +161,17 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
     .join("");
 }
 
-/** Short-lived signed URL for a creative the caller can already read via RLS. */
+/** Short-lived signed URL for a creative the caller's organization owns. */
 export async function signedCreativeUrl(ctx: Ctx, assetId: string) {
-  const db = await admin();
-  const { data: asset, error } = await db
+  const service = await admin();
+  const { data: asset, error } = await service
     .from("media_assets")
-    .select("id, bucket, storage_path, storage_provider, status")
+    .select("id, organization_id, bucket, storage_path, storage_provider, status")
     .eq("id", assetId)
     .maybeSingle();
   if (error) fail("We couldn't load that creative.");
   if (!asset) fail("That creative doesn't exist, or you don't have access to it.");
-
-  const service = await admin();
+  await assertOrgMember(ctx, asset.organization_id);
 
   if (asset.storage_provider === "supabase") {
     const signed = await service.storage
@@ -199,6 +198,14 @@ export async function listMediaAssets(ctx: Ctx, organizationId: string) {
 
 export async function archiveMediaAsset(ctx: Ctx, assetId: string) {
   const db = await admin();
+  const { data: existing } = await db
+    .from("media_assets")
+    .select("id, organization_id")
+    .eq("id", assetId)
+    .maybeSingle();
+  if (!existing) fail("That creative doesn't exist, or you don't have access to it.");
+  await assertOrgMember(ctx, existing.organization_id);
+
   const { data, error } = await db
     .from("media_assets")
     .update({ status: "archived" })
@@ -209,3 +216,4 @@ export async function archiveMediaAsset(ctx: Ctx, assetId: string) {
   if (!data) fail("That creative doesn't exist, or you don't have access to it.");
   return data;
 }
+
