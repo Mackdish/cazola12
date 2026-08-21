@@ -80,10 +80,7 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const envType = typeof env;
     const envKeys = env && typeof env === "object" ? Object.keys(env as Record<string, unknown>) : "N/A";
-    const isUploadRequest = request.url.includes("/_serverFn/");
-    if (isUploadRequest) {
-      console.log(`[FETCH DEBUG] url=${request.url} envType=${envType} envKeys=${JSON.stringify(envKeys)}`);
-    }
+    console.log(`[FETCH DEBUG] method=${request.method} url=${request.url} envType=${envType} envKeys=${JSON.stringify(envKeys)}`);
     try {
       // Cloudflare passes secrets on `env`, not process.env — cache them and
       // mirror into process.env where the runtime allows writes.
