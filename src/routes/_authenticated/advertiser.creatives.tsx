@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Image, Search, Upload } from "lucide-react";
+import { Image, Search, Trash2, Upload } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { useCreatives, useAdvertiserOrg, useAdvertiserProfile } from "@/hooks/use-advertiser";
+import { useCreatives, useAdvertiserOrg, useAdvertiserProfile, useDeleteCreative } from "@/hooks/use-advertiser";
+import { toast } from "sonner";
 import { CreativeUpload } from "@/components/advertiser/creative-upload";
 import {
   Dialog,
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_authenticated/advertiser/creatives")({
 function CreativeCard({
   asset,
   previewUrl,
+  onDelete,
 }: {
   asset: {
     id: string;
@@ -53,6 +55,7 @@ function CreativeCard({
     storage_path: string;
   };
   previewUrl: string | null;
+  onDelete?: (id: string) => void;
 }) {
   const isImage = asset.mime_type.startsWith("image/");
   const sizeKb = Math.round((asset.file_size ?? 0) / 1024);
@@ -85,9 +88,22 @@ function CreativeCard({
           <StatusBadge tone={mediaStatusTone(asset.status)}>
             {asset.status}
           </StatusBadge>
-          <span className="text-xs text-muted-foreground">
-            {new Date(asset.created_at).toLocaleDateString()}
-          </span>
+          <div className="flex items-center gap-2">
+            {onDelete ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(asset.id)}
+              >
+                <Trash2 className="size-3.5" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            ) : null}
+            <span className="text-xs text-muted-foreground">
+              {new Date(asset.created_at).toLocaleDateString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -109,8 +125,25 @@ function Page() {
   const { organizationId } = useAdvertiserOrg();
   const { data, isLoading, error, refetch } = useCreatives(organizationId);
   const profile = useAdvertiserProfile(organizationId);
+  const deleteCreative = useDeleteCreative();
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
+
+  function handleDelete(assetId: string) {
+    if (!window.confirm("Delete this creative? This can't be undone.")) return;
+    deleteCreative.mutate(
+      { assetId },
+      {
+        onSuccess: () => {
+          toast.success("Creative deleted.");
+          void refetch();
+        },
+        onError: () => {
+          toast.error("We couldn't delete that creative.");
+        },
+      },
+    );
+  }
 
   function UploadButton({ label }: { label: string }) {
     return (
@@ -196,7 +229,7 @@ function Page() {
             {filtered.map((asset) => {
               const publicUrl = supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl;
               return (
-                <CreativeCard key={asset.id} asset={asset} previewUrl={publicUrl} />
+                <CreativeCard key={asset.id} asset={asset} previewUrl={publicUrl} onDelete={handleDelete} />
               );
             })}
           </div>

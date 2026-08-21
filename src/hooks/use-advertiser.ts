@@ -12,6 +12,7 @@ import {
   changeAdGroupStatus,
   changeAdStatus,
   changeCampaignStatus,
+  deleteCreative,
   fetchAdminAdvertisers,
   fetchAdminCampaignDetail,
   fetchAdminCampaigns,
@@ -272,6 +273,15 @@ export function useSaveTargeting() {
 
 export function useArchiveCreative() {
   const fn = useServerFn(archiveCreative);
+  const invalidate = useAdvertiserInvalidate();
+  return useMutation({
+    mutationFn: (input: { assetId: string }) => fn({ data: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteCreative() {
+  const fn = useServerFn(deleteCreative);
   const invalidate = useAdvertiserInvalidate();
   return useMutation({
     mutationFn: (input: { assetId: string }) => fn({ data: input }),

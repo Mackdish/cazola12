@@ -1003,6 +1003,36 @@ export async function adminListCreatives(
   };
 }
 
+export async function deleteMediaAsset(ctx: Ctx, assetId: string) {
+  const asset = await ctx.supabase
+    .from("media_assets")
+    .select("id, organization_id, bucket, storage_path, storage_provider, file_name")
+    .eq("id", assetId)
+    .maybeSingle();
+  if (asset.error) fail("We couldn't load that creative.");
+  if (!asset.data) fail("That creative doesn't exist.");
+
+  await assertOrgMember(ctx, asset.data.organization_id);
+
+  const service = await admin();
+  if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
+    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+  }
+
+  const { error } = await service.from("media_assets").delete().eq("id", assetId);
+  if (error) fail("We couldn't delete that creative.");
+
+  const { logAuditEvent } = await import("@/lib/audit-log.server");
+  await logAuditEvent(ctx, {
+    action: "creative.delete",
+    targetType: "media_asset",
+    targetId: assetId,
+    metadata: { fileName: asset.data.file_name },
+  });
+
+  return { ok: true };
+}
+
 export async function adminDeleteCreative(ctx: Ctx, assetId: string) {
   await assertPlatformAdmin(ctx);
   const asset = await ctx.supabase.from("media_assets").select("*").eq("id", assetId).maybeSingle();

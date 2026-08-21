@@ -19,6 +19,7 @@ import {
   createAd,
   createAdGroup,
   createCampaign,
+  deleteMediaAsset,
   getAdvertiserProfile,
   getCampaignDetail,
   listAds,
@@ -285,6 +286,11 @@ export const archiveCreative = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ assetId: uuid }).parse(data))
   .handler(({ data, context }) => archiveMediaAsset(context, data.assetId));
+
+export const deleteCreative = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ assetId: uuid }).parse(data))
+  .handler(({ data, context }) => deleteMediaAsset(context, data.assetId));
 
 // ------------------------------------------------------------------- admin
 
