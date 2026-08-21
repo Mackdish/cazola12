@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Image, Search, Upload } from "lucide-react";
 
@@ -8,8 +8,16 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { useCreatives, useAdvertiserOrg } from "@/hooks/use-advertiser";
-import { toast } from "sonner";
+import { useCreatives, useAdvertiserOrg, useAdvertiserProfile } from "@/hooks/use-advertiser";
+import { CreativeUpload } from "@/components/advertiser/creative-upload";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/advertiser/creatives")({
   head: () => ({
@@ -97,22 +105,44 @@ function mediaStatusTone(status: string) {
 function Page() {
   const { organizationId } = useAdvertiserOrg();
   const { data, isLoading, error, refetch } = useCreatives(organizationId);
+  const profile = useAdvertiserProfile(organizationId);
   const [search, setSearch] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      toast.info("Creative upload requires storage configuration. Please contact support.");
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+  function UploadButton({ label }: { label: string }) {
+    return (
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" disabled={!profile.data?.id}>
+            <Upload className="mr-2 size-4" />
+            {label}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload creative</DialogTitle>
+            <DialogDescription>
+              Add an image to your library so you can attach it to ads.
+            </DialogDescription>
+          </DialogHeader>
+          {profile.data?.id ? (
+            <CreativeUpload
+              organizationId={organizationId}
+              advertiserId={profile.data.id}
+              onUploaded={() => {
+                setUploadOpen(false);
+                void refetch();
+              }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Complete your advertiser profile in Settings before uploading creatives.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
@@ -123,23 +153,11 @@ function Page() {
 
   return (
     <WorkspaceGuard workspace="advertiser">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
-        className="hidden"
-        onChange={handleFileChange}
-      />
       <PageHeader
         eyebrow="Advertiser"
         title="Creatives"
         description="Uploaded creative assets and their review status."
-        actions={
-          <Button size="sm" variant="outline" onClick={handleUploadClick}>
-            <Upload className="mr-2 size-4" />
-            Upload
-          </Button>
-        }
+        actions={<UploadButton label="Upload" />}
       />
 
       {isLoading ? (
@@ -155,12 +173,7 @@ function Page() {
           icon={<Image className="size-5" />}
           title="No creatives yet"
           description="Upload images or other media to use in your ads."
-          action={
-            <Button size="sm" variant="outline" onClick={handleUploadClick}>
-              <Upload className="mr-2 size-4" />
-              Upload creative
-            </Button>
-          }
+          action={<UploadButton label="Upload creative" />}
         />
       ) : (
         <>
