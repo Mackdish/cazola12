@@ -252,7 +252,7 @@ export async function uploadCreativeToR2(
     fail(check.ok ? "That creative isn't allowed." : check.message);
   }
 
-  const bucket = getR2Bucket();
+  const bucket = await getR2Bucket();
   if (!bucket) fail(`R2 storage binding is not available. Debug: ${getR2BindingDebugInfo()}`);
 
   const publicBase = readEnv("R2_PUBLIC_URL");
