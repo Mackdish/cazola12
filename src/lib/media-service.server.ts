@@ -17,11 +17,14 @@ import {
   validateCreativeFile,
 } from "@/lib/advertiser-domain";
 import { readImageMetadata } from "@/lib/image-metadata";
+import { getR2Bucket } from "@/lib/runtime-bindings.server";
+import { readEnv } from "@/lib/runtime-env.server";
 
 type Client = SupabaseClient<Database>;
 export type Ctx = { supabase: Client; userId: string };
 
 export const CREATIVE_BUCKET = "ad-creatives";
+export const R2_BUCKET_NAME = "trademall";
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
 
 export class MediaError extends Error {}
@@ -215,5 +218,84 @@ export async function archiveMediaAsset(ctx: Ctx, assetId: string) {
   if (error) fail("We couldn't archive that creative.");
   if (!data) fail("That creative doesn't exist, or you don't have access to it.");
   return data;
+}
+
+export async function uploadCreativeToR2(
+  ctx: Ctx,
+  input: {
+    organizationId: string;
+    advertiserId: string;
+    campaignId?: string | null;
+    file: File;
+  },
+) {
+  await assertOrgMember(ctx, input.organizationId);
+
+  const initialCheck = validateCreativeFile({
+    mimeType: input.file.type,
+    fileSize: input.file.size,
+  });
+  if (!initialCheck.ok) fail(initialCheck.message);
+
+  const bytes = new Uint8Array(await input.file.arrayBuffer());
+  const meta = readImageMetadata(bytes);
+  if (!meta) fail("That file isn't a valid PNG, JPG, WebP or GIF image.");
+  if (
+    !isAllowedCreativeMime(meta.mimeType) ||
+    bytes.byteLength > maxBytesForMime(meta.mimeType)
+  ) {
+    const check = validateCreativeFile({
+      mimeType: meta.mimeType,
+      fileSize: bytes.byteLength,
+    });
+    fail(check.ok ? "That creative isn't allowed." : check.message);
+  }
+
+  const bucket = getR2Bucket();
+  if (!bucket) fail("Storage isn't available right now. Please try again shortly.");
+
+  const publicBase = readEnv("R2_PUBLIC_URL");
+  if (!publicBase) fail("Storage isn't fully configured yet. Please try again shortly.");
+
+  const assetId = crypto.randomUUID();
+  const path = creativeStoragePath({
+    organizationId: input.organizationId,
+    advertiserId: input.advertiserId,
+    assetId,
+    mimeType: meta.mimeType,
+  });
+
+  await bucket.put(path, bytes, { httpMetadata: { contentType: meta.mimeType } });
+
+  const checksum = await sha256Hex(bytes);
+  const publicUrl = `${publicBase}/${path}`;
+
+  const db = await admin();
+  const { data, error } = await db
+    .from("media_assets")
+    .insert({
+      organization_id: input.organizationId,
+      advertiser_id: input.advertiserId,
+      campaign_id: input.campaignId ?? null,
+      ad_id: null,
+      file_name: sanitizeFilename(input.file.name),
+      storage_provider: "cloudflare_r2",
+      bucket: R2_BUCKET_NAME,
+      storage_path: publicUrl,
+      mime_type: meta.mimeType,
+      file_size: bytes.byteLength,
+      width: meta.width,
+      height: meta.height,
+      checksum,
+      status: "ready",
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    await bucket.delete(path).catch(() => {});
+    fail("We couldn't save that creative. Please try again.");
+  }
+  return data!;
 }
 

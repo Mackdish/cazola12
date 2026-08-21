@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { membershipsOfType } from "@/lib/authorization";
 import {
@@ -23,14 +22,13 @@ import {
   fetchCreatives,
   fetchCreativeUrl,
   linkCreativeToAd,
-  prepareCreativeUpload,
-  registerCreative,
   reviewAd,
   reviewAdvertiser,
   reviewCampaign,
   saveCampaign,
   saveCampaignTargeting,
   upsertAdvertiserProfile,
+  uploadCreative,
 } from "@/lib/advertiser.functions";
 import {
   maxBytesForMime,
@@ -295,8 +293,7 @@ export function useDeleteCreative() {
  * stored file to record its real mime type, size and dimensions.
  */
 export function useUploadCreative() {
-  const prepare = useServerFn(prepareCreativeUpload);
-  const register = useServerFn(registerCreative);
+  const upload = useServerFn(uploadCreative);
   const invalidate = useAdvertiserInvalidate();
 
   return useMutation({
@@ -306,40 +303,21 @@ export function useUploadCreative() {
       campaignId?: string | null | undefined;
       file: File;
     }) => {
-      const check = validateCreativeFile({ mimeType: input.file.type, fileSize: input.file.size });
+      const check = validateCreativeFile({
+        mimeType: input.file.type,
+        fileSize: input.file.size,
+      });
       if (!check.ok) throw new Error(check.message);
       if (input.file.size > maxBytesForMime(input.file.type))
         throw new Error("That file is too large.");
 
-      const target = await prepare({
-        data: {
-          organizationId: input.organizationId,
-          advertiserId: input.advertiserId,
-          mimeType: input.file.type as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
-        },
-      });
+      const formData = new FormData();
+      formData.append("organizationId", input.organizationId);
+      formData.append("advertiserId", input.advertiserId);
+      if (input.campaignId) formData.append("campaignId", input.campaignId);
+      formData.append("file", input.file);
 
-      const upload = await supabase.storage
-        .from(target.bucket)
-        .uploadToSignedUrl(target.path, target.token, input.file, {
-          contentType: input.file.type,
-        });
-      if (upload.error)
-        throw new Error(
-          upload.error.message
-            ? `We couldn't upload that file: ${upload.error.message}`
-            : "We couldn't upload that file. Please try again.",
-        );
-
-      return register({
-        data: {
-          organizationId: input.organizationId,
-          advertiserId: input.advertiserId,
-          campaignId: input.campaignId ?? null,
-          fileName: input.file.name,
-          storagePath: target.path,
-        },
-      });
+      return upload({ data: formData });
     },
     onSuccess: invalidate,
   });

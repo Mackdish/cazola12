@@ -37,6 +37,7 @@ import {
   signedUploadTarget,
   registerUploadedCreative,
   signedCreativeUrl,
+  uploadCreativeToR2,
 } from "@/lib/media-service.server";
 
 const uuid = z.string().uuid();
@@ -271,6 +272,24 @@ export const registerCreative = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(({ data, context }) => registerUploadedCreative(context, data));
+
+export const uploadCreative = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => {
+    if (!(data instanceof FormData)) throw new Error("Expected form data.");
+    const organizationId = uuid.parse(data.get("organizationId"));
+    const advertiserId = uuid.parse(data.get("advertiserId"));
+    const campaignIdRaw = data.get("campaignId");
+    const file = data.get("file");
+    if (!(file instanceof File)) throw new Error("A file is required.");
+    return {
+      organizationId,
+      advertiserId,
+      campaignId: typeof campaignIdRaw === "string" && campaignIdRaw ? uuid.parse(campaignIdRaw) : null,
+      file,
+    };
+  })
+  .handler(({ data, context }) => uploadCreativeToR2(context, data));
 
 export const fetchCreatives = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { captureRuntimeEnv } from "./lib/runtime-env.server";
+import { captureRuntimeBindings } from "./lib/runtime-bindings.server";
 import {
   ACTIVE_SUPABASE_URL,
   ACTIVE_SUPABASE_PUBLISHABLE_KEY,
@@ -81,6 +82,7 @@ export default {
       // Cloudflare passes secrets on `env`, not process.env — cache them and
       // mirror into process.env where the runtime allows writes.
       captureRuntimeEnv(env);
+      captureRuntimeBindings(env);
       if (env && typeof env === "object") {
         for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
           try {
