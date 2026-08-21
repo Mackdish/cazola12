@@ -1,8 +1,3 @@
-/**
- * Cache for Cloudflare bindings that aren't plain strings (e.g. R2Bucket),
- * which src/lib/runtime-env.server.ts intentionally skips. Captured once per
- * request from the Worker's `env` object.
- */
 import { readEnv } from "@/lib/runtime-env.server";
 
 type R2PutOptions = { httpMetadata?: { contentType?: string } };
@@ -11,29 +6,36 @@ type R2BucketLike = {
   delete: (key: string) => Promise<void>;
 };
 
-let r2Bucket: R2BucketLike | undefined;
-let lastDebugInfo: string | undefined;
+type GlobalWithR2 = typeof globalThis & {
+  __r2Bucket?: R2BucketLike;
+  __r2DebugInfo?: string;
+};
+
+const g = globalThis as GlobalWithR2;
 
 export function captureRuntimeBindings(env: unknown): void {
-  if (!env || typeof env !== "object") return;
+  if (!env || typeof env !== "object") {
+    g.__r2DebugInfo = "captureRuntimeBindings called with non-object env";
+    return;
+  }
   const name = readEnv("R2_BINDING_NAME") || "R2";
   const bucket = (env as Record<string, unknown>)[name];
   if (bucket && typeof bucket === "object" && "put" in bucket) {
-    r2Bucket = bucket as R2BucketLike;
+    g.__r2Bucket = bucket as R2BucketLike;
+    g.__r2DebugInfo = `OK: bound "${name}"`;
   } else {
     const keys = Object.keys(env as Record<string, unknown>).filter((key) => {
       const value = (env as Record<string, unknown>)[key];
-      return value && typeof value === "object" && "put" in value;
+      return value && typeof value === "object" && "put" in (value as object);
     });
-    lastDebugInfo = `Looking for binding "${name}". All env keys: ${JSON.stringify(Object.keys(env as Record<string, unknown>))}. Object-like keys with put(): ${JSON.stringify(keys)}`;
-    console.warn(`[R2] ${lastDebugInfo}`);
+    g.__r2DebugInfo = `Binding "${name}" not found. All env keys: ${JSON.stringify(Object.keys(env as Record<string, unknown>))}. Object-like keys with put(): ${JSON.stringify(keys)}`;
   }
 }
 
 export function getR2Bucket(): R2BucketLike | undefined {
-  return r2Bucket;
+  return g.__r2Bucket;
 }
 
 export function getR2BindingDebugInfo(): string {
-  return lastDebugInfo ?? "no diagnostic captured yet";
+  return g.__r2DebugInfo ?? "captureRuntimeBindings never ran for this request";
 }
