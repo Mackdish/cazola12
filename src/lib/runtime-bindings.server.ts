@@ -12,6 +12,7 @@ type R2BucketLike = {
 };
 
 let r2Bucket: R2BucketLike | undefined;
+let lastDebugInfo: string | undefined;
 
 export function captureRuntimeBindings(env: unknown): void {
   if (!env || typeof env !== "object") return;
@@ -24,10 +25,15 @@ export function captureRuntimeBindings(env: unknown): void {
       const value = (env as Record<string, unknown>)[key];
       return value && typeof value === "object" && "put" in value;
     });
-    console.warn(`[R2] Binding "${name}" not found on env. Object-like keys with put(): ${JSON.stringify(keys)}`);
+    lastDebugInfo = `Looking for binding "${name}". All env keys: ${JSON.stringify(Object.keys(env as Record<string, unknown>))}. Object-like keys with put(): ${JSON.stringify(keys)}`;
+    console.warn(`[R2] ${lastDebugInfo}`);
   }
 }
 
 export function getR2Bucket(): R2BucketLike | undefined {
   return r2Bucket;
+}
+
+export function getR2BindingDebugInfo(): string {
+  return lastDebugInfo ?? "no diagnostic captured yet";
 }

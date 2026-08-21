@@ -17,7 +17,7 @@ import {
   validateCreativeFile,
 } from "@/lib/advertiser-domain";
 import { readImageMetadata } from "@/lib/image-metadata";
-import { getR2Bucket } from "@/lib/runtime-bindings.server";
+import { getR2Bucket, getR2BindingDebugInfo } from "@/lib/runtime-bindings.server";
 import { readEnv } from "@/lib/runtime-env.server";
 
 type Client = SupabaseClient<Database>;
@@ -253,7 +253,7 @@ export async function uploadCreativeToR2(
   }
 
   const bucket = getR2Bucket();
-  if (!bucket) fail("R2 storage binding is not available. Check your Cloudflare Worker R2 binding configuration.");
+  if (!bucket) fail(`R2 storage binding is not available. Debug: ${getR2BindingDebugInfo()}`);
 
   const publicBase = readEnv("R2_PUBLIC_URL");
   if (!publicBase) fail("R2_PUBLIC_URL is not configured. Set it in your Cloudflare Worker environment variables.");
