@@ -69,6 +69,7 @@ type AuthState = {
   identityError: FriendlyError | null;
   refreshIdentity: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<FriendlyError | null>;
+  signInWithGoogle: () => Promise<FriendlyError | null>;
   signUp: (
     email: string,
     password: string,
