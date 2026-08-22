@@ -144,7 +144,7 @@ export const upsertAdsTxtRecord = createServerFn({ method: "POST" })
     z.object({
       websiteId: uuid,
       organizationId: uuid,
-      domain: z.string().url(),
+      domain: z.string().min(3).max(255),
       publisherId: uuid,
     }).parse(data),
   )
@@ -152,7 +152,7 @@ export const upsertAdsTxtRecord = createServerFn({ method: "POST" })
 
 export const verifyAdsTxtRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: unknown) => z.object({ websiteId: uuid, domain: z.string().url() }).parse(data))
+  .validator((data: unknown) => z.object({ websiteId: uuid, domain: z.string().min(3).max(255) }).parse(data))
   .handler(({ data }) => verifyAdsTxt(data.websiteId, data.domain));
 
 export const fetchAutoAdsConfig = createServerFn({ method: "GET" })
@@ -183,7 +183,22 @@ export const updateAutoAdsConfig = createServerFn({ method: "POST" })
       responsiveAdsEnabled: z.boolean().optional(),
     }).parse(data),
   )
-  .handler(({ data }) => updateAutoAdsConfigDomain(data.websiteId, data));
+  .handler(({ data }) => {
+    const { websiteId, ...input } = data;
+    const mapped: Record<string, unknown> = {};
+    if (input.status !== undefined) mapped.status = input.status;
+    if (input.adLoad !== undefined) mapped.ad_load = input.adLoad;
+    if (input.enabledFormats !== undefined) mapped.enabled_formats = input.enabledFormats;
+    if (input.excludedPages !== undefined) mapped.excluded_pages = input.excludedPages;
+    if (input.excludedSelectors !== undefined) mapped.excluded_selectors = input.excludedSelectors;
+    if (input.minSpacing !== undefined) mapped.min_spacing = input.minSpacing;
+    if (input.anchorAdsEnabled !== undefined) mapped.anchor_ads_enabled = input.anchorAdsEnabled;
+    if (input.overlayAdsEnabled !== undefined) mapped.overlay_ads_enabled = input.overlayAdsEnabled;
+    if (input.mobileAdsEnabled !== undefined) mapped.mobile_ads_enabled = input.mobileAdsEnabled;
+    if (input.bannerAdsEnabled !== undefined) mapped.banner_ads_enabled = input.bannerAdsEnabled;
+    if (input.responsiveAdsEnabled !== undefined) mapped.responsive_ads_enabled = input.responsiveAdsEnabled;
+    return updateAutoAdsConfigDomain(websiteId, mapped as Parameters<typeof updateAutoAdsConfigDomain>[1]);
+  });
 
 export const fetchAutoAdsScript = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

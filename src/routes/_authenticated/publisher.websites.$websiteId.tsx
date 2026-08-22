@@ -161,7 +161,7 @@ function WebsiteDetailPage() {
           </TabsContent>
 
           <TabsContent value="health" className="space-y-4">
-            <HealthTab websiteId={detail.website.id} />
+            <HealthTab websiteId={detail.website.id} organizationId={detail.website.organization_id} />
           </TabsContent>
 
           <TabsContent value="ads-txt" className="space-y-4">
@@ -425,13 +425,13 @@ function WebsiteSettingsTab({ website }: { website: WebsiteDetail["website"] }) 
   );
 }
 
-function HealthTab({ websiteId }: { websiteId: string }) {
+function HealthTab({ websiteId, organizationId }: { websiteId: string; organizationId: string }) {
   const { data: checks, isLoading, error, refetch } = useWebsiteHealthChecks(websiteId);
   const runChecks = useRunWebsiteHealthChecks();
 
   async function handleRun() {
     try {
-      await runChecks.mutateAsync({ websiteId, organizationId: "" });
+      await runChecks.mutateAsync({ websiteId, organizationId });
       await refetch();
       toast.success("Health checks completed");
     } catch (err) {
@@ -534,9 +534,9 @@ function AdsTxtTab({ website }: { website: WebsiteDetail["website"] }) {
     try {
       await createRecord.mutateAsync({
         websiteId: website.id,
-        organizationId: "",
+        organizationId: website.organization_id,
         domain,
-        publisherId: "",
+        publisherId: website.publisher_id,
       });
       toast.success("Ads.txt record created");
       refetch();
