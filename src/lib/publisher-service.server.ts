@@ -87,7 +87,17 @@ export async function savePublisherProfile(
       fail("This organization isn't a publisher organization.");
     fail("We couldn't save your publisher profile. Please try again.");
   }
-  return Array.isArray(data) ? data[0]! : data!;
+  const publisher = Array.isArray(data) ? data[0]! : data!;
+  if (publisher.approval_status === "pending") {
+    const { error: approveError } = await db
+      .from("publishers")
+      .update({ approval_status: "approved" })
+      .eq("id", publisher.id);
+    if (approveError) {
+      console.error("[publisher] failed to auto-approve new publisher", approveError);
+    }
+  }
+  return publisher;
 }
 
 export async function getPublisherProfile(ctx: Ctx, organizationId: string) {
@@ -163,6 +173,9 @@ export async function createWebsite(
   },
 ) {
   const publisher = await requirePublisher(ctx, input.organizationId);
+  if (publisher.approval_status !== "approved") {
+    fail("Your publisher account is pending approval. You'll be able to add websites once it's reviewed.");
+  }
   const domain = normalizeDomain(input.domain);
   if (!domain) fail("Enter a valid domain, for example example.com.");
 
