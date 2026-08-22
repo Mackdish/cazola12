@@ -87,7 +87,7 @@ VALUES (
       "content": "TradeMall may update these policies from time to time to reflect changes in our services, technology, marketplace requirements, applicable laws, or safety standards.\n\nThe latest version will always be published on this page."
     }
   ]'::jsonb,
-  '[]'::text[],
+  '[]'::jsonb,
   true,
   '2026-08-22T00:00:00Z',
   NOW(),
