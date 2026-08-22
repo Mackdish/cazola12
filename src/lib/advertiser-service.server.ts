@@ -74,10 +74,6 @@ async function assertOrgMember(ctx: Ctx, organizationId: string) {
   return data;
 }
 
-export async function getAdvertiserProfile(ctx: Ctx, organizationId: string) {
-  await assertOrgMember(ctx, organizationId);
-  const db = await admin();
-
 async function isCreativeReferenced(ctx: Ctx, assetId: string): Promise<boolean> {
   const db = await admin();
   const [main, logo] = await Promise.all([
@@ -96,7 +92,11 @@ async function deleteR2Object(path: string): Promise<void> {
   } catch {
     // best-effort cleanup
   }
-}
+
+export async function getAdvertiserProfile(ctx: Ctx, organizationId: string) {
+  await assertOrgMember(ctx, organizationId);
+  const db = await admin();
+
   const { data, error } = await db
     .from("advertisers")
     .select("*")
