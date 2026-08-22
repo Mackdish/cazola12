@@ -3254,7 +3254,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-}
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
