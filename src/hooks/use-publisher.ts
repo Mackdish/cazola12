@@ -25,6 +25,7 @@ import {
   setAdminAdZoneStatus,
   reviewPublisher,
   reviewWebsite,
+  upsertPublisherProfile,
 } from "@/lib/publisher.functions";
 import {
   createPublisherPolicy,
@@ -171,7 +172,7 @@ function useAdminInvalidate() {
 }
 
 export function useSavePublisherProfile() {
-  const fn = useServerFn(fetchPublisherProfile);
+  const fn = useServerFn(upsertPublisherProfile);
   const invalidate = usePublisherInvalidate();
   return useMutation({
     mutationFn: (input: PublisherProfileInput) => fn({ data: input }),
