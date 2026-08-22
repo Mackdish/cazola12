@@ -68,8 +68,20 @@ export async function updateAdControls(
     .update(input as Database["public"]["Tables"]["ad_controls"]["Update"])
     .eq("id", controlsId)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+
+  const { data: controls } = await supabaseAdmin
+    .from("ad_controls")
+    .select("website_id, organization_id")
+    .eq("id", controlsId)
+    .maybeSingle();
+
+  if (!controls?.website_id || !controls?.organization_id) {
+    throw new Error("Ad controls not found");
+  }
+
+  return createAdControls(controls.website_id, controls.organization_id, controls.ad_zone_id ?? undefined);
 }

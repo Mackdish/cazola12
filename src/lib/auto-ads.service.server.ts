@@ -62,10 +62,22 @@ export async function updateAutoAdsConfig(
     .update(input as Database["public"]["Tables"]["auto_ads_config"]["Update"])
     .eq("website_id", websiteId)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+
+  const { data: website } = await supabaseAdmin
+    .from("websites")
+    .select("organization_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (!website?.organization_id) {
+    throw new Error("Website not found");
+  }
+
+  return createAutoAdsConfig(websiteId, website.organization_id);
 }
 
 export function generateAutoAdsScript(websiteId: string): string {
