@@ -172,7 +172,7 @@ function Page() {
               Add an image to your library so you can attach it to ads.
             </DialogDescription>
           </DialogHeader>
-          {profile.data?.id ? (
+          {profile.data?.id && organizationId ? (
             <CreativeUpload
               organizationId={organizationId}
               advertiserId={profile.data.id}

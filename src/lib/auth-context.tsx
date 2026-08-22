@@ -69,6 +69,7 @@ type AuthState = {
   identityError: FriendlyError | null;
   refreshIdentity: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<FriendlyError | null>;
+  signInWithGoogle: () => Promise<FriendlyError | null>;
   signUp: (
     email: string,
     password: string,
@@ -189,6 +190,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? toFriendlyError(error, "Sign in failed") : null;
   }, []);
 
+  const signInWithGoogle = useCallback<AuthState["signInWithGoogle"]>(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
+    });
+    return error ? toFriendlyError(error, "Google sign-in failed") : null;
+  }, []);
+
   const signUp = useCallback<AuthState["signUp"]>(async (email, password, fullName) => {
     const key = `auth:register:${email.toLowerCase()}`;
     if (!checkClientRateLimit(key, 5, 60 * 60 * 1000)) {
@@ -284,6 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       identityError,
       refreshIdentity: loadIdentity,
       signIn,
+      signInWithGoogle,
       signUp,
       signOut,
       requestPasswordReset,
@@ -300,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     identityError,
     loadIdentity,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     requestPasswordReset,

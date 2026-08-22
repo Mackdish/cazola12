@@ -14,7 +14,7 @@ const g = globalThis as GlobalWithR2;
 
 async function tryCloudflareWorkersEnv(): Promise<R2BucketLike | undefined> {
   try {
-    const mod = await import("cloudflare:workers");
+    const mod = await import(/* @vite-ignore */ "cloudflare:workers" as string);
     const cfEnv = (mod as { env?: Record<string, unknown> }).env;
     if (!cfEnv) return undefined;
     const name = readEnv("R2_BINDING_NAME") || "R2";

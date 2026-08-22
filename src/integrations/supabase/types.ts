@@ -1158,8 +1158,7 @@ export type Database = {
           },
         ]
       }
-    }
-    contact_submissions: {
+      contact_submissions: {
       Row: {
         created_at: string
         email: string
