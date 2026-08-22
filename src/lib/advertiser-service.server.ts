@@ -88,7 +88,7 @@ async function isCreativeReferenced(ctx: Ctx, assetId: string): Promise<boolean>
   return !!(main.data || logo.data);
 }
 
-async function deleteR2Object(path: string): void {
+async function deleteR2Object(path: string): Promise<void> {
   const bucket = await getR2Bucket();
   if (!bucket) return;
   try {
