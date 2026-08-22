@@ -260,13 +260,19 @@ export async function startVerification(
   // RLS read establishes ownership before any privileged write.
   const { data: website, error } = await ctx.supabase
     .from("websites")
-    .select("id, domain, organization_id, verification_status")
+    .select("id, domain, organization_id, verification_status, verification_token")
     .eq("id", input.websiteId)
     .maybeSingle();
   if (error) fail("We couldn't load this website.");
   if (!website) fail("That website doesn't exist, or you don't have access to it.");
 
   const db = await admin();
+  const token = website.verification_token || createVerificationToken();
+  if (!website.verification_token) {
+    await db.from("websites").update({ verification_token: token }).eq("id", website.id);
+  }
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
   const existing = await db
     .from("domain_verifications")
     .select("*")
@@ -289,8 +295,9 @@ export async function startVerification(
       website_id: website.id,
       organization_id: website.organization_id,
       method: input.method,
-      verification_token: createVerificationToken(),
+      verification_token: token,
       status: "pending",
+      expires_at: expiresAt,
     })
     .select("*")
     .single();
@@ -308,7 +315,7 @@ export async function runVerification(
 ) {
   const { data: website, error } = await ctx.supabase
     .from("websites")
-    .select("id, domain, verification_status")
+    .select("id, domain, verification_status, verification_token")
     .eq("id", input.websiteId)
     .maybeSingle();
   if (error) fail("We couldn't load this website.");
@@ -332,11 +339,14 @@ export async function runVerification(
     fail("This verification token has expired. Generate a new one and try again.");
   }
 
+  const token = website.verification_token || verification.verification_token;
+  if (!token) fail("No verification token found. Generate a new one and try again.");
+
   // The check itself is a real network lookup — the client never reports it.
   const outcome = await verifyDomainOwnership(
     input.method,
     website.domain,
-    verification.verification_token,
+    token,
   );
 
   if (outcome.ok) {

@@ -151,6 +151,7 @@ function WebsiteDetailPage() {
               domain={detail.website.domain}
               verificationStatus={detail.website.verification_status}
               verifications={detail.verifications}
+              verificationToken={detail.website.verification_token}
               onVerified={() => void refetch()}
             />
           </TabsContent>

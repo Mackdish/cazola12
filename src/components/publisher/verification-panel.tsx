@@ -23,12 +23,14 @@ export function VerificationPanel({
   domain,
   verificationStatus,
   verifications,
+  verificationToken,
   onVerified,
 }: {
   websiteId: string;
   domain: string;
   verificationStatus: VerificationStatus;
   verifications: DomainVerification[];
+  verificationToken?: string;
   onVerified?: () => void;
 }) {
   const [method, setMethod] = useState<VerificationMethod>(verifications[0]?.method ?? "dns_txt");
@@ -38,8 +40,9 @@ export function VerificationPanel({
   const record = verifications.find(
     (entry) => entry.method === method && entry.status !== "failed",
   );
-  const instructions = record
-    ? verificationInstructions(method, domain, record.verification_token)
+  const token = verificationToken || record?.verification_token;
+  const instructions = token
+    ? verificationInstructions(method, domain, token)
     : null;
 
   async function start(regenerate: boolean) {
