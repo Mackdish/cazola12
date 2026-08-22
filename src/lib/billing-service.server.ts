@@ -72,7 +72,7 @@ export async function getBillingSettings(ctx: Ctx) {
     publisherRevenueShare: amount(r?.publisher_revenue_share ?? 0.4),
     earningsHoldDays: r?.earnings_hold_days ?? 7,
     minimumPayoutAmount: amount(r?.minimum_payout_amount ?? 0),
-    campaignMinimumBudget: amount(r?.campaign_minimum_budget ?? 500),
+    campaignMinimumBudget: amount(r?.campaign_minimum_budget ?? 300),
     minimumDailyBudget: amount(r?.minimum_daily_budget ?? 100),
     startingCpc: amount(r?.starting_cpc ?? 5),
     currency: r?.currency ?? "KES",
@@ -81,7 +81,7 @@ export async function getBillingSettings(ctx: Ctx) {
     maximumDailyBudget: amount(r?.maximum_daily_budget ?? 100_000_000),
     assumedCtr: amount(r?.assumed_ctr ?? 0.01),
     defaultBidAmount: amount(r?.default_bid_amount ?? 5),
-    defaultTotalBudget: amount(r?.default_total_budget ?? 500),
+    defaultTotalBudget: amount(r?.default_total_budget ?? 300),
   };
 }
 

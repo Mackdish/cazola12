@@ -41,7 +41,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
   const [objective, setObjective] = useState<CampaignObjective>("traffic");
   const [bidType, setBidType] = useState<BidType>("cpm");
   const defaultBid = settings.data?.defaultBidAmount ?? 5;
-  const defaultTotal = settings.data?.defaultTotalBudget ?? 500;
+  const defaultTotal = settings.data?.defaultTotalBudget ?? 300;
   const [bidAmount, setBidAmount] = useState(String(defaultBid));
   const [totalBudget, setTotalBudget] = useState(String(defaultTotal));
   const [dailyBudget, setDailyBudget] = useState("");
@@ -71,7 +71,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
     const total = Number(totalBudget || 0);
     const daily = dailyBudget ? Number(dailyBudget) : null;
     const bid = Number(bidAmount || 0);
-    const minTotal = settings.data?.campaignMinimumBudget ?? 500;
+    const minTotal = settings.data?.campaignMinimumBudget ?? 300;
     const minDaily = settings.data?.minimumDailyBudget ?? 100;
     const minBid = settings.data?.startingCpc ?? 5;
 
@@ -200,7 +200,7 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
                 onChange={(event) => setTotalBudget(event.target.value.replace(/[^0-9.]/g, ""))}
               />
               <p className="text-xs text-muted-foreground">
-                Minimum {formatCurrency(settings.data?.campaignMinimumBudget ?? 500, settings.data?.currency)}
+                Minimum {formatCurrency(settings.data?.campaignMinimumBudget ?? 300, settings.data?.currency)}
               </p>
             </div>
             <div className="space-y-2">

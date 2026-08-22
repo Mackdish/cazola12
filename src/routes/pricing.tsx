@@ -30,7 +30,7 @@ export const Route = createFileRoute("/pricing")({
 
 function PricingPage() {
   const settings = useBillingSettings();
-  const [budget, setBudget] = useState("500");
+  const [budget, setBudget] = useState("300");
   const [model, setModel] = useState("cpc");
 
   const currency = settings.data?.currency ?? "KES";
@@ -93,7 +93,7 @@ function PricingPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Minimum Campaign Budget</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Start from {currency} {settings.data?.campaignMinimumBudget?.toLocaleString() ?? "500"}. Daily budgets from{" "}
+                    Start from {currency} {settings.data?.campaignMinimumBudget?.toLocaleString() ?? "300"}. Daily budgets from{" "}
                     {currency} {settings.data?.minimumDailyBudget?.toLocaleString() ?? "100"}.
                   </p>
                 </div>
@@ -271,7 +271,7 @@ function PricingPage() {
                 <CardContent className="pt-6 space-y-2">
                   <p className="text-sm font-semibold">What is the minimum campaign budget?</p>
                   <p className="text-sm text-muted-foreground">
-                    Minimum total budget is {currency} {settings.data?.campaignMinimumBudget?.toLocaleString() ?? "500"}. Minimum daily
+                    Minimum total budget is {currency} {settings.data?.campaignMinimumBudget?.toLocaleString() ?? "300"}. Minimum daily
                     budget is {currency} {settings.data?.minimumDailyBudget?.toLocaleString() ?? "100"}.
                   </p>
                 </CardContent>

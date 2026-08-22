@@ -47,7 +47,7 @@ async function loadPlatformSettings(ctx: Ctx) {
   if (error) fail("We couldn't load platform settings.");
   const r = data as any;
   return {
-    campaignMinimumBudget: Number(r?.campaign_minimum_budget ?? 500),
+    campaignMinimumBudget: Number(r?.campaign_minimum_budget ?? 300),
     minimumDailyBudget: Number(r?.minimum_daily_budget ?? 100),
     startingCpc: Number(r?.starting_cpc ?? 5),
     currency: r?.currency ?? "KES",

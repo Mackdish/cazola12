@@ -54,7 +54,7 @@ VALUES (
     {
       "id": "pricing-and-budgets",
       "title": "Pricing and Campaign Budgets",
-      "content": "The current minimum campaign budget is KES 500.\n\nThe starting CPC may be KES 5 per click.\n\nThese are starting platform rates and are not guaranteed fixed prices. Actual campaign costs may vary depending on campaign configuration, targeting, available inventory, advertiser demand, competition, placement, and marketplace conditions.\n\nAdvertisers are responsible for reviewing their campaign settings and budgets before launching campaigns."
+      "content": "The current minimum campaign budget is KES 300.\n\nThe starting CPC may be KES 5 per click.\n\nThese are starting platform rates and are not guaranteed fixed prices. Actual campaign costs may vary depending on campaign configuration, targeting, available inventory, advertiser demand, competition, placement, and marketplace conditions.\n\nAdvertisers are responsible for reviewing their campaign settings and budgets before launching campaigns."
     },
     {
       "id": "invalid-traffic",
