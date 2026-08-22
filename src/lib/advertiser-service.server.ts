@@ -92,6 +92,7 @@ async function deleteR2Object(path: string): Promise<void> {
   } catch {
     // best-effort cleanup
   }
+}
 
 export async function getAdvertiserProfile(ctx: Ctx, organizationId: string) {
   await assertOrgMember(ctx, organizationId);
