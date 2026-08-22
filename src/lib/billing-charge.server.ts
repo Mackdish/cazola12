@@ -41,7 +41,6 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
   });
 
   if (error) {
-    // Billing must never break delivery or tracking — record and move on.
     console.error("charge_campaign_event failed", error.message);
     return { ok: false, reason: "error", amount: 0, publisherAmount: 0, platformAmount: 0 };
   }
@@ -54,13 +53,23 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
     platform_amount?: number | string;
   };
 
-  return {
+  const chargeResult: ChargeResult = {
     ok: result.ok === true,
     reason: (result.reason ?? "error") as ChargeReason,
     amount: amount(result.amount),
     publisherAmount: amount(result.publisher_amount),
     platformAmount: amount(result.platform_amount),
   };
+
+  if (!chargeResult.ok && chargeResult.reason === "insufficient_funds") {
+    await client
+      .from("campaigns")
+      .update({ status: "paused", pause_reason: "insufficient_funds" })
+      .eq("id", input.campaignId)
+      .eq("status", "active");
+  }
+
+  return chargeResult;
 }
 
 /**

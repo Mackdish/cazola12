@@ -144,6 +144,11 @@ function CampaignDetailView({ detail, currency }: { detail: CampaignDetail; curr
           Review feedback: {campaign.rejection_reason}
         </p>
       ) : null}
+      {campaign.status === "paused" && campaign.pause_reason === "insufficient_funds" ? (
+        <p className="rounded-md border border-orange-500/30 bg-orange-50 p-3 text-sm text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+          Paused — insufficient wallet balance. Add funds to resume this campaign.
+        </p>
+      ) : null}
 
       <Tabs defaultValue="overview">
         <TabsList>

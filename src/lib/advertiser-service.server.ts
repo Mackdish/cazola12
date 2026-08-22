@@ -143,6 +143,23 @@ export async function requireAdvertiser(ctx: Ctx, organizationId: string) {
   return advertiser;
 }
 
+async function assertWalletCanFundCampaign(ctx: Ctx, organizationId: string, campaign: {
+  daily_budget: number | null;
+}) {
+  const { data, error } = await ctx.supabase
+    .from("wallets")
+    .select("balance_amount")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  if (error) fail("We couldn't verify your wallet balance.");
+  const balance = Number(data?.balance_amount ?? 0);
+  const dailyBudget = Number(campaign.daily_budget ?? 0);
+  const required = dailyBudget > 0 ? dailyBudget : 0.01;
+  if (balance < required) {
+    fail("Insufficient wallet balance to start this campaign. Add funds to continue.");
+  }
+}
+
 // ---------------------------------------------------------------- campaigns
 
 export async function listCampaigns(ctx: Ctx, organizationId: string) {
@@ -384,6 +401,10 @@ export async function setCampaignStatus(
 
   if (input.status === "pending_review") {
     await assertCampaignSubmittable(ctx, current.id);
+  }
+
+  if (input.status === "active") {
+    await assertWalletCanFundCampaign(ctx, current.organization_id, current);
   }
 
   const patch: CampaignUpdate = { status: input.status };
@@ -722,7 +743,7 @@ export async function adminReviewCampaign(
   await assertPlatformAdmin(ctx);
   const current = await ctx.supabase
     .from("campaigns")
-    .select("id, status, name")
+    .select("id, status, name, organization_id, daily_budget")
     .eq("id", input.campaignId)
     .maybeSingle();
   if (current.error) fail("We couldn't load that campaign.");
@@ -747,6 +768,10 @@ export async function adminReviewCampaign(
     assertTransition(current.data.status, target, "admin");
   } catch (error) {
     fail(error instanceof Error ? error.message : "That status change isn't allowed.");
+  }
+
+  if (target === "active") {
+    await assertWalletCanFundCampaign(ctx, current.data.organization_id, current.data);
   }
 
   const patch: CampaignUpdate = {

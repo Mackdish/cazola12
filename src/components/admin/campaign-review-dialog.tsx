@@ -112,6 +112,11 @@ export function CampaignReviewDialog({
               <StatusBadge tone={campaignStatusTone(campaign.status)}>
                 {campaignStatusLabel(campaign.status)}
               </StatusBadge>
+              {campaign.status === "paused" && campaign.pause_reason === "insufficient_funds" ? (
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  Paused due to insufficient wallet balance.
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-1">
