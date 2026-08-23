@@ -31,7 +31,21 @@ function OnboardingPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { createOrganization, user } = useAuth();
+  const {
+    createOrganization,
+    user,
+    workspaces,
+    loadingIdentity,
+    profile,
+    homePath,
+  } = useAuth();
+
+  useEffect(() => {
+    if (loadingIdentity || !profile) return;
+    if (step !== 0) return;
+    if (workspaces.length === 0) return;
+    void navigate({ to: homePath, replace: true });
+  }, [loadingIdentity, profile, workspaces, homePath, navigate, step]);
 
   useEffect(() => {
     if (step !== 3) return undefined;
