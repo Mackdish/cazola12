@@ -85,6 +85,7 @@ import { Route as ApiV1AnalyticsRouteImport } from './routes/api/v1/analytics'
 import { Route as ApiV1ContactRouteImport } from './routes/api/v1/contact'
 import { Route as ApiV1PayRouteImport } from './routes/api/v1/pay'
 import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
+import { Route as ApiWorkerImpressionFlushRouteImport } from './routes/api/worker/impression-flush'
 import { Route as AuthenticatedAdminPoliciesContentRouteImport } from './routes/_authenticated/admin.policies.content'
 import { Route as AuthenticatedAdvertiserCampaignsIndexRouteImport } from './routes/_authenticated/advertiser.campaigns.index'
 import { Route as AuthenticatedAdvertiserCampaignsCampaignIdRouteImport } from './routes/_authenticated/advertiser.campaigns.$campaignId'
@@ -528,6 +529,12 @@ const ApiV1WalletRoute = ApiV1WalletRouteImport.update({
   path: '/api/v1/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWorkerImpressionFlushRoute =
+  ApiWorkerImpressionFlushRouteImport.update({
+    id: '/api/worker/impression-flush',
+    path: '/api/worker/impression-flush',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminPoliciesContentRoute =
   AuthenticatedAdminPoliciesContentRouteImport.update({
     id: '/content',
@@ -739,6 +746,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/advertiser/': typeof AuthenticatedAdvertiserIndexRoute
   '/publisher/': typeof AuthenticatedPublisherIndexRoute
@@ -840,6 +848,7 @@ export interface FileRoutesByTo {
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/advertiser': typeof AuthenticatedAdvertiserIndexRoute
   '/publisher': typeof AuthenticatedPublisherIndexRoute
@@ -945,6 +954,7 @@ export interface FileRoutesById {
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
+  '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/advertiser/': typeof AuthenticatedAdvertiserIndexRoute
   '/_authenticated/publisher/': typeof AuthenticatedPublisherIndexRoute
@@ -1050,6 +1060,7 @@ export interface FileRouteTypes {
     | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
+    | '/api/worker/impression-flush'
     | '/admin/'
     | '/advertiser/'
     | '/publisher/'
@@ -1151,6 +1162,7 @@ export interface FileRouteTypes {
     | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
+    | '/api/worker/impression-flush'
     | '/admin'
     | '/advertiser'
     | '/publisher'
@@ -1255,6 +1267,7 @@ export interface FileRouteTypes {
     | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
+    | '/api/worker/impression-flush'
     | '/_authenticated/admin/'
     | '/_authenticated/advertiser/'
     | '/_authenticated/publisher/'
@@ -1318,6 +1331,7 @@ export interface RootRouteChildren {
   ApiV1ContactRoute: typeof ApiV1ContactRoute
   ApiV1PayRoute: typeof ApiV1PayRoute
   ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
+  ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
@@ -1870,6 +1884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/worker/impression-flush': {
+      id: '/api/worker/impression-flush'
+      path: '/api/worker/impression-flush'
+      fullPath: '/api/worker/impression-flush'
+      preLoaderRoute: typeof ApiWorkerImpressionFlushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/policies/content': {
       id: '/_authenticated/admin/policies/content'
       path: '/content'
@@ -2276,6 +2297,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactRoute: ApiV1ContactRoute,
   ApiV1PayRoute: ApiV1PayRoute,
   ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
+  ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,

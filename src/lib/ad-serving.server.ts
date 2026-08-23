@@ -27,6 +27,10 @@ import {
   recordFraudEvent,
 } from "@/lib/fraud-detection.server";
 import { cachedServePathGet } from "@/lib/cache.server";
+import {
+  bufferImpression,
+  type ImpressionEvent,
+} from "@/lib/impression-buffer.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
 
@@ -343,6 +347,33 @@ export async function recordImpression(
   ipAddress?: string,
   userAgent?: string,
 ): Promise<"recorded" | "duplicate" | "failed"> {
+  const useBuffer = process.env["USE_BUFFERED_IMPRESSIONS"] === "true";
+
+  if (useBuffer) {
+    const event: ImpressionEvent = {
+      request_id: payload.rid,
+      ad_id: payload.adId,
+      campaign_id: payload.campaignId,
+      publisher_id: payload.publisherId,
+      website_id: payload.websiteId,
+      ad_zone_id: payload.zoneId,
+      device_type: payload.device as never,
+      browser: payload.browser as never,
+      operating_system: payload.os as never,
+      country: payload.country,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      timestamp: Date.now(),
+    };
+
+    const buffered = await bufferImpression(event);
+    if (buffered) {
+      return "recorded";
+    }
+
+    console.warn("[impression-buffer] buffer write failed, falling back to direct insert");
+  }
+
   const { error } = await supabaseAdmin.from("impressions").insert({
     request_id: payload.rid,
     ad_id: payload.adId,

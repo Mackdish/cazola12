@@ -105,4 +105,30 @@ export default {
       });
     }
   },
+
+  async scheduled(controller: ScheduledController, env: unknown, ctx: unknown) {
+    try {
+      captureRuntimeEnv(env);
+      captureRuntimeBindings(env);
+      if (env && typeof env === "object") {
+        for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
+          try {
+            if (typeof value === "string" && !process.env[key]) process.env[key] = value;
+          } catch {
+            // process.env may be read-only
+          }
+        }
+      }
+      applyExternalSupabaseEnv();
+
+      const { flushImpressionBatch, getStreamBacklog } = await import("@/lib/impression-buffer.server");
+      const backlog = await getStreamBacklog();
+      console.info("[impression-buffer] scheduled flush start", { backlog });
+
+      const result = await flushImpressionBatch();
+      console.info("[impression-buffer] scheduled flush complete", result);
+    } catch (error) {
+      console.error("[impression-buffer] scheduled flush failed", error);
+    }
+  },
 };
