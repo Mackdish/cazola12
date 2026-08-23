@@ -1,10 +1,23 @@
 import { z } from "npm:zod";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
-} as const;
+const ALLOWED_ORIGINS = [
+  "https://trademall.co.ke",
+  "https://www.trademall.co.ke",
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin");
+  const allowOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : "https://trademall.co.ke";
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
+    "Access-Control-Max-Age": "86400",
+  } as const;
+}
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 // NOTE: This in-memory rate limiter resets on cold start.
@@ -31,11 +44,12 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, request?: Request): Response {
+  const headers = request ? corsHeaders(request) : corsHeaders(new Request("http://localhost"));
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...corsHeaders,
+      ...headers,
       "Content-Type": "application/json",
     },
   });
@@ -53,15 +67,17 @@ function checkRateLimit(ip: string): boolean {
 }
 
 Deno.serve(async (request: Request) => {
+  const headers = corsHeaders(request);
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
+      status: 200,
+      headers,
     });
   }
 
   if (request.method !== "POST") {
-    return jsonResponse({ ok: false as const, error: "Method not allowed" }, 405);
+    return jsonResponse({ ok: false as const, error: "Method not allowed" }, 405, request);
   }
 
   try {
@@ -71,6 +87,7 @@ Deno.serve(async (request: Request) => {
       return jsonResponse(
         { ok: false as const, error: "Too many submissions. Please try again later." },
         429,
+        request,
       );
     }
 
@@ -86,6 +103,7 @@ Deno.serve(async (request: Request) => {
           details: parsed.error.flatten().fieldErrors,
         },
         400,
+        request,
       );
     }
 
@@ -106,6 +124,7 @@ Deno.serve(async (request: Request) => {
       return jsonResponse(
         { ok: false as const, error: "Server configuration error" },
         500,
+        request,
       );
     }
 
@@ -137,18 +156,20 @@ Deno.serve(async (request: Request) => {
       return jsonResponse(
         { ok: false as const, error: "Failed to send email. Please try again later." },
         502,
+        request,
       );
     }
 
     return jsonResponse({
       ok: true as const,
       message: "Your message has been sent. We'll get back to you within 24 hours.",
-    });
+    }, 200, request);
   } catch (err) {
     console.error("[contact] unexpected error:", err);
     return jsonResponse(
       { ok: false as const, error: "Something went wrong. Please try again later." },
       500,
+      request,
     );
   }
 });
