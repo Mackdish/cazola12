@@ -23,6 +23,7 @@ import {
   createVerificationToken,
   verifyDomainOwnership,
 } from "@/lib/publisher-verification.server";
+import { cachedGet, cacheDelete } from "@/lib/cache.server";
 
 type Client = SupabaseClient<Database>;
 export type Ctx = { supabase: Client; userId: string };
@@ -97,19 +98,26 @@ export async function savePublisherProfile(
       console.error("[publisher] failed to auto-approve new publisher", approveError);
     }
   }
+  await cacheDelete(`publisher:${input.organizationId}:profile`);
   return publisher;
 }
 
 export async function getPublisherProfile(ctx: Ctx, organizationId: string) {
   await assertOrgMember(ctx, organizationId);
   const db = await admin();
-  const { data, error } = await db
-    .from("publishers")
-    .select("*")
-    .eq("organization_id", organizationId)
-    .maybeSingle();
-  if (error) fail("We couldn't load your publisher profile.");
-  return data ?? null;
+  return cachedGet(
+    `publisher:${organizationId}:profile`,
+    300,
+    async () => {
+      const { data, error } = await db
+        .from("publishers")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .maybeSingle();
+      if (error) fail("We couldn't load your publisher profile.");
+      return data ?? null;
+    },
+  );
 }
 
 
@@ -135,30 +143,36 @@ export async function listWebsites(ctx: Ctx, organizationId: string) {
 }
 
 export async function getWebsiteDetail(ctx: Ctx, websiteId: string) {
-  const { data: website, error } = await ctx.supabase
-    .from("websites")
-    .select("*")
-    .eq("id", websiteId)
-    .maybeSingle();
-  if (error) fail("We couldn't load this website.");
-  if (!website) fail("That website doesn't exist, or you don't have access to it.");
+  return cachedGet(
+    `website:${websiteId}:detail`,
+    300,
+    async () => {
+      const { data: website, error } = await ctx.supabase
+        .from("websites")
+        .select("*")
+        .eq("id", websiteId)
+        .maybeSingle();
+      if (error) fail("We couldn't load this website.");
+      if (!website) fail("That website doesn't exist, or you don't have access to it.");
 
-  const [zones, verifications] = await Promise.all([
-    ctx.supabase
-      .from("ad_zones")
-      .select("*")
-      .eq("website_id", websiteId)
-      .order("created_at", { ascending: false }),
-    ctx.supabase
-      .from("domain_verifications")
-      .select("*")
-      .eq("website_id", websiteId)
-      .order("created_at", { ascending: false }),
-  ]);
-  if (zones.error) fail("We couldn't load this website's ad zones.");
-  if (verifications.error) fail("We couldn't load this website's verification records.");
+      const [zones, verifications] = await Promise.all([
+        ctx.supabase
+          .from("ad_zones")
+          .select("*")
+          .eq("website_id", websiteId)
+          .order("created_at", { ascending: false }),
+        ctx.supabase
+          .from("domain_verifications")
+          .select("*")
+          .eq("website_id", websiteId)
+          .order("created_at", { ascending: false }),
+      ]);
+      if (zones.error) fail("We couldn't load this website's ad zones.");
+      if (verifications.error) fail("We couldn't load this website's verification records.");
 
-  return { website, zones: zones.data ?? [], verifications: verifications.data ?? [] };
+      return { website, zones: zones.data ?? [], verifications: verifications.data ?? [] };
+    },
+  );
 }
 
 export async function createWebsite(
@@ -233,6 +247,7 @@ export async function updateWebsite(
     .maybeSingle();
   if (error) fail("We couldn't save those website details.");
   if (!data) fail("That website doesn't exist, or you don't have access to it.");
+  await cacheDelete(`website:${input.websiteId}:detail`);
   return data;
 }
 
@@ -306,6 +321,7 @@ export async function startVerification(
   if (website.verification_status === "unverified") {
     await db.from("websites").update({ verification_status: "pending" }).eq("id", website.id);
   }
+  await cacheDelete(`website:${website.id}:detail`);
   return inserted.data;
 }
 
@@ -364,6 +380,7 @@ export async function runVerification(
       .from("websites")
       .update({ verification_status: "verified", verified_at: now, status: "active" })
       .eq("id", website.id);
+    await cacheDelete(`website:${website.id}:detail`);
     return { verified: true as const, message: "Domain ownership confirmed." };
   }
 
@@ -380,13 +397,19 @@ export async function runVerification(
 // ----------------------------------------------------------------- ad zones
 
 export async function listAdZones(ctx: Ctx, organizationId: string) {
-  const { data, error } = await ctx.supabase
-    .from("ad_zones")
-    .select("*, websites(id, domain, name, verification_status, approval_status)")
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false });
-  if (error) fail("We couldn't load your ad zones.");
-  return data ?? [];
+  return cachedGet(
+    `org:${organizationId}:ad_zones`,
+    120,
+    async () => {
+      const { data, error } = await ctx.supabase
+        .from("ad_zones")
+        .select("*, websites(id, domain, name, verification_status, approval_status)")
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false });
+      if (error) fail("We couldn't load your ad zones.");
+      return data ?? [];
+    },
+  );
 }
 
 export async function createAdZone(
@@ -431,6 +454,7 @@ export async function createAdZone(
     if (insertError.code === "42501") fail("You don't have permission to create ad zones here.");
     fail("We couldn't create that ad zone. Please try again.");
   }
+  await cacheDelete(`org:${website.organization_id}:ad_zones`);
   return data!;
 }
 
@@ -446,6 +470,7 @@ export async function setAdZoneStatus(
     .maybeSingle();
   if (error) fail("We couldn't update that ad zone.");
   if (!data) fail("That ad zone doesn't exist, or you don't have access to it.");
+  await cacheDelete(`org:${data.organization_id}:ad_zones`);
   return data;
 }
 
