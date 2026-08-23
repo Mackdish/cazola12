@@ -26,6 +26,7 @@ import {
   evaluateImpressionFraud,
   recordFraudEvent,
 } from "@/lib/fraud-detection.server";
+import { cachedServePathGet } from "@/lib/cache.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
 
@@ -58,42 +59,44 @@ function cleanupCreativeCache() {
 
 /** One row, one index hit on ad_zones.zone_key. */
 export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | null> {
-  const t0 = Date.now();
-  const { data, error } = await supabaseAdmin
-    .from("ad_zones")
-    .select(
-      `id, status, format, website_id, publisher_id, websites!inner(status, approval_status, verification_status, category), publishers!inner(status, approval_status)`,
-    )
-    .eq("zone_key", zoneKey)
-    .maybeSingle();
+  return cachedServePathGet(zoneKey, 60, async () => {
+    const t0 = Date.now();
+    const { data, error } = await supabaseAdmin
+      .from("ad_zones")
+      .select(
+        `id, status, format, website_id, publisher_id, websites!inner(status, approval_status, verification_status, category), publishers!inner(status, approval_status)`,
+      )
+      .eq("zone_key", zoneKey)
+      .maybeSingle();
 
-  console.debug("[ad] zone_lookup_ms", Date.now() - t0);
+    console.debug("[ad] zone_lookup_ms", Date.now() - t0);
 
-  if (error || !data) return null;
-  const website = data.websites as unknown as {
-    status: ZoneContext["websiteStatus"];
-    approval_status: ZoneContext["websiteApproval"];
-    verification_status: ZoneContext["websiteVerification"];
-    category: ZoneContext["websiteCategory"];
-  };
-  const publisher = data.publishers as unknown as {
-    status: ZoneContext["publisherStatus"];
-    approval_status: ZoneContext["publisherApproval"];
-  };
+    if (error || !data) return null;
+    const website = data.websites as unknown as {
+      status: ZoneContext["websiteStatus"];
+      approval_status: ZoneContext["websiteApproval"];
+      verification_status: ZoneContext["websiteVerification"];
+      category: ZoneContext["websiteCategory"];
+    };
+    const publisher = data.publishers as unknown as {
+      status: ZoneContext["publisherStatus"];
+      approval_status: ZoneContext["publisherApproval"];
+    };
 
-  return {
-    zoneId: data.id,
-    zoneStatus: data.status,
-    zoneFormat: data.format,
-    websiteId: data.website_id,
-    websiteStatus: website.status,
-    websiteApproval: website.approval_status,
-    websiteVerification: website.verification_status,
-    websiteCategory: website.category,
-    publisherId: data.publisher_id,
-    publisherStatus: publisher.status,
-    publisherApproval: publisher.approval_status,
-  };
+    return {
+      zoneId: data.id,
+      zoneStatus: data.status,
+      zoneFormat: data.format,
+      websiteId: data.website_id,
+      websiteStatus: website.status,
+      websiteApproval: website.approval_status,
+      websiteVerification: website.verification_status,
+      websiteCategory: website.category,
+      publisherId: data.publisher_id,
+      publisherStatus: publisher.status,
+      publisherApproval: publisher.approval_status,
+    };
+  });
 }
 
 /**

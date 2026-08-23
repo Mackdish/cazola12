@@ -23,7 +23,7 @@ import {
   createVerificationToken,
   verifyDomainOwnership,
 } from "@/lib/publisher-verification.server";
-import { cachedGetVersioned, cacheDelete, cacheBumpVersion } from "@/lib/cache.server";
+import { cachedGetVersioned, cacheDelete, cacheBumpVersion, invalidateZoneContextCache } from "@/lib/cache.server";
 
 type Client = SupabaseClient<Database>;
 export type Ctx = { supabase: Client; userId: string };
@@ -32,6 +32,26 @@ export class ServiceError extends Error {}
 
 function fail(message: string): never {
   throw new ServiceError(message);
+}
+
+async function invalidateZoneContextForPublisher(publisherId: string) {
+  const db = await admin();
+  const { data } = await db
+    .from("ad_zones")
+    .select("zone_key")
+    .eq("publisher_id", publisherId);
+  const keys = (data ?? []).map((row: any) => row.zone_key).filter(Boolean);
+  await invalidateZoneContextCache(keys);
+}
+
+async function invalidateZoneContextForWebsite(websiteId: string) {
+  const db = await admin();
+  const { data } = await db
+    .from("ad_zones")
+    .select("zone_key")
+    .eq("website_id", websiteId);
+  const keys = (data ?? []).map((row: any) => row.zone_key).filter(Boolean);
+  await invalidateZoneContextCache(keys);
 }
 
 async function admin() {
@@ -100,6 +120,7 @@ export async function savePublisherProfile(
   }
   await cacheBumpVersion("publisher", input.organizationId);
   await cacheDelete(`publisher:${input.organizationId}:profile`);
+  await invalidateZoneContextForPublisher(publisher.id);
   return publisher;
 }
 
@@ -254,6 +275,7 @@ export async function updateWebsite(
   if (!data) fail("That website doesn't exist, or you don't have access to it.");
   await cacheBumpVersion("website", input.websiteId);
   await cacheDelete(`website:${input.websiteId}:detail`);
+  await invalidateZoneContextForWebsite(input.websiteId);
   return data;
 }
 
@@ -329,6 +351,7 @@ export async function startVerification(
   }
   await cacheBumpVersion("website", website.id);
   await cacheDelete(`website:${website.id}:detail`);
+  await invalidateZoneContextForWebsite(website.id);
   return inserted.data;
 }
 
@@ -389,6 +412,7 @@ export async function runVerification(
       .eq("id", website.id);
     await cacheBumpVersion("website", website.id);
     await cacheDelete(`website:${website.id}:detail`);
+    await invalidateZoneContextForWebsite(website.id);
     return { verified: true as const, message: "Domain ownership confirmed." };
   }
 
@@ -466,6 +490,7 @@ export async function createAdZone(
   }
   await cacheBumpVersion("org", website.organization_id);
   await cacheDelete(`org:${website.organization_id}:ad_zones`);
+  await invalidateZoneContextForWebsite(website.id);
   return data!;
 }
 
@@ -483,6 +508,7 @@ export async function setAdZoneStatus(
   if (!data) fail("That ad zone doesn't exist, or you don't have access to it.");
   await cacheBumpVersion("org", data.organization_id);
   await cacheDelete(`org:${data.organization_id}:ad_zones`);
+  await invalidateZoneContextForWebsite(data.website_id);
   return data;
 }
 
@@ -569,6 +595,7 @@ export async function adminSetPublisherReview(
 
   await cacheBumpVersion("publisher", data.organization_id);
   await cacheDelete(`publisher:${data.organization_id}:profile`);
+  await invalidateZoneContextForPublisher(data.id);
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
@@ -608,6 +635,7 @@ export async function adminSetWebsiteReview(
 
   await cacheBumpVersion("website", input.websiteId);
   await cacheDelete(`website:${input.websiteId}:detail`);
+  await invalidateZoneContextForWebsite(input.websiteId);
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
@@ -699,6 +727,7 @@ export async function adminSetAdZoneStatus(
 
   await cacheBumpVersion("org", data.organization_id);
   await cacheDelete(`org:${data.organization_id}:ad_zones`);
+  await invalidateZoneContextForWebsite(data.website_id);
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {

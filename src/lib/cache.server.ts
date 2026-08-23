@@ -110,3 +110,42 @@ export async function cachedGetVersioned<T extends JsonValue>(
 export async function cacheBumpVersion(prefix: string, id: string): Promise<void> {
   await bumpVersion(`${prefix}:${id}:version`);
 }
+
+export async function cachedServePathGet<T extends JsonValue>(
+  key: string,
+  ttlSeconds: number,
+  supplier: () => Promise<T>,
+): Promise<T> {
+  const cacheKey = `zone_context:${key}`;
+  if (!redis) return supplier();
+
+  try {
+    const cached = await redis.get<string>(cacheKey);
+    if (cached !== null) {
+      console.debug("[ad] zone_context cache_hit=true", key);
+      return JSON.parse(cached) as T;
+    }
+  } catch (err) {
+    console.error("[cache] zone_context get failed", err);
+  }
+
+  console.debug("[ad] zone_context cache_hit=false", key);
+  const value = await supplier();
+
+  try {
+    await redis.setex(cacheKey, ttlSeconds, JSON.stringify(value));
+  } catch (err) {
+    console.error("[cache] zone_context set failed", err);
+  }
+
+  return value;
+}
+
+export async function invalidateZoneContextCache(zoneKeys: string[]): Promise<void> {
+  if (!redis || zoneKeys.length === 0) return;
+  try {
+    await Promise.all(zoneKeys.map((key) => cacheDelete(`zone_context:${key}`)));
+  } catch (err) {
+    console.error("[cache] zone_context invalidation failed", err);
+  }
+}
