@@ -292,7 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       memberships,
       platformRoles,
       workspaces: availableWorkspaces(memberships, platformRoles),
-      homePath: defaultWorkspacePath(memberships, platformRoles),
+      homePath: defaultWorkspacePath(memberships, platformRoles, profile),
       identityError,
       refreshIdentity: loadIdentity,
       signIn,

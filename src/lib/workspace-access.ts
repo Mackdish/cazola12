@@ -36,13 +36,16 @@ export async function assertWorkspaceAccess(workspace: Workspace): Promise<void>
 
 /** Where to send someone who lacks the requested workspace. */
 async function fallbackPath(userId: string): Promise<string> {
-  const [staff, memberships] = await Promise.all([
+  const [staff, memberships, profile] = await Promise.all([
     supabase.rpc("is_platform_staff", { _user_id: userId }),
     supabase
       .from("organization_members")
       .select("status, organizations!inner(type, status)")
       .eq("status", "active"),
+    supabase.from("profiles").select("onboarding_completed").eq("id", userId).maybeSingle(),
   ]);
+
+  if (profile.data?.onboarding_completed === false) return "/onboarding";
 
   if (staff.data) return "/admin";
 

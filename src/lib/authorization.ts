@@ -69,7 +69,9 @@ export function availableWorkspaces(
 export function defaultWorkspacePath(
   memberships: Membership[],
   platformRoles: PlatformRole[],
+  profile: Profile | null,
 ): string {
+  if (profile && !profile.onboarding_completed) return "/onboarding";
   const [first] = availableWorkspaces(memberships, platformRoles);
   if (!first) return "/onboarding";
   return `/${first}`;

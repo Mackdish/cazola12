@@ -59,8 +59,8 @@ function AuthPage() {
   const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
-    if (!initializing && session) void navigate({ to: homePath, replace: true });
-  }, [initializing, session, homePath, navigate]);
+    if (!initializing && session && !loadingIdentity) void navigate({ to: homePath, replace: true });
+  }, [initializing, session, loadingIdentity, homePath, navigate]);
 
   async function handleGoogle() {
     setFormError(null);
