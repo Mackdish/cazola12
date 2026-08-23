@@ -17,6 +17,7 @@ import {
   getSupportedCurrencies,
   getWallet,
   getWallets,
+  listAdminWallets,
   listCampaignSpend,
   listPayouts,
   listWalletTransactions,
@@ -53,6 +54,11 @@ export const fetchWallets = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) =>
     getWallets(await paymentCtx(context as never, data.organizationId), data.organizationId),
   );
+
+export const fetchAdminWallets = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => orgInput.parse(data))
+  .handler(({ data, context }) => listAdminWallets(context as never, data.organizationId));
 
 
 export const fetchSupportedCurrencies = createServerFn({ method: "GET" })

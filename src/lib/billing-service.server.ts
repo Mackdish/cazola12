@@ -201,6 +201,25 @@ export async function getWallets(ctx: Ctx, organizationId: string) {
   }));
 }
 
+export async function listAdminWallets(ctx: Ctx, organizationId: string) {
+  await assertPlatformStaff(ctx);
+  const { data, error } = await (await admin())
+    .from("wallets")
+    .select("id, currency, country_code, balance_amount, lifetime_deposited, lifetime_spent, low_balance_threshold")
+    .eq("organization_id", organizationId)
+    .order("currency", { ascending: true });
+  if (error) fail("We couldn't load wallets.");
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    currency: row.currency,
+    countryCode: row.country_code,
+    balance: amount(row.balance_amount),
+    lifetimeDeposited: amount(row.lifetime_deposited),
+    lifetimeSpent: amount(row.lifetime_spent),
+    lowBalanceThreshold: amount(row.low_balance_threshold),
+  }));
+}
+
 export async function getSupportedCurrencies(ctx: Ctx) {
   return getSupportedCurrenciesFromConfig(ctx.supabase);
 }

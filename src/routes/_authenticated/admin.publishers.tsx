@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { AdminReviewDialog } from "@/components/admin/admin-review-dialog";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
+import { WalletDialog } from "@/components/admin/wallet-dialog";
 import { useAdminPublishers } from "@/hooks/use-publisher";
 import { approvalLabel, approvalTone, type Publisher } from "@/lib/publisher-domain";
 
@@ -91,17 +92,20 @@ function AdminPublishersPage() {
       header: "",
       align: "right",
       cell: (row) => (
-        <AdminReviewDialog
-          target="publisher"
-          id={row.id}
-          currentApprovalStatus={row.approval_status}
-          currentStatus={row.status}
-          trigger={
-            <Button size="sm" variant="outline">
-              Review
-            </Button>
-          }
-        />
+        <div className="flex items-center justify-end gap-2">
+          <WalletDialog organizationId={row.organization.id} organizationName={row.organization.name} />
+          <AdminReviewDialog
+            target="publisher"
+            id={row.id}
+            currentApprovalStatus={row.approval_status}
+            currentStatus={row.status}
+            trigger={
+              <Button size="sm" variant="outline">
+                Review
+              </Button>
+            }
+          />
+        </div>
       ),
     },
   ];

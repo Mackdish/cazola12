@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/stat
 import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
 import { useAdminAdvertisers } from "@/hooks/use-advertiser";
+import { WalletDialog } from "@/components/admin/wallet-dialog";
 import { approvalLabel, approvalTone, type ApprovalStatus } from "@/lib/publisher-domain";
 
 export const Route = createFileRoute("/_authenticated/admin/advertisers")({
@@ -46,6 +47,7 @@ type AdvertiserRow = {
   approvalStatus: ApprovalStatus;
   campaignCount: number;
   createdAt: string;
+  organizationId: string;
 };
 
 const STATUS_TONE: Record<string, StatusTone> = {
@@ -89,6 +91,7 @@ function Page() {
         approvalStatus: row.approval_status,
         campaignCount: row.campaigns?.length ?? 0,
         createdAt: row.created_at,
+        organizationId: row.organizations?.id ?? row.id,
       }));
   }, [data, search, approvalFilter]);
 
@@ -122,6 +125,11 @@ function Page() {
           {row.campaignCount}
         </Link>
       ),
+    },
+    {
+      id: "wallet",
+      header: "Wallet",
+      cell: (row) => <WalletDialog organizationId={row.organizationId} organizationName={row.organizationName} />,
     },
     { id: "created", header: "Joined", cell: (row) => new Date(row.createdAt).toLocaleDateString() },
   ];
