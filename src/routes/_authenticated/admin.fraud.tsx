@@ -23,12 +23,22 @@ import {
   useAuditLogs,
   useBlockIp,
   useBlockedIps,
+  useBlockedIpHits,
+  useBotScoreDistribution,
   useFraudEvents,
+  useFlaggedEvents,
   useUnblockIp,
   useUpdateFraudEventStatus,
   type FraudEventFilters,
 } from "@/hooks/use-fraud-center";
 import { ShieldAlert } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+} from "recharts";
 
 export const Route = createFileRoute("/_authenticated/admin/fraud")({
   head: () => ({
@@ -85,10 +95,16 @@ function AdminFraudPage() {
   const blockIpMutation = useBlockIp();
   const unblockIpMutation = useUnblockIp();
   const reviewFraudEventMutation = useUpdateFraudEventStatus();
+  const botScoreQuery = useBotScoreDistribution();
+  const blockedIpHitsQuery = useBlockedIpHits();
+  const flaggedEventsQuery = useFlaggedEvents({ page: 1, pageSize: 20 });
 
   const fraudEvents = fraudQuery.data?.events ?? [];
   const blockedIps = blockedIpsQuery.data ?? [];
   const auditLogs = auditQuery.data?.logs ?? [];
+  const botScoreData = botScoreQuery.data ?? [];
+  const blockedIpHits = blockedIpHitsQuery.data?.hits ?? [];
+  const flaggedEvents = flaggedEventsQuery.data?.events ?? [];
 
   const fraudColumns: DataTableColumn<(typeof fraudEvents)[number]>[] = [
     { id: "event_type", header: "Type", cell: (row) => row.event_type },
@@ -166,6 +182,39 @@ function AdminFraudPage() {
     },
   ];
 
+  const flaggedEventColumns: DataTableColumn<(typeof flaggedEvents)[number]>[] = [
+    { id: "event_type", header: "Type", cell: (row) => row.event_type },
+    { id: "ip_address", header: "IP", cell: (row) => row.ip_address ?? "—" },
+    { id: "country", header: "Country", cell: (row) => row.country ?? "—" },
+    { id: "bot_score", header: "Bot Score", cell: (row) => row.bot_score ?? "—" },
+    { id: "publisher_id", header: "Publisher", cell: (row) => row.publisher_id?.slice(0, 8) ?? "—" },
+    { id: "website_id", header: "Website", cell: (row) => row.website_id?.slice(0, 8) ?? "—" },
+    { id: "ad_zone_id", header: "Zone", cell: (row) => row.ad_zone_id?.slice(0, 8) ?? "—" },
+    {
+      id: "created_at",
+      header: "Timestamp",
+      cell: (row) => new Date(row.created_at).toLocaleString(),
+    },
+  ];
+
+  const blockedIpHitColumns: DataTableColumn<(typeof blockedIpHits)[number]>[] = [
+    { id: "ip_address", header: "IP", cell: (row) => row.actor_id ?? "—" },
+    { id: "target_id", header: "Zone", cell: (row) => row.target_id ?? "—" },
+    {
+      id: "created_at",
+      header: "Timestamp",
+      cell: (row) => new Date(row.created_at).toLocaleString(),
+    },
+    {
+      id: "signals",
+      header: "Event",
+      cell: (row) => {
+        const signals = row.signals as Record<string, unknown> | null;
+        return signals?.event ?? "—";
+      },
+    },
+  ];
+
   const auditColumns: DataTableColumn<(typeof auditLogs)[number]>[] = [
     { id: "action", header: "Action", cell: (row) => row.action },
     { id: "actor_email", header: "Actor", cell: (row) => row.actor_email },
@@ -222,9 +271,28 @@ function AdminFraudPage() {
         description="Monitor fraud signals, manage blocked IPs, and review audit logs."
       />
 
+      <div className="mt-6 rounded-lg border bg-card p-4">
+        <h3 className="mb-4 text-sm font-medium">Bot Score Distribution</h3>
+        {botScoreQuery.isLoading ? (
+          <LoadingState rows={3} label="Loading bot score data" />
+        ) : botScoreQuery.error ? (
+          <ErrorState title="Couldn't load bot scores" message={botScoreQuery.error.message} />
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={botScoreData}>
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Bar dataKey="count" fill="var(--color-primary)" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
       <Tabs defaultValue="events" className="mt-6">
         <TabsList>
           <TabsTrigger value="events">Fraud Events</TabsTrigger>
+          <TabsTrigger value="flagged">Flagged Events</TabsTrigger>
+          <TabsTrigger value="blocked-hits">Blocked IP Hits</TabsTrigger>
           <TabsTrigger value="blocked">Blocked IPs</TabsTrigger>
           <TabsTrigger value="audit">Audit Logs</TabsTrigger>
         </TabsList>
@@ -276,6 +344,38 @@ function AdminFraudPage() {
               rowKey={(row) => row.id}
               emptyTitle="No fraud events"
               emptyDescription="Fraud signals will appear here when detected."
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="flagged" className="mt-4 space-y-4">
+          {flaggedEventsQuery.isLoading ? (
+            <LoadingState rows={5} label="Loading flagged events" />
+          ) : flaggedEventsQuery.error ? (
+            <ErrorState title="Couldn't load flagged events" message={flaggedEventsQuery.error.message} />
+          ) : (
+            <DataTable
+              columns={flaggedEventColumns}
+              rows={flaggedEvents}
+              rowKey={(row) => `${row.event_type}-${row.id}`}
+              emptyTitle="No flagged events"
+              emptyDescription="Events flagged as likely bots will appear here."
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="blocked-hits" className="mt-4 space-y-4">
+          {blockedIpHitsQuery.isLoading ? (
+            <LoadingState rows={5} label="Loading blocked IP hits" />
+          ) : blockedIpHitsQuery.error ? (
+            <ErrorState title="Couldn't load blocked IP hits" message={blockedIpHitsQuery.error.message} />
+          ) : (
+            <DataTable
+              columns={blockedIpHitColumns}
+              rows={blockedIpHits}
+              rowKey={(row) => row.id}
+              emptyTitle="No blocked IP hits"
+              emptyDescription="Blocked IP no-fill events will appear here."
             />
           )}
         </TabsContent>

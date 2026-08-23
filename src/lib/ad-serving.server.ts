@@ -263,6 +263,8 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
     const blocked = await redis.sismember("blocked_ips", input.ipAddress);
     if (blocked) {
       console.warn("[ad] blocklist_hit", { ip: input.ipAddress, zone: input.zoneKey });
+      const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+      void recordBlockedIpHit(input.ipAddress, input.zoneKey, "serve");
       console.debug("[ad] serve_total_ms", Date.now() - t0);
       return { ok: false, reason: "blocked_ip" };
     }

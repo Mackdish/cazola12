@@ -94,6 +94,8 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           const blocked = await redis.sismember("blocked_ips", ipAddress);
           if (blocked) {
             console.warn("[ad] blocklist_event_hit", { ip: ipAddress, event: "impression" });
+            const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+            void recordBlockedIpHit(ipAddress, data.zone_id, "impression");
             return jsonResponse(
               { ok: false, error: "blocked_ip", message: "This IP is blocked" },
               403,

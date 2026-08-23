@@ -69,6 +69,9 @@ export const Route = createFileRoute("/api/public/impression")({
           const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
           if (blocked) {
             console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "impression" });
+            const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+            const zoneId = (payload as any).zoneId;
+            void recordBlockedIpHit(geo.ipAddress, zoneId, "impression");
             return new Response(JSON.stringify({ ok: false, error: "blocked_ip" }), {
               status: 403,
               headers: JSON_HEADERS,

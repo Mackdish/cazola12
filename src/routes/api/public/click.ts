@@ -46,6 +46,9 @@ export const Route = createFileRoute("/api/public/click")({
           const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
           if (blocked) {
             console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "click" });
+            const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+            const zoneId = (payload as any).zoneId;
+            void recordBlockedIpHit(geo.ipAddress, zoneId, "click");
             return new Response("This IP is blocked.", { status: 403, headers: HEADERS });
           }
         }

@@ -4,8 +4,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   blockIp,
+  getBotScoreDistribution,
   listAuditLogs,
   listBlockedIps,
+  listBlockedIpHits,
+  listFlaggedEvents,
   listFraudEvents,
   unblockIp,
   updateFraudEventStatus,
@@ -102,3 +105,41 @@ export const exportAuditLogs = createServerFn({ method: "GET" })
       .parse(data),
   )
   .handler(({ data, context }) => adminExportAuditLogs(context, data as never));
+
+export const fetchBotScoreDistribution = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        from: z.string().optional(),
+        to: z.string().optional(),
+      })
+      .parse(data),
+  )
+  .handler(({ data, context }) => getBotScoreDistribution(context, data.from, data.to));
+
+export const fetchBlockedIpHits = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        from: z.string().optional(),
+        to: z.string().optional(),
+      })
+      .parse(data),
+  )
+  .handler(({ data, context }) => listBlockedIpHits(context, data));
+
+export const fetchFlaggedEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        from: z.string().optional(),
+        to: z.string().optional(),
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(100).optional(),
+      })
+      .parse(data),
+  )
+  .handler(({ data, context }) => listFlaggedEvents(context, data));

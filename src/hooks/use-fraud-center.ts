@@ -7,6 +7,9 @@ import {
   fetchAuditLogDetail,
   fetchAuditLogs,
   fetchBlockedIps,
+  fetchBotScoreDistribution,
+  fetchBlockedIpHits,
+  fetchFlaggedEvents,
   fetchFraudEvents,
   unblockIpAddress,
   reviewFraudEvent,
@@ -104,6 +107,30 @@ export function useFraudInvalidate() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["fraud"] });
   };
+}
+
+export function useBotScoreDistribution(filters: { from?: string; to?: string } = {}) {
+  const fn = useServerFn(fetchBotScoreDistribution);
+  return useQuery({
+    queryKey: ["fraud", "bot-score", filters],
+    queryFn: async () => fn({ data: filters }),
+  });
+}
+
+export function useBlockedIpHits(filters: { from?: string; to?: string } = {}) {
+  const fn = useServerFn(fetchBlockedIpHits);
+  return useQuery({
+    queryKey: ["fraud", "blocked-ip-hits", filters],
+    queryFn: async () => fn({ data: filters }),
+  });
+}
+
+export function useFlaggedEvents(filters: { from?: string; to?: string; page?: number; pageSize?: number } = {}) {
+  const fn = useServerFn(fetchFlaggedEvents);
+  return useQuery({
+    queryKey: ["fraud", "flagged-events", filters],
+    queryFn: async () => fn({ data: filters }),
+  });
 }
 
 export function useAuditLogDetail() {
