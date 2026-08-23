@@ -58,6 +58,7 @@ function cleanupCreativeCache() {
 
 /** One row, one index hit on ad_zones.zone_key. */
 export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | null> {
+  const t0 = Date.now();
   const { data, error } = await supabaseAdmin
     .from("ad_zones")
     .select(
@@ -65,6 +66,8 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
     )
     .eq("zone_key", zoneKey)
     .maybeSingle();
+
+  console.debug("[ad] zone_lookup_ms", Date.now() - t0);
 
   if (error || !data) return null;
   const website = data.websites as unknown as {
@@ -98,6 +101,7 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
  * in-memory eligibility pass only handles dates, budget, format and targeting.
  */
 export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidate[]> {
+  const t0 = Date.now();
   const formats =
     zone.zoneFormat === "responsive" ? null : ([zone.zoneFormat, "responsive"] as const);
 
@@ -116,6 +120,8 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
   if (formats) query = query.in("format", formats);
 
   const { data, error } = await query;
+  console.debug("[ad] candidates_lookup_ms", Date.now() - t0);
+
   if (error || !data) return [];
 
   return data.map((row) => {
@@ -173,14 +179,20 @@ async function creativeUrl(
   mediaAssetId: string,
 ): Promise<{ url: string; width: number | null; height: number | null } | null> {
   cleanupCreativeCache();
+  const t0 = Date.now();
   const cached = CREATIVE_CACHE.get(mediaAssetId);
-  if (cached) return { url: cached.url, width: cached.width, height: cached.height };
+  if (cached) {
+    console.debug("[ad] creative_lookup_ms", Date.now() - t0, "cache_hit=true");
+    return { url: cached.url, width: cached.width, height: cached.height };
+  }
 
   const { data: asset, error } = await supabaseAdmin
     .from("media_assets")
     .select("storage_path, width, height, status, storage_provider")
     .eq("id", mediaAssetId)
     .maybeSingle();
+  console.debug("[ad] creative_lookup_ms", Date.now() - t0, "cache_hit=false");
+
   if (error || !asset || asset.status !== "ready") return null;
 
   let url: string;
@@ -237,9 +249,16 @@ export type AdResponse =
   | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" };
 
 export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
+  const t0 = Date.now();
   const zone = await loadZoneContext(input.zoneKey);
-  if (!zone) return { ok: false, reason: "unknown_zone" };
-  if (!zoneIsServeable(zone).eligible) return { ok: false, reason: "zone_unavailable" };
+  if (!zone) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "unknown_zone" };
+  }
+  if (!zoneIsServeable(zone).eligible) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "zone_unavailable" };
+  }
 
   const now = new Date();
   const agent = classifyUserAgent(input.userAgent);
@@ -256,7 +275,10 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   };
 
   const candidates = await loadCandidates(zone);
-  if (candidates.length === 0) return { ok: false, reason: "no_ad" };
+  if (candidates.length === 0) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "no_ad" };
+  }
 
   const { fundedOrganizationIds } = await import("@/lib/billing-charge.server");
   const funded = await fundedOrganizationIds([
@@ -265,13 +287,22 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   const fundedCandidates = candidates.filter(
     (c) => !c.organizationId || funded.has(c.organizationId),
   );
-  if (fundedCandidates.length === 0) return { ok: false, reason: "no_ad" };
+  if (fundedCandidates.length === 0) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "no_ad" };
+  }
 
   const { winner } = selectAd(fundedCandidates, zone, { now, signals });
-  if (!winner || !winner.mediaAssetId) return { ok: false, reason: "no_ad" };
+  if (!winner || !winner.mediaAssetId) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "no_ad" };
+  }
 
   const creative = await creativeUrl(winner.mediaAssetId);
-  if (!creative) return { ok: false, reason: "no_ad" };
+  if (!creative) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "no_ad" };
+  }
 
   const token = issueServedToken({
     rid: input.requestId,
@@ -287,6 +318,7 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   });
 
   const fallbackSize = FORMAT_SIZES[winner.adFormat];
+  console.debug("[ad] serve_total_ms", Date.now() - t0);
   return {
     ok: true,
     requestId: input.requestId,
