@@ -128,9 +128,6 @@ function AdPlacementPage() {
             <Button asChild variant="outline">
               <Link to="/policies/invalid-traffic">Invalid Traffic Policy</Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact Support</Link>
-            </Button>
           </div>
         </div>
       </div>

@@ -108,9 +108,6 @@ function InvalidTrafficPage() {
             <Button asChild variant="outline">
               <Link to="/policies/publisher-guidelines">Publisher Guidelines</Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact Support</Link>
-            </Button>
           </div>
         </div>
       </div>

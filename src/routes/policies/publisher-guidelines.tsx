@@ -208,14 +208,6 @@ function PublisherGuidelinesPage() {
                   relevant details and supporting documentation for the fastest
                   resolution.
                 </p>
-                <div className="mt-4">
-                  <Button asChild variant="outline">
-                    <Link to="/contact">
-                      Contact Support
-                      <ArrowRight className="ml-1.5 size-4" />
-                    </Link>
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -232,9 +224,6 @@ function PublisherGuidelinesPage() {
             </Button>
             <Button asChild variant="outline">
               <Link to="/policies/ad-placement">Ad Placement Guidelines</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact</Link>
             </Button>
           </div>
         </div>

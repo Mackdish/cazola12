@@ -343,16 +343,11 @@ function PricingPage() {
             </div>
           </div>
 
-          <div className="mt-16 text-center">
-            <p className="text-sm text-muted-foreground">
-              Competitive advertising rates designed for African businesses.
-            </p>
-            <div className="mt-4">
-              <Button asChild variant="outline" className="h-10 px-6">
-                <Link to="/contact">Contact Sales</Link>
-              </Button>
-            </div>
-          </div>
+           <div className="mt-16 text-center">
+             <p className="text-sm text-muted-foreground">
+               Competitive advertising rates designed for African businesses.
+             </p>
+           </div>
         </div>
       </div>
     </PublicLayout>

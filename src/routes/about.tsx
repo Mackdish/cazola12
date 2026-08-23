@@ -5,9 +5,7 @@ import {
   Handshake,
   Heart,
   Lightbulb,
-  Mail,
   Megaphone,
-  Phone,
   Rocket,
   ShieldCheck,
   Target,
@@ -139,12 +137,6 @@ function AboutPage() {
                 <Button asChild size="lg" className="h-11 px-8">
                   <Link to="/advertisers">
                     Explore TradeMall
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-11 px-8">
-                  <Link to="/contact">
-                    Contact Us
                     <ArrowRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
@@ -362,52 +354,6 @@ function AboutPage() {
                 <Button asChild size="lg" className="h-11 px-8">
                   <Link to="/advertisers">
                     Explore TradeMall
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-11 px-8">
-                  <Link to="/contact">
-                    Contact Us
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Contact */}
-        <section className="border-t border-border bg-background">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-24">
-            <div className="max-w-3xl mx-auto text-center">
-              <p className="text-eyebrow">Contact</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Get in touch
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Have questions about advertising, publishing, or platform features? Reach out
-                and our team will help you get started.
-              </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-6">
-                <a
-                  href="tel:+254705186502"
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <Phone className="size-4" />
-                  0705186502
-                </a>
-                <a
-                  href="mailto:support@trademall.co.ke"
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <Mail className="size-4" />
-                  support@trademall.co.ke
-                </a>
-              </div>
-              <div className="mt-8">
-                <Button asChild size="lg" className="h-11 px-8">
-                  <Link to="/contact">
-                    Contact Us
                     <ArrowRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>

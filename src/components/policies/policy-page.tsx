@@ -312,7 +312,7 @@ export function PolicyDetailPage() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/contact">Contact Support</Link>
+                  <Link to="/help">Visit Help Center</Link>
                 </Button>
               </div>
             </div>

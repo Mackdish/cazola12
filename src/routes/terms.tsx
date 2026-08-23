@@ -110,11 +110,8 @@ function TermsPage() {
             </Card>
           </div>
 
-          <div className="mt-12">
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact Us</Link>
-            </Button>
-          </div>
+           <div className="mt-12">
+           </div>
         </div>
       </div>
     </PublicLayout>

@@ -255,16 +255,11 @@ function PoliciesPage() {
             </div>
           </div>
 
-          <div className="mt-16 text-center">
-            <p className="text-sm text-muted-foreground">
-              Questions about policies? Contact our support team for clarification.
-            </p>
-            <div className="mt-4">
-              <Button asChild variant="outline">
-                <Link to="/contact">Contact Support</Link>
-              </Button>
-            </div>
-          </div>
+           <div className="mt-16 text-center">
+             <p className="text-sm text-muted-foreground">
+               Questions about policies? Contact our support team for clarification.
+             </p>
+           </div>
         </div>
       </div>
     </PublicLayout>

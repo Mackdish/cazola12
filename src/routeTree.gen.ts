@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdvertisersRouteImport } from './routes/advertisers'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -82,7 +81,6 @@ import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicImpressionRouteImport } from './routes/api/public/impression'
 import { Route as ApiPublicOpenapiDotjsonRouteImport } from './routes/api/public/openapi[.]json'
 import { Route as ApiV1AnalyticsRouteImport } from './routes/api/v1/analytics'
-import { Route as ApiV1ContactRouteImport } from './routes/api/v1/contact'
 import { Route as ApiV1PayRouteImport } from './routes/api/v1/pay'
 import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
 import { Route as ApiWorkerImpressionFlushRouteImport } from './routes/api/worker/impression-flush'
@@ -135,11 +133,6 @@ const AdvertisersRoute = AdvertisersRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -514,11 +507,6 @@ const ApiV1AnalyticsRoute = ApiV1AnalyticsRouteImport.update({
   path: '/api/v1/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1ContactRoute = ApiV1ContactRouteImport.update({
-  id: '/api/v1/contact',
-  path: '/api/v1/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1PayRoute = ApiV1PayRouteImport.update({
   id: '/api/v1/pay',
   path: '/api/v1/pay',
@@ -678,7 +666,6 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
-  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -743,7 +730,6 @@ export interface FileRoutesByFullPath {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
-  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
@@ -782,7 +768,6 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
-  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -845,7 +830,6 @@ export interface FileRoutesByTo {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
-  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
@@ -886,7 +870,6 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
-  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -951,7 +934,6 @@ export interface FileRoutesById {
   '/api/public/impression': typeof ApiPublicImpressionRoute
   '/api/public/openapi.json': typeof ApiPublicOpenapiDotjsonRoute
   '/api/v1/analytics': typeof ApiV1AnalyticsRoute
-  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
@@ -992,7 +974,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
-    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1057,7 +1038,6 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
-    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/api/worker/impression-flush'
@@ -1096,7 +1076,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
-    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1159,7 +1138,6 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
-    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/api/worker/impression-flush'
@@ -1199,7 +1177,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
-    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1264,7 +1241,6 @@ export interface FileRouteTypes {
     | '/api/public/impression'
     | '/api/public/openapi.json'
     | '/api/v1/analytics'
-    | '/api/v1/contact'
     | '/api/v1/pay'
     | '/api/v1/wallet'
     | '/api/worker/impression-flush'
@@ -1305,7 +1281,6 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdvertisersRoute: typeof AdvertisersRoute
   AuthRoute: typeof AuthRoute
-  ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   PricingRoute: typeof PricingRoute
@@ -1328,7 +1303,6 @@ export interface RootRouteChildren {
   ApiPublicImpressionRoute: typeof ApiPublicImpressionRoute
   ApiPublicOpenapiDotjsonRoute: typeof ApiPublicOpenapiDotjsonRoute
   ApiV1AnalyticsRoute: typeof ApiV1AnalyticsRoute
-  ApiV1ContactRoute: typeof ApiV1ContactRoute
   ApiV1PayRoute: typeof ApiV1PayRoute
   ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
   ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
@@ -1385,13 +1359,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1863,13 +1830,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/contact': {
-      id: '/api/v1/contact'
-      path: '/api/v1/contact'
-      fullPath: '/api/v1/contact'
-      preLoaderRoute: typeof ApiV1ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/pay': {
       id: '/api/v1/pay'
       path: '/api/v1/pay'
@@ -2271,7 +2231,6 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdvertisersRoute: AdvertisersRoute,
   AuthRoute: AuthRoute,
-  ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   PricingRoute: PricingRoute,
@@ -2294,7 +2253,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicImpressionRoute: ApiPublicImpressionRoute,
   ApiPublicOpenapiDotjsonRoute: ApiPublicOpenapiDotjsonRoute,
   ApiV1AnalyticsRoute: ApiV1AnalyticsRoute,
-  ApiV1ContactRoute: ApiV1ContactRoute,
   ApiV1PayRoute: ApiV1PayRoute,
   ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
   ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,

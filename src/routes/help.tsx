@@ -122,24 +122,6 @@ function HelpPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="size-5 text-accent" />
-                  Contact Support
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Need help that isn't covered in our guides? Our support team is here to assist
-                  you.
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/contact">Contact Support</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
                   <BookOpen className="size-5 text-accent" />
                   API Reference
                 </CardTitle>
@@ -153,23 +135,6 @@ function HelpPage() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="mt-16 rounded-2xl border border-border bg-card p-8 sm:p-12">
-            <div className="max-w-2xl">
-              <h2 className="text-2xl font-semibold tracking-tight">Still need help?</h2>
-              <p className="mt-3 text-base text-muted-foreground">
-                Reach out to our team and we'll get back to you as soon as possible.
-              </p>
-              <div className="mt-6">
-                <Button asChild size="lg" className="h-11 px-8">
-                  <Link to="/contact">
-                    Contact Us
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
