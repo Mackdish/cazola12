@@ -46,7 +46,7 @@ function validate(values: { email: string; password: string; fullName?: string }
 }
 
 function AuthPage() {
-  const { session, initializing, loadingIdentity, homePath, signIn, signUp, signInWithGoogle } = useAuth();
+  const { session, initializing, loadingIdentity, profile, identityError, homePath, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState("signin");
@@ -58,9 +58,11 @@ function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
+  const identityReady = !loadingIdentity && (profile !== null || identityError !== null);
+
   useEffect(() => {
-    if (!initializing && session && !loadingIdentity) void navigate({ to: homePath, replace: true });
-  }, [initializing, session, loadingIdentity, homePath, navigate]);
+    if (!initializing && session && identityReady) void navigate({ to: homePath, replace: true });
+  }, [initializing, session, identityReady, homePath, navigate]);
 
   async function handleGoogle() {
     setFormError(null);
