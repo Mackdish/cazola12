@@ -46,7 +46,7 @@ function validate(values: { email: string; password: string; fullName?: string }
 }
 
 function AuthPage() {
-  const { session, initializing, homePath, signIn, signUp, signInWithGoogle } = useAuth();
+  const { session, initializing, loadingIdentity, homePath, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState("signin");
