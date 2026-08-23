@@ -687,7 +687,8 @@ export async function assertPlatformStaff(ctx: Ctx) {
 
 export async function adminListAdvertisers(ctx: Ctx) {
   await assertPlatformStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("advertisers")
     .select("*, organizations(id, name, slug, status), campaigns(id, status, approval_status)")
     .order("created_at", { ascending: false });
@@ -697,7 +698,8 @@ export async function adminListAdvertisers(ctx: Ctx) {
 
 export async function adminListCampaigns(ctx: Ctx) {
   await assertPlatformStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("campaigns")
     .select("*, advertisers(id, business_name, approval_status), ads(*), organizations(id, name)")
     .order("created_at", { ascending: false });
@@ -707,7 +709,8 @@ export async function adminListCampaigns(ctx: Ctx) {
 
 export async function adminGetCampaignDetail(ctx: Ctx, campaignId: string) {
   await assertPlatformStaff(ctx);
-  const campaign = await ctx.supabase
+  const db = await admin();
+  const campaign = await db
     .from("campaigns")
     .select(
       "*, advertisers(id, business_name, contact_email, approval_status), organizations(id, name)",
@@ -718,17 +721,21 @@ export async function adminGetCampaignDetail(ctx: Ctx, campaignId: string) {
   if (!campaign.data) fail("That campaign doesn't exist.");
 
   const [ads, targeting] = await Promise.all([
-    ctx.supabase
+    db
       .from("ads")
       .select("*, media_assets!ads_media_asset_id_fkey(*)")
       .eq("campaign_id", campaignId)
       .order("created_at", { ascending: false }),
-    ctx.supabase.from("campaign_targeting").select("*").eq("campaign_id", campaignId).maybeSingle(),
+    db.from("campaign_targeting").select("*").eq("campaign_id", campaignId).maybeSingle(),
   ]);
   if (ads.error) fail("We couldn't load that campaign's ads.");
   if (targeting.error) fail("We couldn't load that campaign's targeting.");
 
-  return { campaign: campaign.data, ads: ads.data ?? [], targeting: targeting.data ?? null };
+  return {
+    campaign: campaign.data,
+    ads: ads.data ?? [],
+    targeting: targeting.data ?? null,
+  };
 }
 
 /** Approve / reject / pause / reactivate — the only path that writes gated columns. */
@@ -741,7 +748,8 @@ export async function adminReviewCampaign(
   },
 ) {
   await assertPlatformAdmin(ctx);
-  const current = await ctx.supabase
+  const db = await admin();
+  const current = await db
     .from("campaigns")
     .select("id, status, name, organization_id, daily_budget")
     .eq("id", input.campaignId)
@@ -896,7 +904,8 @@ export async function adminReviewAd(
 
 export async function adminGetAdvertiserDetail(ctx: Ctx, advertiserId: string) {
   await assertPlatformStaff(ctx);
-  const advertiser = await ctx.supabase
+  const db = await admin();
+  const advertiser = await db
     .from("advertisers")
     .select("*, organizations(id, name, slug, status)")
     .eq("id", advertiserId)
@@ -905,12 +914,12 @@ export async function adminGetAdvertiserDetail(ctx: Ctx, advertiserId: string) {
   if (!advertiser.data) fail("That advertiser doesn't exist.");
 
   const [campaigns, spend] = await Promise.all([
-    ctx.supabase
+    db
       .from("campaigns")
       .select("*, ads(*), campaign_targeting(*)")
       .eq("advertiser_id", advertiserId)
       .order("created_at", { ascending: false }),
-    ctx.supabase
+    db
       .from("campaign_spend")
       .select("amount, publisher_amount, platform_amount, event_type, created_at")
       .order("created_at", { ascending: false })
@@ -937,7 +946,8 @@ export async function adminListAds(
   } = {},
 ) {
   await assertPlatformStaff(ctx);
-  let query = ctx.supabase
+  const db = await admin();
+  let query = db
     .from("ads")
     .select("*, campaigns(name, status), media_assets!ads_media_asset_id_fkey(*), advertisers(business_name)", {
       count: "exact",
@@ -972,7 +982,8 @@ export async function adminListAds(
 
 export async function adminGetAdDetail(ctx: Ctx, adId: string) {
   await assertPlatformStaff(ctx);
-  const ad = await ctx.supabase
+  const db = await admin();
+  const ad = await db
     .from("ads")
     .select("*, campaigns(*), media_assets!ads_media_asset_id_fkey(*), advertisers(business_name)")
     .eq("id", adId)
@@ -980,7 +991,7 @@ export async function adminGetAdDetail(ctx: Ctx, adId: string) {
   if (ad.error) fail("We couldn't load that ad.");
   if (!ad.data) fail("That ad doesn't exist.");
 
-  const performance = await ctx.supabase
+  const performance = await db
     .from("campaign_spend")
     .select("event_type, amount, publisher_amount, platform_amount, created_at")
     .eq("ad_id", adId)
@@ -1023,7 +1034,8 @@ export async function adminListCreatives(
   } = {},
 ) {
   await assertPlatformStaff(ctx);
-  let query = ctx.supabase
+  const db = await admin();
+  let query = db
     .from("media_assets")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false });

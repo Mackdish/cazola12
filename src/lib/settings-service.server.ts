@@ -69,7 +69,8 @@ function mapSettings(
 }
 
 export async function getPlatformSettings(ctx: Ctx): Promise<PlatformSettings> {
-  const { data, error } = await ctx.supabase.from("platform_settings").select("*").maybeSingle();
+  const db = await admin();
+  const { data, error } = await db.from("platform_settings").select("*").maybeSingle();
   if (error) fail("We couldn't load the platform settings.");
   return mapSettings(data);
 }

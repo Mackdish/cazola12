@@ -528,7 +528,8 @@ export async function assertPlatformStaff(ctx: Ctx) {
 
 export async function adminListPublishers(ctx: Ctx) {
   await assertPlatformStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("publishers")
     .select(
       "*, organizations(id, name, slug, status), websites(id, status, approval_status, verification_status)",
@@ -540,7 +541,8 @@ export async function adminListPublishers(ctx: Ctx) {
 
 export async function adminListWebsites(ctx: Ctx) {
   await assertPlatformStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("websites")
     .select("*, publishers(id, business_name, approval_status), ad_zones(*)")
     .order("created_at", { ascending: false });
@@ -550,7 +552,8 @@ export async function adminListWebsites(ctx: Ctx) {
 
 export async function adminGetPublisherDetail(ctx: Ctx, publisherId: string) {
   await assertPlatformStaff(ctx);
-  const publisher = await ctx.supabase
+  const db = await admin();
+  const publisher = await db
     .from("publishers")
     .select("*, organizations(id, name, slug, status)")
     .eq("id", publisherId)
@@ -558,7 +561,7 @@ export async function adminGetPublisherDetail(ctx: Ctx, publisherId: string) {
   if (publisher.error) fail("We couldn't load that publisher.");
   if (!publisher.data) fail("That publisher doesn't exist.");
 
-  const websites = await ctx.supabase
+  const websites = await db
     .from("websites")
     .select("*, ad_zones(*)")
     .eq("publisher_id", publisherId)
@@ -584,7 +587,8 @@ export async function adminSetPublisherReview(
   if (input.reason !== undefined) patch.rejection_reason = input.reason?.trim() || null;
   if (Object.keys(patch).length === 0) fail("Nothing to update.");
 
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("publishers")
     .update(patch)
     .eq("id", input.publisherId)
@@ -624,7 +628,8 @@ export async function adminSetWebsiteReview(
   if (input.reason !== undefined) patch.rejection_reason = input.reason?.trim() || null;
   if (Object.keys(patch).length === 0) fail("Nothing to update.");
 
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("websites")
     .update(patch)
     .eq("id", input.websiteId)
@@ -659,7 +664,8 @@ export async function adminListAdZones(
   } = {},
 ) {
   await assertPlatformStaff(ctx);
-  let query = ctx.supabase
+  const db = await admin();
+  let query = db
     .from("ad_zones")
     .select(
       "*, websites(name, domain, verification_status, approval_status), publishers(business_name)",
@@ -693,7 +699,8 @@ export async function adminListAdZones(
 
 export async function adminGetAdZoneDetail(ctx: Ctx, zoneId: string) {
   await assertPlatformStaff(ctx);
-  const zone = await ctx.supabase
+  const db = await admin();
+  const zone = await db
     .from("ad_zones")
     .select("*, websites(*), publishers(*), organizations(id, name)")
     .eq("id", zoneId)
@@ -701,7 +708,7 @@ export async function adminGetAdZoneDetail(ctx: Ctx, zoneId: string) {
   if (zone.error) fail("We couldn't load that ad zone.");
   if (!zone.data) fail("That ad zone doesn't exist.");
 
-  const stats = await (ctx.supabase as any)
+  const stats = await (db as any)
     .from("website_daily_stats")
     .select("*")
     .eq("ad_zone_id", zoneId)
@@ -716,7 +723,8 @@ export async function adminSetAdZoneStatus(
   input: { zoneId: string; status: "active" | "suspended" | "pending" },
 ) {
   await assertPlatformAdmin(ctx);
-  const { data, error } = await (ctx.supabase as any)
+  const db = await admin();
+  const { data, error } = await (db as any)
     .from("ad_zones")
     .update({ status: input.status })
     .eq("id", input.zoneId)
@@ -741,7 +749,8 @@ export async function adminSetAdZoneStatus(
 
 export async function adminGetWebsiteDetail(ctx: Ctx, websiteId: string) {
   await assertPlatformStaff(ctx);
-  const website = await ctx.supabase
+  const db = await admin();
+  const website = await db
     .from("websites")
     .select("*, publishers(id, business_name, approval_status), ad_zones(*)")
     .eq("id", websiteId)
@@ -749,7 +758,7 @@ export async function adminGetWebsiteDetail(ctx: Ctx, websiteId: string) {
   if (website.error) fail("We couldn't load that website.");
   if (!website.data) fail("That website doesn't exist.");
 
-  const stats = await ctx.supabase
+  const stats = await db
     .from("website_daily_stats")
     .select("*")
     .eq("website_id", websiteId)

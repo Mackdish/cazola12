@@ -28,6 +28,11 @@ function fail(message: string): never {
   throw new BillingError(message);
 }
 
+async function admin(): Promise<Client> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as Client;
+}
+
 /** Maps raw Postgres exceptions to messages a user can act on. */
 function translate(message: string, fallback: string): never {
   const map: Array<[RegExp, string]> = [
@@ -378,7 +383,8 @@ export async function requestPayout(
 
 export async function adminListPayouts(ctx: Ctx) {
   await requireStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("payouts")
     .select("*, publishers(business_name, contact_email), organizations(name)")
     .order("created_at", { ascending: false });
@@ -408,7 +414,8 @@ export async function adminReviewPayout(
 ) {
   await requireStaff(ctx);
   await checkAdminRateLimit(ctx.supabase as never, ctx.userId);
-  const { data, error } = await ctx.supabase.rpc("review_payout", {
+  const db = await admin();
+  const { data, error } = await db.rpc("review_payout", {
     _payout_id: input.payoutId,
     _status: input.status,
     ...(input.reason ? { _reason: input.reason } : {}),
@@ -432,22 +439,23 @@ export async function adminReviewPayout(
 
 export async function adminGetLedger(ctx: Ctx) {
   await requireStaff(ctx);
+  const db = await admin();
 
   const [transactions, spend, earnings, payouts] = await Promise.all([
-    ctx.supabase
+    db
       .from("wallet_transactions")
       .select("id, type, amount, balance_after, description, created_at, organizations(name)")
       .order("created_at", { ascending: false })
       .limit(150),
-    ctx.supabase
+    db
       .from("campaign_spend")
       .select("amount, publisher_amount, platform_amount")
       .limit(500),
-    ctx.supabase
+    db
       .from("publisher_earnings")
       .select("status, publisher_amount, platform_amount, gross_amount")
       .limit(500),
-    ctx.supabase
+    db
       .from("payouts")
       .select("status, amount")
       .limit(500),
@@ -492,7 +500,8 @@ export async function adminRefundSpend(
 ) {
   await requireStaff(ctx);
   await checkAdminRateLimit(ctx.supabase as never, ctx.userId);
-  const { data, error } = await ctx.supabase.rpc("refund_campaign_spend", {
+  const db = await admin();
+  const { data, error } = await db.rpc("refund_campaign_spend", {
     _campaign_spend_id: input.campaignSpendId,
     ...(input.reason ? { _reason: input.reason } : {}),
   });
@@ -519,7 +528,8 @@ export async function adminListWalletTransactions(
   filters: { organizationId?: string; type?: string; search?: string; page?: number; pageSize?: number } = {},
 ) {
   await requireStaff(ctx);
-  let query = ctx.supabase
+  const db = await admin();
+  let query = db
     .from("wallet_transactions")
     .select("*, organizations(name)", { count: "exact" })
     .order("created_at", { ascending: false });
@@ -559,7 +569,8 @@ export async function adminListWalletTransactions(
 
 export async function adminGetWallet(ctx: Ctx, organizationId: string) {
   await requireStaff(ctx);
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("wallets")
     .select("*")
     .eq("organization_id", organizationId)
@@ -583,14 +594,15 @@ export async function adminAdjustWallet(
 ) {
   await requireStaff(ctx);
   await checkAdminRateLimit(ctx.supabase as never, ctx.userId);
-  const wallet = await ctx.supabase
+  const db = await admin();
+  const wallet = await db
     .from("wallets")
     .select("organization_id")
     .eq("id", input.walletId)
     .maybeSingle();
   if (wallet.error || !wallet.data) fail("That wallet doesn't exist.");
 
-  const { data, error } = await ctx.supabase.rpc("deposit_to_wallet", {
+  const { data, error } = await db.rpc("deposit_to_wallet", {
     _organization_id: wallet.data.organization_id,
     _amount: input.amount,
     _idempotency_key: `admin-adjust-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -615,7 +627,8 @@ export async function adminListDeposits(
   filters: { organizationId?: string; page?: number; pageSize?: number } = {},
 ) {
   await requireStaff(ctx);
-  let query = ctx.supabase
+  const db = await admin();
+  let query = db
     .from("wallet_transactions")
     .select("*, organizations(name)", { count: "exact" })
     .eq("type", "deposit")
