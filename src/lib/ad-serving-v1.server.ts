@@ -46,7 +46,7 @@ export async function recordImpressionV1(input: V1ImpressionInput): Promise<"rec
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
 
-  return recordImpression(payload, input.ipAddress, input.userAgent);
+  return recordImpression(payload, input.ipAddress, input.userAgent, undefined, false, undefined, undefined);
 }
 
 export async function recordClickV1(input: V1ClickInput): Promise<{ destination: string } | null> {
@@ -64,7 +64,7 @@ export async function recordClickV1(input: V1ClickInput): Promise<{ destination:
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
 
-  return recordClick(payload, input.ipAddress, input.userAgent);
+  return recordClick(payload, input.ipAddress, input.userAgent, undefined, false, undefined, undefined);
 }
 
 export async function resolveAdContext(adId: string): Promise<{

@@ -7,7 +7,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { checkRateLimit, getRateLimitConfig, extractIpAddress } from "@/lib/rate-limit.server";
+import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
 
 const HEADERS = {
   "Cache-Control": "no-store",
@@ -25,7 +25,8 @@ export const Route = createFileRoute("/api/public/click")({
           return new Response("Invalid click", { status: 400, headers: HEADERS });
         }
 
-        const ipAddress = extractIpAddress(request);
+        const geo = extractGeoAndBotScore(request);
+        const ipAddress = geo.ipAddress;
         const rateLimitConfig = getRateLimitConfig("click");
 
         try {
@@ -41,8 +42,12 @@ export const Route = createFileRoute("/api/public/click")({
         const { recordClick } = await import("@/lib/ad-serving.server");
         const result = await recordClick(
           payload,
-          ipAddress,
+          geo.ipAddress,
           request.headers.get("user-agent") ?? undefined,
+          geo.botScore,
+          geo.isLikelyBot,
+          geo.country,
+          geo.region,
         );
         if (!result) {
           return new Response("This advertisement is no longer available.", {

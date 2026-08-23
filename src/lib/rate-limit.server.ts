@@ -79,6 +79,8 @@ export async function checkAdminRateLimit(
 }
 
 export function extractIpAddress(request: Request): string {
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp;
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0]?.trim() ?? "unknown";
@@ -86,4 +88,29 @@ export function extractIpAddress(request: Request): string {
   const realIp = request.headers.get("x-real-ip");
   if (realIp) return realIp;
   return "unknown";
+}
+
+export interface GeoAndBotScore {
+  ipAddress: string;
+  country: string | null;
+  region: string | null;
+  botScore: number | null;
+  isLikelyBot: boolean;
+}
+
+export function extractGeoAndBotScore(request: Request): GeoAndBotScore {
+  const ipAddress = extractIpAddress(request);
+  const country = request.headers.get("cf-ipcountry") ?? null;
+  const region = request.headers.get("cf-region") ?? null;
+  const botScoreHeader = request.headers.get("cf-bot-management-score");
+  let botScore: number | null = null;
+  let isLikelyBot = false;
+  if (botScoreHeader) {
+    const parsed = Number(botScoreHeader);
+    if (!Number.isNaN(parsed)) {
+      botScore = parsed;
+      isLikelyBot = parsed <= 10;
+    }
+  }
+  return { ipAddress, country, region, botScore, isLikelyBot };
 }

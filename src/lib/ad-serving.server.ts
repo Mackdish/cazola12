@@ -257,6 +257,7 @@ export type AdResponse =
 
 export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   const t0 = Date.now();
+  console.debug("[ad] serve_ip", input.ipAddress);
   const zone = await loadZoneContext(input.zoneKey);
   if (!zone) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
@@ -346,6 +347,10 @@ export async function recordImpression(
   payload: ServedTokenPayload,
   ipAddress?: string,
   userAgent?: string,
+  botScore?: number | null,
+  isLikelyBot?: boolean,
+  country?: string | null,
+  region?: string | null,
 ): Promise<"recorded" | "duplicate" | "failed"> {
   const useBuffer = process.env["USE_BUFFERED_IMPRESSIONS"] === "true";
 
@@ -360,9 +365,12 @@ export async function recordImpression(
       device_type: payload.device as never,
       browser: payload.browser as never,
       operating_system: payload.os as never,
-      country: payload.country,
+      country: country ?? payload.country,
       ip_address: ipAddress,
       user_agent: userAgent,
+      bot_score: botScore ?? null,
+      is_likely_bot: isLikelyBot ?? false,
+      region: region ?? null,
       timestamp: Date.now(),
     };
 
@@ -384,7 +392,11 @@ export async function recordImpression(
     device_type: payload.device as never,
     browser: payload.browser as never,
     operating_system: payload.os as never,
-    country: payload.country,
+    country: country ?? payload.country,
+    ip_address: ipAddress,
+    region: region ?? null,
+    bot_score: botScore ?? null,
+    is_likely_bot: isLikelyBot ?? false,
   });
   if (error) return error.code === "23505" ? "duplicate" : "failed";
 
@@ -436,6 +448,10 @@ export async function recordClick(
   payload: ServedTokenPayload,
   ipAddress?: string,
   userAgent?: string,
+  botScore?: number | null,
+  isLikelyBot?: boolean,
+  country?: string | null,
+  region?: string | null,
 ): Promise<{ destination: string } | null> {
   const [{ data: ad }, { data: impression }] = await Promise.all([
     supabaseAdmin
@@ -460,6 +476,11 @@ export async function recordClick(
     publisher_id: payload.publisherId,
     website_id: payload.websiteId,
     ad_zone_id: payload.zoneId,
+    ip_address: ipAddress,
+    country: country ?? null,
+    region: region ?? null,
+    bot_score: botScore ?? null,
+    is_likely_bot: isLikelyBot ?? false,
   });
 
   if (clickError) {

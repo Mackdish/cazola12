@@ -7,7 +7,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { checkRateLimit, getRateLimitConfig, extractIpAddress } from "@/lib/rate-limit.server";
+import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +45,8 @@ export const Route = createFileRoute("/api/public/impression")({
           });
         }
 
-        const ipAddress = extractIpAddress(request);
+        const geo = extractGeoAndBotScore(request);
+        const ipAddress = geo.ipAddress;
         const rateLimitConfig = getRateLimitConfig("impression");
 
         try {
@@ -64,8 +65,12 @@ export const Route = createFileRoute("/api/public/impression")({
         const { recordImpression } = await import("@/lib/ad-serving.server");
         const outcome = await recordImpression(
           payload,
-          ipAddress,
+          geo.ipAddress,
           request.headers.get("user-agent") ?? undefined,
+          geo.botScore,
+          geo.isLikelyBot,
+          geo.country,
+          geo.region,
         );
 
         return new Response(JSON.stringify({ ok: outcome !== "failed", outcome }), {

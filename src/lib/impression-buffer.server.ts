@@ -43,6 +43,9 @@ export interface ImpressionEvent {
   country: string | null;
   ip_address?: string;
   user_agent?: string;
+  bot_score?: number | null;
+  is_likely_bot?: boolean;
+  region?: string | null;
   timestamp: number;
 }
 
@@ -251,6 +254,10 @@ async function bulkInsertImpressions(events: ImpressionEvent[]): Promise<any> {
     browser: e.browser,
     operating_system: e.operating_system,
     country: e.country,
+    ip_address: e.ip_address ?? null,
+    region: e.region ?? null,
+    bot_score: e.bot_score ?? null,
+    is_likely_bot: e.is_likely_bot ?? false,
     created_at: new Date(e.timestamp).toISOString(),
   }));
 

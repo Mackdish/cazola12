@@ -130,5 +130,16 @@ export default {
     } catch (error) {
       console.error("[impression-buffer] scheduled flush failed", error);
     }
+
+    try {
+      const now = new Date();
+      if (now.getUTCHours() === 3) {
+        const { purgeExpiredIpAddresses } = await import("@/lib/fraud-retention.server");
+        const purgeResult = await purgeExpiredIpAddresses();
+        console.info("[fraud-retention] scheduled purge complete", purgeResult);
+      }
+    } catch (error) {
+      console.error("[fraud-retention] scheduled purge failed", error);
+    }
   },
 };

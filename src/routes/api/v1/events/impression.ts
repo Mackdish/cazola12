@@ -20,7 +20,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadZoneContext } from "@/lib/ad-serving.server";
 import { classifyUserAgent } from "@/lib/ad-serving-domain";
 import { recordImpression } from "@/lib/ad-serving.server";
-import { checkRateLimit, getRateLimitConfig, extractIpAddress } from "@/lib/rate-limit.server";
+import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
 import { jsonResponse, validationError, rateLimitedError, serverError } from "@/lib/api-response";
 import { publicCorsHeaders, publicPreflight } from "@/lib/api-v1.server";
 
@@ -74,9 +74,8 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           return validationError(parsed.error.flatten().fieldErrors);
         }
 
-        const data = parsed.data;
-        const ipAddress = extractIpAddress(request);
-        const userAgent = request.headers.get("user-agent") ?? undefined;
+        const geo = extractGeoAndBotScore(request);
+        const ipAddress = geo.ipAddress;
 
         const rateLimitConfig = getRateLimitConfig("impression");
         try {
@@ -130,11 +129,19 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           device: (data.device ?? agent.device) as never,
           browser: agent.browser as never,
           os: agent.os as never,
-          country: data.country ?? null,
+          country: geo.country,
           exp: Math.floor(Date.now() / 1000) + 3600,
         };
 
-        const outcome = await recordImpression(payload, ipAddress, userAgent);
+        const outcome = await recordImpression(
+          payload,
+          geo.ipAddress,
+          userAgent,
+          geo.botScore,
+          geo.isLikelyBot,
+          geo.country,
+          geo.region,
+        );
 
         if (outcome === "failed") {
           return serverError("Failed to record impression");
