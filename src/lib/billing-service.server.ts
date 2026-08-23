@@ -202,7 +202,7 @@ export async function getWallets(ctx: Ctx, organizationId: string) {
 }
 
 export async function listAdminWallets(ctx: Ctx, organizationId: string) {
-  await assertPlatformStaff(ctx);
+  await requireStaff(ctx);
   const { data, error } = await (await admin())
     .from("wallets")
     .select("id, currency, country_code, balance_amount, lifetime_deposited, lifetime_spent, low_balance_threshold")

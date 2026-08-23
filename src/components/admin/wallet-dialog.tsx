@@ -28,17 +28,26 @@ export function WalletDialog({ organizationId, organizationName }: { organizatio
   const [open, setOpen] = useState(false);
   const [wallets, setWallets] = useState<WalletRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     setLoading(true);
-    void fetchAdminWallets({ data: { organizationId } }).then((data) => {
-      if (active) {
-        setWallets(data as WalletRow[]);
-        setLoading(false);
-      }
-    });
+    setError(null);
+    void fetchAdminWallets({ data: { organizationId } })
+      .then((data) => {
+        if (active) {
+          setWallets(data as WalletRow[]);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setLoading(false);
+          setError(err instanceof Error ? err.message : "We couldn't load wallet balances.");
+        }
+      });
     return () => {
       active = false;
     };
@@ -62,6 +71,8 @@ export function WalletDialog({ organizationId, organizationName }: { organizatio
 
         {loading ? (
           <LoadingState rows={3} label="Loading wallets" />
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
         ) : wallets.length === 0 ? (
           <p className="text-sm text-muted-foreground">No wallets found for this organization.</p>
         ) : (
