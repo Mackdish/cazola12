@@ -426,16 +426,24 @@ export async function recordImpression(
     }
   }
 
-  const { chargeAdEvent } = await import("@/lib/billing-charge.server");
-  await chargeAdEvent({
-    eventType: "impression",
-    requestId: payload.rid,
-    campaignId: payload.campaignId,
-    adId: payload.adId,
-    publisherId: payload.publisherId,
-    websiteId: payload.websiteId,
-    adZoneId: payload.zoneId,
-  });
+  if (!isLikelyBot) {
+    const { chargeAdEvent } = await import("@/lib/billing-charge.server");
+    await chargeAdEvent({
+      eventType: "impression",
+      requestId: payload.rid,
+      campaignId: payload.campaignId,
+      adId: payload.adId,
+      publisherId: payload.publisherId,
+      websiteId: payload.websiteId,
+      adZoneId: payload.zoneId,
+    });
+  } else if (typeof botScore === "number" && botScore >= 11 && botScore <= 30) {
+    console.info("[ad] bot_score_tier_11_30", {
+      requestId: payload.rid,
+      campaignId: payload.campaignId,
+      botScore,
+    });
+  }
 
   return "recorded";
 }
@@ -515,16 +523,24 @@ export async function recordClick(
   }
 
   if (!clickError) {
-    const { chargeAdEvent } = await import("@/lib/billing-charge.server");
-    await chargeAdEvent({
-      eventType: "click",
-      requestId: payload.rid,
-      campaignId: payload.campaignId,
-      adId: payload.adId,
-      publisherId: payload.publisherId,
-      websiteId: payload.websiteId,
-      adZoneId: payload.zoneId,
-    });
+    if (!isLikelyBot) {
+      const { chargeAdEvent } = await import("@/lib/billing-charge.server");
+      await chargeAdEvent({
+        eventType: "click",
+        requestId: payload.rid,
+        campaignId: payload.campaignId,
+        adId: payload.adId,
+        publisherId: payload.publisherId,
+        websiteId: payload.websiteId,
+        adZoneId: payload.zoneId,
+      });
+    } else if (typeof botScore === "number" && botScore >= 11 && botScore <= 30) {
+      console.info("[ad] bot_score_tier_11_30", {
+        requestId: payload.rid,
+        campaignId: payload.campaignId,
+        botScore,
+      });
+    }
   }
 
   return { destination: ad.destination_url };

@@ -295,15 +295,23 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<void> {
     }
   }
 
-  await chargeAdEvent({
-    eventType: "impression",
-    requestId: event.request_id,
-    campaignId: event.campaign_id,
-    adId: event.ad_id,
-    publisherId: event.publisher_id,
-    websiteId: event.website_id,
-    adZoneId: event.ad_zone_id,
-  });
+  if (!event.is_likely_bot) {
+    await chargeAdEvent({
+      eventType: "impression",
+      requestId: event.request_id,
+      campaignId: event.campaign_id,
+      adId: event.ad_id,
+      publisherId: event.publisher_id,
+      websiteId: event.website_id,
+      adZoneId: event.ad_zone_id,
+    });
+  } else if (typeof event.bot_score === "number" && event.bot_score >= 11 && event.bot_score <= 30) {
+    console.info("[ad] bot_score_tier_11_30", {
+      requestId: event.request_id,
+      campaignId: event.campaign_id,
+      botScore: event.bot_score,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

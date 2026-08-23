@@ -218,6 +218,7 @@ async function getAdvertiserTopWebsites(
     .from("impressions")
     .select("website_id, websites!inner(name)")
     .in("campaign_id", campaignIds)
+    .eq("is_likely_bot", false)
     .gte("created_at", `${filters.dateRange.from}T00:00:00Z`)
     .lte("created_at", `${filters.dateRange.to}T23:59:59Z`);
 
@@ -258,6 +259,7 @@ async function getAdvertiserTopZones(
     .from("impressions")
     .select("ad_zone_id, ad_zones!inner(name)")
     .in("campaign_id", campaignIds)
+    .eq("is_likely_bot", false)
     .gte("created_at", `${filters.dateRange.from}T00:00:00Z`)
     .lte("created_at", `${filters.dateRange.to}T23:59:59Z`);
 
@@ -298,6 +300,7 @@ async function getAdvertiserDevicePerformance(
     .from("impressions")
     .select("device_type")
     .in("campaign_id", campaignIds)
+    .eq("is_likely_bot", false)
     .gte("created_at", `${filters.dateRange.from}T00:00:00Z`)
     .lte("created_at", `${filters.dateRange.to}T23:59:59Z`);
 
@@ -335,6 +338,7 @@ async function getAdvertiserCountryPerformance(
     .from("impressions")
     .select("country")
     .in("campaign_id", campaignIds)
+    .eq("is_likely_bot", false)
     .gte("created_at", `${filters.dateRange.from}T00:00:00Z`)
     .lte("created_at", `${filters.dateRange.to}T23:59:59Z`);
 
@@ -572,6 +576,7 @@ async function getPublisherTopZones(
     .from("impressions")
     .select("ad_zone_id, ad_zones!inner(name)")
     .in("publisher_id", publisherIds)
+    .eq("is_likely_bot", false)
     .gte("created_at", `${filters.dateRange.from}T00:00:00Z`)
     .lte("created_at", `${filters.dateRange.to}T23:59:59Z`);
 
@@ -700,11 +705,13 @@ export async function getAdminAnalytics(
     db
       .from("impressions")
       .select("id", { count: "exact", head: true })
+      .eq("is_likely_bot", false)
       .gte("created_at", fromDate)
       .lte("created_at", toDate),
     db
       .from("clicks")
       .select("id", { count: "exact", head: true })
+      .eq("is_likely_bot", false)
       .gte("created_at", fromDate)
       .lte("created_at", toDate),
     db
