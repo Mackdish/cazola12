@@ -23,7 +23,7 @@ import {
   createVerificationToken,
   verifyDomainOwnership,
 } from "@/lib/publisher-verification.server";
-import { cachedGet, cacheDelete } from "@/lib/cache.server";
+import { cachedGetVersioned, cacheDelete, cacheBumpVersion } from "@/lib/cache.server";
 
 type Client = SupabaseClient<Database>;
 export type Ctx = { supabase: Client; userId: string };
@@ -98,6 +98,7 @@ export async function savePublisherProfile(
       console.error("[publisher] failed to auto-approve new publisher", approveError);
     }
   }
+  await cacheBumpVersion("publisher", input.organizationId);
   await cacheDelete(`publisher:${input.organizationId}:profile`);
   return publisher;
 }
@@ -105,10 +106,12 @@ export async function savePublisherProfile(
 export async function getPublisherProfile(ctx: Ctx, organizationId: string) {
   await assertOrgMember(ctx, organizationId);
   const db = await admin();
-  return cachedGet(
-    `publisher:${organizationId}:profile`,
-    300,
-    async () => {
+  return cachedGetVersioned({
+    prefix: "publisher",
+    id: organizationId,
+    ttlSeconds: 300,
+    legacyKey: `publisher:${organizationId}:profile`,
+    supplier: async () => {
       const { data, error } = await db
         .from("publishers")
         .select("*")
@@ -117,7 +120,7 @@ export async function getPublisherProfile(ctx: Ctx, organizationId: string) {
       if (error) fail("We couldn't load your publisher profile.");
       return data ?? null;
     },
-  );
+  });
 }
 
 
@@ -143,10 +146,12 @@ export async function listWebsites(ctx: Ctx, organizationId: string) {
 }
 
 export async function getWebsiteDetail(ctx: Ctx, websiteId: string) {
-  return cachedGet(
-    `website:${websiteId}:detail`,
-    300,
-    async () => {
+  return cachedGetVersioned({
+    prefix: "website",
+    id: websiteId,
+    ttlSeconds: 300,
+    legacyKey: `website:${websiteId}:detail`,
+    supplier: async () => {
       const { data: website, error } = await ctx.supabase
         .from("websites")
         .select("*")
@@ -172,7 +177,7 @@ export async function getWebsiteDetail(ctx: Ctx, websiteId: string) {
 
       return { website, zones: zones.data ?? [], verifications: verifications.data ?? [] };
     },
-  );
+  });
 }
 
 export async function createWebsite(
@@ -247,6 +252,7 @@ export async function updateWebsite(
     .maybeSingle();
   if (error) fail("We couldn't save those website details.");
   if (!data) fail("That website doesn't exist, or you don't have access to it.");
+  await cacheBumpVersion("website", input.websiteId);
   await cacheDelete(`website:${input.websiteId}:detail`);
   return data;
 }
@@ -321,6 +327,7 @@ export async function startVerification(
   if (website.verification_status === "unverified") {
     await db.from("websites").update({ verification_status: "pending" }).eq("id", website.id);
   }
+  await cacheBumpVersion("website", website.id);
   await cacheDelete(`website:${website.id}:detail`);
   return inserted.data;
 }
@@ -380,6 +387,7 @@ export async function runVerification(
       .from("websites")
       .update({ verification_status: "verified", verified_at: now, status: "active" })
       .eq("id", website.id);
+    await cacheBumpVersion("website", website.id);
     await cacheDelete(`website:${website.id}:detail`);
     return { verified: true as const, message: "Domain ownership confirmed." };
   }
@@ -397,10 +405,12 @@ export async function runVerification(
 // ----------------------------------------------------------------- ad zones
 
 export async function listAdZones(ctx: Ctx, organizationId: string) {
-  return cachedGet(
-    `org:${organizationId}:ad_zones`,
-    120,
-    async () => {
+  return cachedGetVersioned({
+    prefix: "org",
+    id: organizationId,
+    ttlSeconds: 120,
+    legacyKey: `org:${organizationId}:ad_zones`,
+    supplier: async () => {
       const { data, error } = await ctx.supabase
         .from("ad_zones")
         .select("*, websites(id, domain, name, verification_status, approval_status)")
@@ -409,7 +419,7 @@ export async function listAdZones(ctx: Ctx, organizationId: string) {
       if (error) fail("We couldn't load your ad zones.");
       return data ?? [];
     },
-  );
+  });
 }
 
 export async function createAdZone(
@@ -454,6 +464,7 @@ export async function createAdZone(
     if (insertError.code === "42501") fail("You don't have permission to create ad zones here.");
     fail("We couldn't create that ad zone. Please try again.");
   }
+  await cacheBumpVersion("org", website.organization_id);
   await cacheDelete(`org:${website.organization_id}:ad_zones`);
   return data!;
 }
@@ -470,6 +481,7 @@ export async function setAdZoneStatus(
     .maybeSingle();
   if (error) fail("We couldn't update that ad zone.");
   if (!data) fail("That ad zone doesn't exist, or you don't have access to it.");
+  await cacheBumpVersion("org", data.organization_id);
   await cacheDelete(`org:${data.organization_id}:ad_zones`);
   return data;
 }
@@ -555,6 +567,9 @@ export async function adminSetPublisherReview(
   if (error) fail("We couldn't update that publisher.");
   if (!data) fail("That publisher doesn't exist.");
 
+  await cacheBumpVersion("publisher", data.organization_id);
+  await cacheDelete(`publisher:${data.organization_id}:profile`);
+
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
     action: `publisher.${input.approvalStatus ?? input.status ?? "update"}`,
@@ -590,6 +605,9 @@ export async function adminSetWebsiteReview(
     .maybeSingle();
   if (error) fail("We couldn't update that website.");
   if (!data) fail("That website doesn't exist.");
+
+  await cacheBumpVersion("website", input.websiteId);
+  await cacheDelete(`website:${input.websiteId}:detail`);
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
@@ -678,6 +696,9 @@ export async function adminSetAdZoneStatus(
     .maybeSingle();
   if (error) fail("We couldn't update that ad zone.");
   if (!data) fail("That ad zone doesn't exist.");
+
+  await cacheBumpVersion("org", data.organization_id);
+  await cacheDelete(`org:${data.organization_id}:ad_zones`);
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {

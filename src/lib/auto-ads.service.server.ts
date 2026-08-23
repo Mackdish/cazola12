@@ -4,15 +4,17 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
-import { cachedGet, cacheDelete } from "@/lib/cache.server";
+import { cachedGetVersioned, cacheDelete, cacheBumpVersion } from "@/lib/cache.server";
 
 export type AutoAdsConfig = Database["public"]["Tables"]["auto_ads_config"]["Row"];
 
 export async function getAutoAdsConfig(websiteId: string): Promise<AutoAdsConfig | null> {
-  return cachedGet(
-    `website:${websiteId}:auto_ads`,
-    300,
-    async () => {
+  return cachedGetVersioned({
+    prefix: "website",
+    id: websiteId,
+    ttlSeconds: 300,
+    legacyKey: `website:${websiteId}:auto_ads`,
+    supplier: async () => {
       const { data, error } = await supabaseAdmin
         .from("auto_ads_config")
         .select("*")
@@ -22,7 +24,7 @@ export async function getAutoAdsConfig(websiteId: string): Promise<AutoAdsConfig
       if (error) throw new Error(error.message);
       return data ?? null;
     },
-  );
+  });
 }
 
 export async function createAutoAdsConfig(
@@ -45,6 +47,7 @@ export async function createAutoAdsConfig(
     .single();
 
   if (error) throw new Error(error.message);
+  await cacheBumpVersion("website", websiteId);
   await cacheDelete(`website:${websiteId}:auto_ads`);
   return data;
 }
@@ -74,6 +77,7 @@ export async function updateAutoAdsConfig(
 
   if (error) throw new Error(error.message);
   if (data) {
+    await cacheBumpVersion("website", websiteId);
     await cacheDelete(`website:${websiteId}:auto_ads`);
     return data;
   }
