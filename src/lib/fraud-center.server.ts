@@ -101,6 +101,15 @@ export async function blockIp(ctx: Ctx, ipAddress: string, reason: string, durat
 
   if (error) fail("We couldn't block that IP.");
 
+  const { redis } = await import("@/lib/redis.server");
+  if (redis) {
+    try {
+      await redis.sadd("blocked_ips", ipAddress);
+    } catch (err) {
+      console.error("[blocklist] redis sync failed on block", err);
+    }
+  }
+
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
     action: "fraud.ip_block",
@@ -122,6 +131,15 @@ export async function unblockIp(ctx: Ctx, ipAddress: string) {
   );
 
   if (error) fail("We couldn't unblock that IP.");
+
+  const { redis } = await import("@/lib/redis.server");
+  if (redis) {
+    try {
+      await redis.srem("blocked_ips", ipAddress);
+    } catch (err) {
+      console.error("[blocklist] redis sync failed on unblock", err);
+    }
+  }
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
@@ -205,6 +223,35 @@ export async function listAuditLogs(
     pageSize,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+export async function syncBlockedIpsToRedis(): Promise<{ synced: number }> {
+  const db = await admin();
+  const { data, error } = await (db as any)
+    .from("blocked_ips")
+    .select("ip_address")
+    .eq("is_active", true)
+    .or("expires_at.is.null,expires_at.gt.now()");
+
+  if (error) {
+    console.error("[blocklist] sync failed", error);
+    return { synced: 0 };
+  }
+
+  const { redis } = await import("@/lib/redis.server");
+  if (!redis) return { synced: 0 };
+
+  const ips = (data ?? []).map((row: BlockedIp) => row.ip_address).filter(Boolean);
+  if (ips.length === 0) return { synced: 0 };
+
+  try {
+    await redis.sadd("blocked_ips", ...ips);
+    console.info(`[blocklist] synced ${ips.length} IPs to Redis`);
+  } catch (err) {
+    console.error("[blocklist] redis sync failed", err);
+  }
+
+  return { synced: ips.length };
 }
 
 export async function assertPlatformStaff(ctx: Ctx) {

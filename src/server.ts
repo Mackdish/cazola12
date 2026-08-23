@@ -141,5 +141,13 @@ export default {
     } catch (error) {
       console.error("[fraud-retention] scheduled purge failed", error);
     }
+
+    try {
+      const { syncBlockedIpsToRedis } = await import("@/lib/fraud-center.server");
+      const syncResult = await syncBlockedIpsToRedis();
+      console.info("[blocklist] scheduled sync complete", syncResult);
+    } catch (error) {
+      console.error("[blocklist] scheduled sync failed", error);
+    }
   },
 };

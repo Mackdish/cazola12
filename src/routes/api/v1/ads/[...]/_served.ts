@@ -107,6 +107,7 @@ export const Route = createFileRoute("/api/v1/ads/[./.]/_served")({
           const statusMap: Record<string, number> = {
             unknown_zone: 404,
             zone_unavailable: 403,
+            blocked_ip: 403,
             no_ad: 204,
           };
           return new Response(

@@ -87,6 +87,19 @@ export const Route = createFileRoute("/api/v1/events/click")({
           return rateLimitedError(60);
         }
 
+        // Defense-in-depth: reject events from blocked IPs
+        const { redis } = await import("@/lib/redis.server");
+        if (redis && ipAddress) {
+          const blocked = await redis.sismember("blocked_ips", ipAddress);
+          if (blocked) {
+            console.warn("[ad] blocklist_event_hit", { ip: ipAddress, event: "click" });
+            return jsonResponse(
+              { ok: false, error: "blocked_ip", message: "This IP is blocked" },
+              403,
+            );
+          }
+        }
+
         // Validate zone context
         const zone = await loadZoneContext(data.zone_id);
         if (!zone) {

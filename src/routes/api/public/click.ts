@@ -40,6 +40,16 @@ export const Route = createFileRoute("/api/public/click")({
         }
 
         const { recordClick } = await import("@/lib/ad-serving.server");
+
+        const { redis } = await import("@/lib/redis.server");
+        if (redis && geo.ipAddress) {
+          const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
+          if (blocked) {
+            console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "click" });
+            return new Response("This IP is blocked.", { status: 403, headers: HEADERS });
+          }
+        }
+
         const result = await recordClick(
           payload,
           geo.ipAddress,

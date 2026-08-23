@@ -253,11 +253,21 @@ export type AdResponse =
         clickUrl: string;
       };
     }
-  | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" };
+  | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" | "blocked_ip" };
 
 export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   const t0 = Date.now();
   console.debug("[ad] serve_ip", input.ipAddress);
+
+  if (redis && input.ipAddress) {
+    const blocked = await redis.sismember("blocked_ips", input.ipAddress);
+    if (blocked) {
+      console.warn("[ad] blocklist_hit", { ip: input.ipAddress, zone: input.zoneKey });
+      console.debug("[ad] serve_total_ms", Date.now() - t0);
+      return { ok: false, reason: "blocked_ip" };
+    }
+  }
+
   const zone = await loadZoneContext(input.zoneKey);
   if (!zone) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);

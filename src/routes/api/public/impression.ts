@@ -63,6 +63,19 @@ export const Route = createFileRoute("/api/public/impression")({
         }
 
         const { recordImpression } = await import("@/lib/ad-serving.server");
+
+        const { redis } = await import("@/lib/redis.server");
+        if (redis && geo.ipAddress) {
+          const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
+          if (blocked) {
+            console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "impression" });
+            return new Response(JSON.stringify({ ok: false, error: "blocked_ip" }), {
+              status: 403,
+              headers: JSON_HEADERS,
+            });
+          }
+        }
+
         const outcome = await recordImpression(
           payload,
           geo.ipAddress,
