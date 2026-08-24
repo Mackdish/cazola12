@@ -1148,7 +1148,7 @@ export async function deleteMediaAsset(ctx: Ctx, assetId: string) {
 
   if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
     const service = await admin();
-    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]).catch(() => {});
   } else if (asset.data.storage_provider === "cloudflare_r2" && asset.data.storage_path) {
     await deleteR2Object(asset.data.storage_path);
   }
@@ -1202,7 +1202,7 @@ export async function adminDeleteCreative(ctx: Ctx, assetId: string) {
 
   if (asset.data.storage_provider === "supabase" && asset.data.storage_path) {
     const service = await admin();
-    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]);
+    await service.storage.from(asset.data.bucket).remove([asset.data.storage_path]).catch(() => {});
   } else if (asset.data.storage_provider === "cloudflare_r2" && asset.data.storage_path) {
     await deleteR2Object(asset.data.storage_path);
   }

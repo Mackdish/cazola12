@@ -130,30 +130,25 @@ function Page() {
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  function handleDelete(assetId: string) {
+  async function handleDelete(assetId: string) {
     if (!window.confirm("Delete this creative? This can't be undone.")) return;
-    deleteCreative.mutate(
-      { assetId },
-      {
-        onSuccess: (data) => {
-          if (data?.archived) {
-            toast.success("Creative archived because it's being used by an active ad.");
-          } else {
-            toast.success("Creative deleted.");
-          }
-          void refetch();
-        },
-        onError: (error) => {
-          const message = toFriendlyError(error, "We couldn't delete that creative.").message;
-          if (message.includes("doesn't exist")) {
-            toast.success("Creative was already removed.");
-            void refetch();
-            return;
-          }
-          toast.error(message);
-        },
-      },
-    );
+    try {
+      const data = await deleteCreative.mutateAsync({ assetId });
+      if (data?.archived) {
+        toast.success("Creative archived because it's being used by an active ad.");
+      } else {
+        toast.success("Creative deleted.");
+      }
+      void refetch();
+    } catch (error) {
+      const message = toFriendlyError(error, "We couldn't delete that creative.").message;
+      if (message.includes("doesn't exist")) {
+        toast.success("Creative was already removed.");
+        void refetch();
+        return;
+      }
+      toast.error(message);
+    }
   }
 
   function UploadButton({ label }: { label: string }) {
@@ -238,7 +233,10 @@ function Page() {
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((asset) => {
-              const publicUrl = supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl;
+              const publicUrl =
+                asset.storage_provider === "cloudflare_r2"
+                  ? asset.storage_path
+                  : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl;
               return (
                 <CreativeCard key={asset.id} asset={asset} previewUrl={publicUrl} onDelete={handleDelete} />
               );
