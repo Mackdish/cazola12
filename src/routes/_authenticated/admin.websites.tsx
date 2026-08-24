@@ -12,6 +12,7 @@ import {
   approvalLabel,
   approvalTone,
   categoryLabel,
+  normalizeDomain,
   type Website,
   verificationLabel,
   verificationTone,
@@ -64,7 +65,30 @@ function AdminWebsitesPage() {
     }) ?? [];
 
   const columns: DataTableColumn<(typeof rows)[number]>[] = [
-    { id: "domain", header: "Domain", cell: (row) => row.name },
+    {
+      id: "domain",
+      header: "Domain",
+      cell: (row) => {
+        const normalized = normalizeDomain(row.domain);
+        if (!normalized) {
+          return (
+            <span className="text-destructive" title="Invalid domain stored in database">
+              {row.domain}
+            </span>
+          );
+        }
+        return (
+          <a
+            href={`https://${normalized}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            {normalized}
+          </a>
+        );
+      },
+    },
     { id: "publisher", header: "Publisher", cell: (row) => row.publisher.business_name },
     {
       id: "category",
