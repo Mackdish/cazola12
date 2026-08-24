@@ -46,11 +46,6 @@ const HELP_TOPICS = [
     icon: Globe,
   },
   {
-    title: "API Documentation",
-    description: "Integration guides for the TradeMall API v1.",
-    icon: BookOpen,
-  },
-  {
     title: "Policies & Compliance",
     description: "Ad policies, traffic quality standards, and publisher guidelines.",
     icon: Shield,
@@ -116,25 +111,6 @@ function HelpPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-
-          <div className="mt-16 grid gap-8 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="size-5 text-accent" />
-                  API Reference
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Integrate TradeMall into your workflow using our REST API.
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/auth">View API Docs</Link>
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

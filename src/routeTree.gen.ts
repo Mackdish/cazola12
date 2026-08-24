@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdvertisersRouteImport } from './routes/advertisers'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -133,6 +134,11 @@ const AdvertisersRoute = AdvertisersRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -666,6 +672,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -768,6 +775,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -870,6 +878,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/advertisers': typeof AdvertisersRoute
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/pricing': typeof PricingRoute
@@ -974,6 +983,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1076,6 +1086,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1177,6 +1188,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/advertisers'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/help'
     | '/pricing'
@@ -1281,6 +1293,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdvertisersRoute: typeof AdvertisersRoute
   AuthRoute: typeof AuthRoute
+  ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   PricingRoute: typeof PricingRoute
@@ -1359,6 +1372,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -2231,6 +2251,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdvertisersRoute: AdvertisersRoute,
   AuthRoute: AuthRoute,
+  ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   PricingRoute: PricingRoute,

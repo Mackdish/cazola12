@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Building2, HelpCircle } from "lucide-react";
+import { Building2, HelpCircle, Mail, Phone } from "lucide-react";
 
 import { TradeMallLogo } from "@/components/branding/trademall-logo";
 
@@ -41,19 +41,31 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-white">Resources</h3>
             <ul className="mt-4 space-y-3">
               <li><Link to="/help" className="text-sm text-slate-400 hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link to="/auth" className="text-sm text-slate-400 hover:text-white transition-colors">API</Link></li>
-              <li><Link to="/help" className="text-sm text-slate-400 hover:text-white transition-colors">Documentation</Link></li>
+              <li><Link to="/contact" className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-white">Legal</h3>
+            <h3 className="text-sm font-semibold text-white">Contact</h3>
             <ul className="mt-4 space-y-3">
-              <li><Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Cookie / Consent Policy</Link></li>
-              <li><Link to="/policies/invalid-traffic" className="text-sm text-slate-400 hover:text-white transition-colors">Invalid Traffic Policy</Link></li>
-              <li><Link to="/policies/ad-placement" className="text-sm text-slate-400 hover:text-white transition-colors">Ad Placement Guidelines</Link></li>
+              <li>
+                <a
+                  href="mailto:support@trademall.co.ke"
+                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  <Mail className="size-4" />
+                  support@trademall.co.ke
+                </a>
+              </li>
+              <li>
+                <a
+                  href="tel:+254705186502"
+                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  <Phone className="size-4" />
+                  +254 705 186 502
+                </a>
+              </li>
             </ul>
           </div>
         </div>
