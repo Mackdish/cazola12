@@ -384,6 +384,13 @@ async function loadOwnCampaign(ctx: Ctx, campaignId: string) {
     .maybeSingle();
   if (error) fail("We couldn't load that campaign.");
   if (!data) fail("That campaign doesn't exist, or you don't have access to it.");
+  console.error("[TARGETING_AUTH_DEBUG] loadOwnCampaign", {
+    userId: ctx.userId,
+    campaignId,
+    campaignOrganizationId: (data as any).organization_id,
+    campaignAdvertiserId: (data as any).advertiser_id,
+    campaignStatus: (data as any).status,
+  });
   return data;
 }
 
@@ -678,12 +685,31 @@ export async function saveTargeting(
     website_categories: input.websiteCategories,
     schedule: input.schedule,
   };
+  console.error("[TARGETING_AUTH_DEBUG]", {
+    userId: ctx.userId,
+    organizationId: campaign.organization_id,
+    advertiserId: campaign.advertiser_id,
+    campaignId: campaign.id,
+    resolvedCampaignOrganizationId: campaign.organization_id,
+    resolvedCampaignAdvertiserId: campaign.advertiser_id,
+    authorized: true,
+    reason: "loadOwnCampaign succeeded",
+  });
   const { data, error } = await ctx.supabase
     .from("campaign_targeting")
     .upsert(row, { onConflict: "campaign_id" })
     .select("*")
     .single();
   if (error) {
+    console.error("[TARGETING_AUTH_DEBUG] RLS_ERROR", {
+      userId: ctx.userId,
+      organizationId: campaign.organization_id,
+      campaignId: campaign.id,
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorDetails: error.details,
+      errorHint: error.hint,
+    });
     if (error.code === "42501") fail("You don't have permission to change targeting here.");
     fail("We couldn't save targeting. Please try again.");
   }
