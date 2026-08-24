@@ -531,6 +531,13 @@ export async function createAd(
   if (!group.data || group.data.campaign_id !== campaign.id)
     fail("That ad group isn't part of this campaign.");
 
+  console.log("[advertiser] createAd:", {
+    campaignId: input.campaignId,
+    campaignOrgId: campaign.organization_id,
+    adGroupId: input.adGroupId,
+    mediaAssetId: input.mediaAssetId,
+  });
+
   if (input.mediaAssetId)
     await assertCreativeFits(ctx, input.mediaAssetId, campaign.organization_id, input.format);
 
@@ -564,7 +571,8 @@ export async function createAd(
   }
 
   if (input.mediaAssetId) {
-    await ctx.supabase
+    const db = await admin();
+    await db
       .from("media_assets")
       .update({ ad_id: data!.id, campaign_id: campaign.id })
       .eq("id", input.mediaAssetId);
@@ -578,11 +586,20 @@ async function assertCreativeFits(
   organizationId: string,
   format: AdFormat,
 ) {
-  const { data, error } = await ctx.supabase
+  const db = await admin();
+  const { data, error } = await db
     .from("media_assets")
     .select("id, organization_id, width, height, status")
     .eq("id", mediaAssetId)
     .maybeSingle();
+
+  console.log("[advertiser] assertCreativeFits:", {
+    mediaAssetId,
+    organizationId,
+    creative: data ? { id: data.id, organization_id: data.organization_id, status: data.status } : null,
+    error: error?.message,
+  });
+
   if (error) fail("We couldn't load that creative.");
   if (!data || data.organization_id !== organizationId)
     fail("That creative doesn't belong to your organization.");
@@ -596,12 +613,13 @@ async function assertCreativeFits(
 }
 
 export async function attachCreativeToAd(ctx: Ctx, input: { adId: string; mediaAssetId: string }) {
-  const ad = await ctx.supabase.from("ads").select("*").eq("id", input.adId).maybeSingle();
+  const db = await admin();
+  const ad = await db.from("ads").select("*").eq("id", input.adId).maybeSingle();
   if (ad.error) fail("We couldn't load that ad.");
   if (!ad.data) fail("That ad doesn't exist, or you don't have access to it.");
   await assertCreativeFits(ctx, input.mediaAssetId, ad.data.organization_id, ad.data.format);
 
-  const { data, error } = await ctx.supabase
+  const { data, error } = await db
     .from("ads")
     .update({ media_asset_id: input.mediaAssetId })
     .eq("id", input.adId)
@@ -609,7 +627,7 @@ export async function attachCreativeToAd(ctx: Ctx, input: { adId: string; mediaA
     .maybeSingle();
   if (error || !data) fail("We couldn't attach that creative.");
 
-  await ctx.supabase
+  await db
     .from("media_assets")
     .update({ ad_id: data.id, campaign_id: data.campaign_id })
     .eq("id", input.mediaAssetId);
