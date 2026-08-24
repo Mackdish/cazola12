@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateCampaign } from "@/hooks/use-advertiser";
 import { useBillingSettings } from "@/hooks/use-billing";
 import {
@@ -32,11 +33,14 @@ import {
   type CampaignObjective,
 } from "@/lib/advertiser-domain";
 import { toFriendlyError } from "@/lib/errors";
+import { AICopilotPanel } from "@/components/advertiser/ai-copilot-panel";
+import type { CampaignPlan } from "@/lib/ai/campaign-schema";
 
 export function CampaignDialog({ organizationId }: { organizationId: string | null }) {
   const createCampaign = useCreateCampaign();
   const settings = useBillingSettings();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"manual" | "ai">("manual");
   const [name, setName] = useState("");
   const [objective, setObjective] = useState<CampaignObjective>("traffic");
   const [bidType, setBidType] = useState<BidType>("cpm");
@@ -48,6 +52,22 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [landingPageUrl, setLandingPageUrl] = useState("");
+
+  const applyAIPlan = (plan: CampaignPlan) => {
+    setName(plan.campaign.name);
+    setObjective(plan.campaign.objective as CampaignObjective);
+    setBidType("cpm");
+    setBidAmount(String(plan.budget.daily));
+    setTotalBudget(String(plan.budget.total));
+    setDailyBudget(String(plan.budget.daily));
+    const durationMs = plan.budget.duration_days * 24 * 60 * 60 * 1000;
+    const start = new Date();
+    const end = new Date(start.getTime() + durationMs);
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+    setMode("manual");
+    toast.success("AI plan applied. Review and create your campaign.");
+  };
 
   async function submit() {
     if (!organizationId) {
@@ -130,8 +150,16 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto -mx-2 px-2">
-        <div className="space-y-4">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "manual" | "ai")} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="w-full">
+            <TabsTrigger value="manual" className="flex-1">Manual</TabsTrigger>
+            <TabsTrigger value="ai" className="flex-1">
+              <Sparkles className="size-3 mr-1" /> AI Copilot
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manual" className="flex-1 overflow-y-auto -mx-2 px-2 mt-4">
+            <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="campaign-name">Campaign name</Label>
             <Input
@@ -253,7 +281,16 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
             />
           </div>
         </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="flex-1 overflow-y-auto mt-4">
+            {organizationId ? (
+              <AICopilotPanel organizationId={organizationId} onApplyCampaign={applyAIPlan} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Select an organization to use AI.</p>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
           <Button

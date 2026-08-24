@@ -31,6 +31,12 @@ import {
   uploadCreative,
 } from "@/lib/advertiser.functions";
 import {
+  generateAICampaignPlan,
+  generateAIAdCopy,
+  generateAITargeting,
+  generateAICreativeConcept,
+} from "@/lib/ai-copilot.functions";
+import {
   maxBytesForMime,
   validateCreativeFile,
   type AdFormat,
@@ -393,5 +399,74 @@ export function useReviewAd() {
       invalidate();
       invalidateAdmin();
     },
+  });
+}
+
+// ---------------------------------------------------------------- AI copilot
+
+export function useAICampaignPlan() {
+  const fn = useServerFn(generateAICampaignPlan);
+  const invalidate = useAdvertiserInvalidate();
+  return useMutation({
+    mutationFn: (input: {
+      organizationId: string;
+      description: string;
+      currency?: string;
+      budget?: number;
+      durationDays?: number;
+      location?: string;
+      website?: string;
+      whatsapp?: string;
+      objective?: string;
+    }) => fn({ data: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAIAdCopy() {
+  const fn = useServerFn(generateAIAdCopy);
+  const invalidate = useAdvertiserInvalidate();
+  return useMutation({
+    mutationFn: (input: {
+      organizationId: string;
+      product: string;
+      audience: string;
+      tone?: string;
+      cta?: string;
+      existingCopy?: string;
+      action?: "generate" | "improve" | "shorter" | "persuasive" | "professional" | "local";
+    }) => fn({ data: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAITargeting() {
+  const fn = useServerFn(generateAITargeting);
+  const invalidate = useAdvertiserInvalidate();
+  return useMutation({
+    mutationFn: (input: {
+      organizationId: string;
+      business: string;
+      location: string;
+      audience: string;
+      budget: number;
+      currency?: string;
+    }) => fn({ data: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAICreativeConcept() {
+  const fn = useServerFn(generateAICreativeConcept);
+  const invalidate = useAdvertiserInvalidate();
+  return useMutation({
+    mutationFn: (input: {
+      organizationId: string;
+      product: string;
+      audience: string;
+      message: string;
+      formats: string[];
+    }) => fn({ data: input }),
+    onSuccess: invalidate,
   });
 }
