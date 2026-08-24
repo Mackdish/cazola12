@@ -667,6 +667,33 @@ export async function adminSetWebsiteReview(
     }
   }
 
+  if (input.approvalStatus === "rejected") {
+    try {
+      const { sendWebsiteRejectedEmail } = await import("@/lib/email.server");
+      const publisher = await db
+        .from("publishers")
+        .select("contact_email, business_name")
+        .eq("id", data.publisher_id)
+        .maybeSingle();
+
+      if (publisher.data?.contact_email) {
+        await sendWebsiteRejectedEmail({
+          to: publisher.data.contact_email,
+          publisherName: publisher.data.business_name,
+          websiteName: data.name,
+          domain: data.domain,
+          reason: input.reason,
+          websiteId: data.id,
+        });
+      }
+    } catch (error) {
+      console.error("[email] website rejection email failed", {
+        websiteId: input.websiteId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
     action: `website.${input.approvalStatus ?? input.status ?? "update"}`,

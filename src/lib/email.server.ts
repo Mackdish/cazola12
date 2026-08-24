@@ -63,6 +63,67 @@ export async function sendWebsiteApprovedEmail(input: {
   }
 }
 
+export async function sendWebsiteRejectedEmail(input: {
+  to: string;
+  publisherName: string;
+  websiteName: string;
+  domain: string;
+  reason: string | null;
+  websiteId: string;
+}): Promise<void> {
+  const client = getResendClient();
+  const origin = readEnv("APP_BASE_URL") ?? "https://trademall.co.ke";
+  const dashboardUrl = `${origin}/publisher/websites/${input.websiteId}`;
+
+  const subject = `Update on your website submission — TradeMall`;
+
+  const reasonHtml = input.reason
+    ? escapeHtml(input.reason)
+    : "No specific feedback was provided. Please review our publisher guidelines and try again.";
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <h2 style="color: #1a1a1a;">Update on your website submission</h2>
+      <p>Hi ${escapeHtml(input.publisherName)},</p>
+      <p>Thanks for submitting your website to TradeMall. After reviewing it, we weren't able to approve it this time.</p>
+      <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0 0 8px;"><strong>Website:</strong> ${escapeHtml(input.websiteName)}</p>
+        <p style="margin: 0;"><strong>Domain:</strong> ${escapeHtml(input.domain)}</p>
+      </div>
+      <p><strong>What you can do next:</strong></p>
+      <ul>
+        <li>Review the feedback below and update your website accordingly.</li>
+        <li>Resubmit for review once the changes are live.</li>
+        <li>If you believe this was a mistake, reply to this email or contact our support team.</li>
+      </ul>
+      <div style="background: #fff3cd; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #f0ad4e;">
+        <p style="margin: 0;"><strong>Reviewer feedback:</strong></p>
+        <p style="margin: 8px 0 0;">${reasonHtml}</p>
+      </div>
+      <p><a href="${escapeHtml(dashboardUrl)}" style="color: #2563eb; text-decoration: none; font-weight: 500;">View your website in the publisher dashboard</a></p>
+      <p style="color: #666; font-size: 14px;">If you have any questions, reply to this email or contact our support team.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <p style="color: #999; font-size: 12px;">— The TradeMall Team</p>
+    </div>
+  `;
+
+  try {
+    await client.emails.send({
+      from: "TradeMall <no-reply@trademall.co.ke>",
+      to: [input.to],
+      subject,
+      html,
+    });
+  } catch (error) {
+    console.error("[email] sendWebsiteRejectedEmail failed", {
+      to: input.to,
+      domain: input.domain,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
