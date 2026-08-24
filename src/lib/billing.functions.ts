@@ -377,3 +377,78 @@ export const confirmPayment = createServerFn({ method: "POST" })
       return { ...current, verified: false };
     }
   });
+
+// ------------------------------------------------------------------- public confirmation (no auth required)
+
+/**
+ * Public payment status lookup for the confirmation page.
+ * Uses the admin client so the hosted-checkout return flow works
+ * without an authenticated session.
+ */
+export const publicFetchPaymentStatus = createServerFn({ method: "GET" })
+  .validator((data: unknown) =>
+    z.object({ reference: z.string().min(1) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    console.log("[payment] publicFetchPaymentStatus:", { reference: data.reference });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: payment, error: findError } = await (supabaseAdmin as any)
+      .from("payments")
+      .select("id, status, amount, currency, reference, payment_url, provider, created_at, updated_at")
+      .eq("reference", data.reference)
+      .maybeSingle();
+
+    if (findError || !payment) {
+      console.log("[payment] publicFetchPaymentStatus not found:", { findError: findError?.message });
+      fail("Payment not found.");
+    }
+
+    console.log("[payment] publicFetchPaymentStatus found:", { id: payment.id, status: payment.status });
+    return {
+      paymentId: payment.id,
+      reference: payment.reference,
+      status: payment.status,
+      amount: payment.amount,
+      currency: payment.currency,
+      paymentUrl: payment.payment_url,
+      provider: payment.provider,
+      createdAt: payment.created_at,
+      updatedAt: payment.updated_at,
+    };
+  });
+
+/**
+ * Public confirmation fallback: verifies the payment server-side and
+ * completes it exactly once. Intended for the hosted-checkout return flow.
+ */
+export const publicConfirmPayment = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ reference: z.string().min(1).max(120) }).parse(data))
+  .handler(async ({ data }) => {
+    console.log("[payment] publicConfirmPayment:", { reference: data.reference });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ctx = { supabase: supabaseAdmin as any, userId: "system" } as any;
+    const current = await getPaymentStatus(ctx, data.reference);
+    console.log("[payment] publicConfirmPayment current status:", current);
+    if (current.status === "completed" || current.status === "failed" || current.status === "cancelled") {
+      return { ...current, verified: false };
+    }
+
+    const { verifyAndCompletePayment } = await import("@/lib/payment-orchestrator.server");
+    try {
+      const result = await verifyAndCompletePayment(
+        ctx,
+        data.reference,
+        current.provider ?? "payzaapi",
+      );
+      console.log("[payment] publicConfirmPayment verification result:", result);
+      return {
+        ...current,
+        status: result.status || current.status,
+        verified: true,
+        alreadyCompleted: result.alreadyCompleted,
+      };
+    } catch (error) {
+      console.log("[payment] publicConfirmPayment verification failed:", error);
+      return { ...current, verified: false };
+    }
+  });

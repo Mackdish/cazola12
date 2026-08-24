@@ -25,6 +25,8 @@ import {
   refundCharge,
   saveRevenueSplit,
   submitPayoutRequest,
+  publicFetchPaymentStatus,
+  publicConfirmPayment,
 } from "@/lib/billing.functions";
 
 const MANAGER_ROLES = ["owner", "admin"];
@@ -170,8 +172,32 @@ export function usePaymentStatus(reference: string | null) {
   });
 }
 
+export function usePublicPaymentStatus(reference: string | null) {
+  const fn = useServerFn(publicFetchPaymentStatus);
+  return useQuery({
+    queryKey: ["billing", "public-payment-status", reference],
+    enabled: Boolean(reference),
+    queryFn: () => fn({ data: { reference: reference! } }),
+    refetchInterval: (query) => {
+      const status = (query.state.data as { status?: string } | undefined)?.status;
+      return status && status !== "pending" && status !== "processing" ? false : 4000;
+    },
+  });
+}
 
-// ----------------------------------------------------------------- earnings
+export function useConfirmPayment() {
+  const fn = useServerFn(confirmPayment);
+  return useMutation({
+    mutationFn: (reference: string) => fn({ data: { reference } }),
+  });
+}
+
+export function usePublicConfirmPayment() {
+  const fn = useServerFn(publicConfirmPayment);
+  return useMutation({
+    mutationFn: (reference: string) => fn({ data: { reference } }),
+  });
+}
 
 export function usePublisherEarnings(organizationId: string | null) {
   const fn = useServerFn(fetchPublisherEarnings);
@@ -268,12 +294,5 @@ export function useRefundCharge() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["billing"] });
     },
-  });
-}
-
-export function useConfirmPayment() {
-  const fn = useServerFn(confirmPayment);
-  return useMutation({
-    mutationFn: (reference: string) => fn({ data: { reference } }),
   });
 }

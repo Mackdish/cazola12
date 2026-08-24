@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { usePaymentStatus, useConfirmPayment } from "@/hooks/use-billing";
+import { usePaymentStatus, useConfirmPayment, usePublicPaymentStatus, usePublicConfirmPayment } from "@/hooks/use-billing";
 import { formatMoney } from "@/lib/billing-domain";
 
 const searchSchema = z.object({ reference: z.string().optional() });
@@ -29,8 +29,8 @@ export const Route = createFileRoute("/payment/confirm")({
 
 function Page() {
   const { reference } = Route.useSearch();
-  const status = usePaymentStatus(reference ?? null);
-  const confirm = useConfirmPayment();
+  const status = usePublicPaymentStatus(reference ?? null);
+  const confirm = usePublicConfirmPayment();
   const attempted = useRef(false);
 
   const payment = status.data as
