@@ -642,6 +642,31 @@ export async function adminSetWebsiteReview(
   await cacheDelete(`website:${input.websiteId}:detail`);
   await invalidateZoneContextForWebsite(input.websiteId);
 
+  if (input.approvalStatus === "approved") {
+    try {
+      const { sendWebsiteApprovedEmail } = await import("@/lib/email.server");
+      const publisher = await db
+        .from("publishers")
+        .select("contact_email, business_name")
+        .eq("id", data.publisher_id)
+        .maybeSingle();
+
+      if (publisher.data?.contact_email) {
+        await sendWebsiteApprovedEmail({
+          to: publisher.data.contact_email,
+          publisherName: publisher.data.business_name,
+          websiteName: data.name,
+          domain: data.domain,
+        });
+      }
+    } catch (error) {
+      console.error("[email] website approval email failed", {
+        websiteId: input.websiteId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
     action: `website.${input.approvalStatus ?? input.status ?? "update"}`,
