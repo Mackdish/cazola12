@@ -44,6 +44,7 @@ export const Route = createFileRoute("/api/public/pay/callback")({
         // server-side against /api/v1/verify/{reference} before we act on it.
         const rawBody = await getRawBody(request);
 
+        console.log("[callback] raw body:", rawBody);
 
         let payload: unknown;
         try {
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/api/public/pay/callback")({
 
         const parsed = callbackSchema.safeParse(payload);
         if (!parsed.success) {
+          console.log("[callback] validation failed:", parsed.error.flatten());
           return jsonResponse(
             { ok: false, error: "validation_error", message: "Invalid callback payload." },
             400,
@@ -64,6 +66,7 @@ export const Route = createFileRoute("/api/public/pay/callback")({
         }
 
         const data = parsed.data;
+        console.log("[callback] parsed data:", data);
         // Hosted multi-currency checkout sends `event: "payment.success"`;
         // the M-PESA flow sends `status`. Both map to the same statuses.
         const status = normalizePaymentStatus(

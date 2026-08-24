@@ -111,11 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fullName = pendingFullName.current;
       pendingFullName.current = null;
 
-      // Idempotent, server-side profile bootstrap (safe to call on every session).
       const profileResult = await supabase.rpc(
         "ensure_profile",
         fullName ? { _full_name: fullName } : {},
       );
+
+      console.log("[auth] ensure_profile result:", {
+        error: profileResult.error,
+        data: profileResult.data,
+        onboarding_completed: profileResult.data?.onboarding_completed,
+      });
 
       if (profileResult.error) throw profileResult.error;
       setProfile(profileResult.data as Profile);
@@ -127,24 +132,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .order("created_at", { ascending: true }),
         supabase.from("platform_roles").select("role"),
       ]);
+
+      console.log("[auth] organization_members query:", {
+        error: membershipResult.error,
+        count: membershipResult.data?.length,
+        rows: membershipResult.data,
+      });
+      console.log("[auth] platform_roles query:", {
+        error: roleResult.error,
+        count: roleResult.data?.length,
+        rows: roleResult.data,
+      });
+
       if (membershipResult.error) throw membershipResult.error;
       if (roleResult.error) throw roleResult.error;
 
-      setMemberships(
-        (membershipResult.data ?? []).flatMap((row) => {
-          if (!row.organizations) return [];
-          return [
-            {
-              membershipId: row.id,
-              role: row.role,
-              status: row.status,
-              organization: row.organizations,
-            } satisfies Membership,
-          ];
-        }),
-      );
-      setPlatformRoles((roleResult.data ?? []).map((row) => row.role));
+      const memberships = (membershipResult.data ?? []).flatMap((row) => {
+        if (!row.organizations) return [];
+        return [
+          {
+            membershipId: row.id,
+            role: row.role,
+            status: row.status,
+            organization: row.organizations,
+          } satisfies Membership,
+        ];
+      });
+      const platformRoles = (roleResult.data ?? []).map((row) => row.role);
+
+      console.log("[auth] computed identity:", {
+        profileId: profileResult.data?.id,
+        onboarding_completed: profileResult.data?.onboarding_completed,
+        membershipsCount: memberships.length,
+        memberships: memberships.map((m) => ({
+          id: m.membershipId,
+          role: m.role,
+          status: m.status,
+          orgType: m.organization.type,
+          orgStatus: m.organization.status,
+        })),
+        platformRoles,
+        workspaces: availableWorkspaces(memberships, platformRoles),
+        homePath: defaultWorkspacePath(memberships, platformRoles, profileResult.data as Profile | null),
+      });
+
+      setMemberships(memberships);
+      setPlatformRoles(platformRoles);
     } catch (error) {
+      console.error("[auth] loadIdentity failed", error);
       setIdentityError(toFriendlyError(error, "We couldn't load your account"));
     } finally {
       setLoadingIdentity(false);

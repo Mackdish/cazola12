@@ -41,6 +41,14 @@ function OnboardingPage() {
   } = useAuth();
 
   useEffect(() => {
+    console.log("[onboarding] guard effect:", {
+      loadingIdentity,
+      profile: profile ? { id: profile.id, onboarding_completed: profile.onboarding_completed } : null,
+      step,
+      workspacesCount: workspaces.length,
+      workspaces,
+      homePath,
+    });
     if (loadingIdentity || !profile) return;
     if (step !== 0) return;
     if (workspaces.length === 0) return;

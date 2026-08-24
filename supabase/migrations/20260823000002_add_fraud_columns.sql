@@ -2,7 +2,7 @@
 -- Raw IP retained for 90 days for fraud prevention, then nulled by purge job.
 -- country/region/bot_score are retained indefinitely (non-identifying analytics).
 
-ALTER TABLE public.impressions
+ALTER TABLE public.impressions 
   ADD COLUMN IF NOT EXISTS ip_address text NULL,
   ADD COLUMN IF NOT EXISTS region text NULL,
   ADD COLUMN IF NOT EXISTS bot_score integer NULL,

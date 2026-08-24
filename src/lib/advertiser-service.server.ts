@@ -521,7 +521,8 @@ export async function createAd(
   const destination = normalizeDestinationUrl(input.destinationUrl);
   if (!destination) fail("Enter a valid https destination URL.");
 
-  const group = await ctx.supabase
+  const db = await admin();
+  const group = await db
     .from("ad_groups")
     .select("id, campaign_id")
     .eq("id", input.adGroupId)

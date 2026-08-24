@@ -104,6 +104,15 @@ export async function completePaymentByReference(
   verifiedAmount?: number,
   verifiedCurrency?: string,
 ) {
+  console.log("[payment] completePaymentByReference:", {
+    reference,
+    providerReference,
+    providerTransactionId,
+    providerReceipt,
+    verifiedAmount,
+    verifiedCurrency,
+    userId: ctx.userId,
+  });
   const { data: payment, error: findError } = await ctx.supabase
     .from("payments" as never)
     .select("id, status, amount, currency, wallet_id, organization_id")
@@ -111,10 +120,14 @@ export async function completePaymentByReference(
     .maybeSingle();
 
   if (findError || !payment) {
+    console.log("[payment] completePaymentByReference not found:", { findError: findError?.message });
     fail("Payment not found.");
   }
 
+  console.log("[payment] completePaymentByReference found:", { id: (payment as any).id, status: (payment as any).status });
+
   if ((payment as any).status === "completed") {
+    console.log("[payment] completePaymentByReference already completed");
     return { paymentId: (payment as any).id, status: "completed", alreadyCompleted: true };
   }
 
@@ -128,6 +141,11 @@ export async function completePaymentByReference(
 
   const provider = (payment as any).provider ?? "payzaapi";
 
+  console.log("[payment] completePaymentByReference calling complete_payment RPC:", {
+    paymentId: (payment as any).id,
+    provider,
+    providerReference,
+  });
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
     _payment_id: (payment as any).id,
     _provider: provider,
@@ -137,10 +155,12 @@ export async function completePaymentByReference(
   } as never);
 
   if (error) {
+    console.log("[payment] completePaymentByReference RPC error:", error);
     fail("We couldn't complete the payment. Please contact support.");
   }
 
   const result = Array.isArray(data) ? data[0] : data;
+  console.log("[payment] completePaymentByReference RPC result:", result);
   return { ...(result as any), alreadyCompleted: false };
 }
 
@@ -148,6 +168,7 @@ export async function getPaymentStatus(
   ctx: Ctx,
   reference: string,
 ) {
+  console.log("[payment] getPaymentStatus:", { reference, userId: ctx.userId });
   const { data: payment, error: findError } = await ctx.supabase
     .from("payments" as never)
     .select("id, status, amount, currency, reference, payment_url, provider, created_at, updated_at")
@@ -155,9 +176,11 @@ export async function getPaymentStatus(
     .maybeSingle();
 
   if (findError || !payment) {
+    console.log("[payment] getPaymentStatus not found:", { findError: findError?.message, payment });
     fail("Payment not found.");
   }
 
+  console.log("[payment] getPaymentStatus found:", { id: (payment as any).id, status: (payment as any).status });
   return {
     paymentId: (payment as any).id,
     reference: (payment as any).reference,

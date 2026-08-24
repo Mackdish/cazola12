@@ -58,11 +58,20 @@ function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
-  const identityReady = !loadingIdentity && (profile !== null || identityError !== null);
+   const identityReady = !loadingIdentity && (profile !== null || identityError !== null);
 
-  useEffect(() => {
-    if (!initializing && session && identityReady) void navigate({ to: homePath, replace: true });
-  }, [initializing, session, identityReady, homePath, navigate]);
+   useEffect(() => {
+     console.log("[auth] redirect effect:", {
+       initializing,
+       session: session ? { user: session.user.email, confirmed: session.user.email_confirmed_at } : null,
+       identityReady,
+       loadingIdentity,
+       profile: profile ? { id: profile.id, onboarding_completed: profile.onboarding_completed } : null,
+       identityError: identityError ? { title: identityError.title, message: identityError.message } : null,
+       homePath,
+     });
+     if (!initializing && session && identityReady) void navigate({ to: homePath, replace: true });
+   }, [initializing, session, identityReady, homePath, navigate]);
 
   async function handleGoogle() {
     setFormError(null);

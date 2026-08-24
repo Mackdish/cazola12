@@ -333,9 +333,12 @@ export const fetchPaymentStatus = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
     z.object({ reference: z.string().min(1) }).parse(data),
   )
-  .handler(async ({ data, context }) =>
-    getPaymentStatus(await paymentCtxForReference(context as never, data.reference), data.reference),
-  );
+  .handler(async ({ data, context }) => {
+    console.log("[payment] fetchPaymentStatus:", { reference: data.reference, userId: context.userId });
+    const result = await getPaymentStatus(await paymentCtxForReference(context as never, data.reference), data.reference);
+    console.log("[payment] fetchPaymentStatus result:", result);
+    return result;
+  });
 
 
 /**
@@ -347,8 +350,10 @@ export const confirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ reference: z.string().min(1).max(120) }).parse(data))
   .handler(async ({ data, context }) => {
+    console.log("[payment] confirmPayment:", { reference: data.reference, userId: context.userId });
     const ctx = await paymentCtxForReference(context as never, data.reference);
     const current = await getPaymentStatus(ctx, data.reference);
+    console.log("[payment] confirmPayment current status:", current);
     if (current.status === "completed" || current.status === "failed" || current.status === "cancelled") {
       return { ...current, verified: false };
     }
@@ -360,13 +365,15 @@ export const confirmPayment = createServerFn({ method: "POST" })
         data.reference,
         current.provider ?? "payzaapi",
       );
+      console.log("[payment] confirmPayment verification result:", result);
       return {
         ...current,
         status: result.status || current.status,
         verified: true,
         alreadyCompleted: result.alreadyCompleted,
       };
-    } catch {
+    } catch (error) {
+      console.log("[payment] confirmPayment verification failed:", error);
       return { ...current, verified: false };
     }
   });
