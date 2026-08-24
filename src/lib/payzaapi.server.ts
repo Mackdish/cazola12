@@ -124,18 +124,21 @@ async function payzaFetch(
     headers["Content-Type"] = "application/json";
   }
 
-
   const url = `${env.baseUrl}${path}`;
+
+  console.log("[payza][request]", {
+    method: init.method,
+    url,
+    hasPublicKey: Boolean(env.publicKey),
+    hasSecretKey: Boolean(env.secretKey),
+    headerKeys: Object.keys(headers),
+  });
 
   let response: Response | null = null;
   let text = "";
 
-  // Payment creation is NOT idempotent: retrying it after the request may have
-  // already landed causes "reference already exists" (409). Only retry reads.
   const maxAttempts = init.method === "GET" ? 3 : 1;
 
-  // PayzaAPI's edge occasionally returns a transient 502/503/504 before the
-  // request reaches their app. Retry those a couple of times with backoff.
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 1200));
 
@@ -168,6 +171,15 @@ async function payzaFetch(
   } catch {
     json = null;
   }
+
+  console.log("[payza][response]", {
+    url,
+    status: response.status,
+    success: json?.success,
+    message: json?.message,
+    hasData: Boolean(json?.data),
+    dataStatus: json?.data?.status,
+  });
 
   if (!response.ok) {
     const status = response.status;
@@ -305,17 +317,40 @@ export const payzaApiProvider: PaymentProvider = {
     const encoded = encodeURIComponent(reference);
     const json: any = await payzaFetch(`/api/v1/verify/${encoded}`, { method: "GET" });
 
+    if (json && json.success === false) {
+      const reason = pick<string>(json, ["message", "error", "error_message", "detail"]) ?? "Provider returned failure";
+      const httpStatus = (json as any).status ?? (json as any).code ?? "unknown";
+      console.log("[payza][verify] provider returned failure", {
+        reference,
+        reason,
+        httpStatus,
+      });
+      return {
+        reference,
+        status: "failed",
+      };
+    }
+
     const data = json?.data ?? json;
 
+    const statusRaw = pick(data, [
+      "status",
+      "state",
+      "result_code",
+      "ResultCode",
+      "payment_status",
+      "transaction_status",
+      "result",
+    ]);
     const amount = pick(data, ["amount", "Amount"]);
     const result: PaymentVerificationResult = {
       reference: String(pick(data, ["reference", "merchant_reference", "account_reference"]) ?? reference),
-      status: normalizePaymentStatus(pick(data, ["status", "state", "result_code", "ResultCode"])),
+      status: normalizePaymentStatus(statusRaw),
     };
     if (amount !== undefined) result.amount = Number(amount);
     const currency = pick<string>(data, ["currency"]);
     if (currency) result.currency = String(currency).toUpperCase();
-    const txnId = pick(data, [
+    const txnId = pick<string>(data, [
       "providerTransactionId",
       "provider_transaction_id",
       "mpesa_receipt_number",
@@ -324,7 +359,7 @@ export const payzaApiProvider: PaymentProvider = {
       "checkout_request_id",
     ]);
     if (txnId) result.providerTransactionId = String(txnId);
-    const receipt = pick(data, ["providerReceipt", "receipt", "mpesa_receipt_number", "MpesaReceiptNumber"]);
+    const receipt = pick<string>(data, ["providerReceipt", "receipt", "mpesa_receipt_number", "MpesaReceiptNumber"]);
     if (receipt) result.providerReceipt = String(receipt);
     return result;
   },
@@ -350,7 +385,38 @@ export function maskPhoneNumber(phone: string): string {
 }
 
 export async function verifyPayzaPayment(reference: string): Promise<PaymentVerificationResult> {
-  return payzaApiProvider.verifyPayment(reference);
+  const publicKeyConfigured = Boolean(readEnv("PAYZA_PUBLIC_KEY", "PAYZA_PUBLIC", "X_PUBLIC_KEY"));
+  const secretKeyConfigured = Boolean(readEnv("PAYZA_SECRET_KEY", "PAYZA_SECRET", "X_SECRET_KEY"));
+  const baseUrlConfigured = Boolean(readEnv("PAYZA_API_BASE_URL"));
+  const verifyUrl = `${(readEnv("PAYZA_API_BASE_URL") ?? DEFAULT_BASE_URL).replace(/\/+$/, "")}/api/v1/verify/${encodeURIComponent(reference)}`;
+
+  console.log("[payza][verify] config check", {
+    reference,
+    publicKeyConfigured,
+    secretKeyConfigured,
+    baseUrlConfigured,
+    verifyUrl,
+  });
+
+  try {
+    const result = await payzaApiProvider.verifyPayment(reference);
+    console.log("[payza][verify] provider response", {
+      reference,
+      status: result.status,
+      amount: result.amount,
+      currency: result.currency,
+      providerTransactionId: result.providerTransactionId,
+      providerReceipt: result.providerReceipt,
+    });
+    return result;
+  } catch (error) {
+    console.log("[payza][verify] provider error", {
+      reference,
+      error: error instanceof Error ? error.message : String(error),
+      status: (error as any)?.status,
+    });
+    throw error;
+  }
 }
 
 export function verifyPayzaWebhookSignature(payload: string, signature: string | null): boolean {

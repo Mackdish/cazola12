@@ -36,6 +36,7 @@ async function getRawBody(request: Request): Promise<string> {
 }
 
 async function processPayzaCallback(reference: string, rawStatus: string | null, source: string) {
+  console.log("[callback][process] start", { reference, rawStatus, source });
   const status = normalizePaymentStatus(
     rawStatus ?? undefined,
   );
@@ -59,6 +60,11 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
       }
 
       if (verification.status !== "completed") {
+        console.log("[callback][process] provider verification not completed", {
+          reference,
+          providerStatus: verification.status,
+          source,
+        });
         return { ok: true as const, status: verification.status };
       }
 

@@ -4,7 +4,7 @@
  * All OpenAI calls happen here. Never expose this service to the browser.
  */
 
-import { openai, AI_MODEL, isAIConfigured } from "./openai.server";
+import { getOpenAIClient, AI_MODEL, isAIConfigured, getAiConfigurationStatus } from "./openai.server";
 import {
   CampaignPlanSchema,
   AdCopyVariantSchema,
@@ -40,9 +40,13 @@ async function callOpenAI<T>(
   userPrompt: string,
   schema: z.ZodSchema<T>,
 ): Promise<T> {
-  assertConfigured();
+  const configStatus = getAiConfigurationStatus();
+  if (configStatus !== "configured") {
+    throw new AIServiceError("AI_CONFIGURATION_MISSING");
+  }
 
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
@@ -56,19 +60,19 @@ async function callOpenAI<T>(
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new AIServiceError("Empty response from AI model.");
+      throw new AIServiceError("AI_PROVIDER_UNAVAILABLE");
     }
 
     const parsed = schema.safeParse(JSON.parse(content));
     if (!parsed.success) {
       console.error("[ai] schema validation failed", parsed.error.flatten());
-      throw new AIServiceError("AI response did not match expected format.");
+      throw new AIServiceError("AI_RESPONSE_INVALID");
     }
 
     return parsed.data;
   } catch (error) {
     if (error instanceof AIServiceError) throw error;
-    throw new AIServiceError("AI request failed.", error);
+    throw new AIServiceError("AI_REQUEST_FAILED", error);
   }
 }
 

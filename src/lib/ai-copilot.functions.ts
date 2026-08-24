@@ -30,6 +30,23 @@ function getAiIpAddress(): string {
   }
 }
 
+function mapAiError(error: unknown): Error {
+  if (error instanceof AIServiceError) {
+    switch (error.message) {
+      case "AI_CONFIGURATION_MISSING":
+      case "AI_PROVIDER_UNAVAILABLE":
+        return new Error("AI assistance is temporarily unavailable. Please try again later.");
+      case "AI_RESPONSE_INVALID":
+        return new Error("We couldn't generate that content. Please try again.");
+      case "AI_REQUEST_FAILED":
+        return new Error("We couldn't process your AI request. Please try again.");
+      default:
+        return new Error("We couldn't process your AI request. Please try again.");
+    }
+  }
+  return new Error("We couldn't process your AI request. Please try again.");
+}
+
 export const generateAICampaignPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(
@@ -70,10 +87,7 @@ export const generateAICampaignPlan = createServerFn({ method: "POST" })
       });
       return plan;
     } catch (error) {
-      if (error instanceof AIServiceError) {
-        throw new Error(error.message);
-      }
-      throw new Error("We couldn't generate your campaign plan. Please try again.");
+      throw mapAiError(error);
     }
   });
 
@@ -113,10 +127,7 @@ export const generateAIAdCopy = createServerFn({ method: "POST" })
       });
       return { variants };
     } catch (error) {
-      if (error instanceof AIServiceError) {
-        throw new Error(error.message);
-      }
-      throw new Error("We couldn't generate ad copy. Please try again.");
+      throw mapAiError(error);
     }
   });
 
@@ -154,10 +165,7 @@ export const generateAITargeting = createServerFn({ method: "POST" })
       });
       return suggestion;
     } catch (error) {
-      if (error instanceof AIServiceError) {
-        throw new Error(error.message);
-      }
-      throw new Error("We couldn't generate targeting suggestions. Please try again.");
+      throw mapAiError(error);
     }
   });
 
@@ -193,9 +201,6 @@ export const generateAICreativeConcept = createServerFn({ method: "POST" })
       });
       return concept;
     } catch (error) {
-      if (error instanceof AIServiceError) {
-        throw new Error(error.message);
-      }
-      throw new Error("We couldn't generate a creative concept. Please try again.");
+      throw mapAiError(error);
     }
   });

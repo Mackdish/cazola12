@@ -3,32 +3,49 @@
  *
  * NEVER import this file from client/browser code.
  * The API key is read from server-side environment variables only.
+ *
+ * Uses the project's runtime-env cache so it works in both:
+ * - Local dev (process.env / .env)
+ * - Cloudflare Workers (env bindings captured by captureRuntimeEnv)
  */
 
 import OpenAI from "openai";
-
-const OPENAI_API_KEY = globalThis.process?.env?.OPENAI_API_KEY ?? "";
-
-if (!OPENAI_API_KEY) {
-  console.warn("[ai] OPENAI_API_KEY is not set. AI features will fail at runtime.");
-}
+import { readEnv } from "@/lib/runtime-env.server";
 
 let _openai: OpenAI | null = null;
+let _cachedKey: string | undefined;
 
-function getOpenAIClient(): OpenAI {
+function resolveApiKey(): string | undefined {
+  if (_cachedKey) return _cachedKey;
+  _cachedKey = readEnv("OPENAI_API_KEY");
+  return _cachedKey;
+}
+
+export function getOpenAIClient(): OpenAI {
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
   if (!_openai) {
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured.");
-    }
-    _openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    _openai = new OpenAI({ apiKey });
   }
   return _openai;
 }
 
-export { getOpenAIClient as openai };
-
-export const AI_MODEL = globalThis.process?.env?.OPENAI_MODEL ?? "gpt-4o-mini";
+export const AI_MODEL = readEnv("OPENAI_MODEL") ?? "gpt-4o-mini";
 
 export function isAIConfigured(): boolean {
-  return Boolean(OPENAI_API_KEY);
+  return Boolean(resolveApiKey());
+}
+
+export function resetAiCache(): void {
+  _openai = null;
+  _cachedKey = undefined;
+}
+
+export function getAiConfigurationStatus(): "configured" | "missing" | "invalid" {
+  const key = resolveApiKey();
+  if (!key) return "missing";
+  if (key.length < 20) return "invalid";
+  return "configured";
 }

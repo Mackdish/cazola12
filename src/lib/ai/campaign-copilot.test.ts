@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { CampaignPlanSchema, AdCopyVariantSchema, TargetingSuggestionSchema, CreativeConceptSchema } from "@/lib/ai/campaign-schema";
 import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError } from "@/lib/ai/campaign-copilot.server";
+import { resetAiCache, getAiConfigurationStatus } from "@/lib/ai/openai.server";
 
 describe("AI campaign schemas", () => {
   it("validates a complete campaign plan", () => {
@@ -43,7 +44,37 @@ describe("AI campaign schemas", () => {
   });
 });
 
+describe("AI service configuration", () => {
+  beforeEach(() => {
+    resetAiCache();
+  });
+
+  it("reports missing when API key is absent", () => {
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "";
+    try {
+      expect(getAiConfigurationStatus()).toBe("missing");
+    } finally {
+      process.env.OPENAI_API_KEY = original;
+    }
+  });
+
+  it("reports invalid when API key is too short", () => {
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "short";
+    try {
+      expect(getAiConfigurationStatus()).toBe("invalid");
+    } finally {
+      process.env.OPENAI_API_KEY = original;
+    }
+  });
+});
+
 describe("AI service error handling", () => {
+  beforeEach(() => {
+    resetAiCache();
+  });
+
   it("throws AIServiceError when API key is missing", async () => {
     const original = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "";

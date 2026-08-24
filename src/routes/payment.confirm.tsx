@@ -45,8 +45,14 @@ function Page() {
     if (state !== "pending" && state !== "processing") return;
     attempted.current = true;
     confirm.mutate(reference, {
-      onSettled: () => {
+      onSettled: (data) => {
         void status.refetch();
+        if (data?.verified && data?.status === "pending") {
+          setTimeout(() => {
+            attempted.current = false;
+            void status.refetch();
+          }, 10000);
+        }
       },
     });
   }, [reference, payment, state]);
