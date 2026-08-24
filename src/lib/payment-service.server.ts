@@ -124,7 +124,14 @@ export async function completePaymentByReference(
     fail("Payment not found.");
   }
 
-  console.log("[payment] completePaymentByReference found:", { id: (payment as any).id, status: (payment as any).status });
+  console.log("[payment] completePaymentByReference found:", {
+    id: (payment as any).id,
+    status: (payment as any).status,
+    walletId: (payment as any).wallet_id,
+    organizationId: (payment as any).organization_id,
+    amount: (payment as any).amount,
+    currency: (payment as any).currency,
+  });
 
   if ((payment as any).status === "completed") {
     console.log("[payment] completePaymentByReference already completed");
@@ -143,8 +150,11 @@ export async function completePaymentByReference(
 
   console.log("[payment] completePaymentByReference calling complete_payment RPC:", {
     paymentId: (payment as any).id,
+    walletId: (payment as any).wallet_id,
     provider,
     providerReference,
+    verifiedAmount,
+    verifiedCurrency,
   });
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
     _payment_id: (payment as any).id,
@@ -160,7 +170,10 @@ export async function completePaymentByReference(
   }
 
   const result = Array.isArray(data) ? data[0] : data;
-  console.log("[payment] completePaymentByReference RPC result:", result);
+  console.log("[payment] completePaymentByReference RPC result:", {
+    ...result,
+    walletBalance: (result as any).wallet_balance,
+  });
   return { ...(result as any), alreadyCompleted: false };
 }
 

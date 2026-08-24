@@ -438,6 +438,15 @@ export async function verifyAndCompletePayment(
   const provider = getProvider(providerName);
 
   const verification = await provider.verifyPayment(reference);
+  console.log("[payment] verifyAndCompletePayment verification:", {
+    reference,
+    providerName,
+    status: verification.status,
+    amount: verification.amount,
+    currency: verification.currency,
+    providerTransactionId: verification.providerTransactionId,
+    providerReceipt: verification.providerReceipt,
+  });
 
   if (verification.status !== "completed") {
     return { paymentId: "", status: verification.status, alreadyCompleted: false };
@@ -465,6 +474,13 @@ export async function verifyAndCompletePayment(
     fail("Payment currency mismatch.");
   }
 
+  console.log("[payment] verifyAndCompletePayment calling complete_payment RPC:", {
+    paymentId: (payment as any).id,
+    walletId: (payment as any).wallet_id,
+    providerName,
+    providerReference: verification.providerTransactionId ?? reference,
+  });
+
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
     _payment_id: (payment as any).id,
     _provider: providerName,
@@ -474,9 +490,11 @@ export async function verifyAndCompletePayment(
   } as never);
 
   if (error) {
+    console.log("[payment] verifyAndCompletePayment RPC error:", error);
     fail("We couldn't complete the payment. Please contact support.");
   }
 
   const result = Array.isArray(data) ? data[0] : data;
+  console.log("[payment] verifyAndCompletePayment RPC result:", result);
   return { ...(result as any), alreadyCompleted: false };
 }
