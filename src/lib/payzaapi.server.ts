@@ -9,7 +9,12 @@
  * GET /api/v1/verify/{reference} rather than an HMAC secret.
  */
 
-import type { PaymentProvider, PaymentInitializeInput, PaymentInitializeResult, PaymentVerificationResult } from "@/lib/payment-provider.interface";
+import type {
+  PaymentProvider,
+  PaymentInitializeInput,
+  PaymentInitializeResult,
+  PaymentVerificationResult,
+} from "@/lib/payment-provider.interface";
 import { readEnv } from "@/lib/runtime-env.server";
 
 const DEFAULT_BASE_URL = "https://payzaapi.co.ke";
@@ -32,14 +37,66 @@ export class CurrencyUnavailableError extends Error {}
 export class SafaricomNumberError extends Error {}
 
 const SAFARICOM_PREFIXES = new Set([
-  "701", "702", "703", "704", "705", "706", "707", "708", "709",
-  "710", "711", "712", "713", "714", "715", "716", "717", "718", "719",
-  "720", "721", "722", "723", "724", "725", "726", "727", "728", "729",
-  "740", "741", "742", "743", "746", "748",
-  "790", "791", "792", "793", "794", "795", "796", "797", "798", "799",
-  "110", "111", "112", "113", "114", "115", "118", "119",
-  "140", "141", "142", "143",
-  "180", "181", "182",
+  "701",
+  "702",
+  "703",
+  "704",
+  "705",
+  "706",
+  "707",
+  "708",
+  "709",
+  "710",
+  "711",
+  "712",
+  "713",
+  "714",
+  "715",
+  "716",
+  "717",
+  "718",
+  "719",
+  "720",
+  "721",
+  "722",
+  "723",
+  "724",
+  "725",
+  "726",
+  "727",
+  "728",
+  "729",
+  "740",
+  "741",
+  "742",
+  "743",
+  "746",
+  "748",
+  "790",
+  "791",
+  "792",
+  "793",
+  "794",
+  "795",
+  "796",
+  "797",
+  "798",
+  "799",
+  "110",
+  "111",
+  "112",
+  "113",
+  "114",
+  "115",
+  "118",
+  "119",
+  "140",
+  "141",
+  "142",
+  "143",
+  "180",
+  "181",
+  "182",
 ]);
 
 function isSafaricomNumber(msisdn: string): boolean {
@@ -69,8 +126,6 @@ function getEnv() {
   };
 }
 
-
-
 /** Normalizes a Kenyan MSISDN to the 2547XXXXXXXX / 2541XXXXXXXX form M-PESA requires. */
 export function normalizeMpesaPhone(raw: string): string | null {
   const digits = (raw ?? "").replace(/\D/g, "");
@@ -83,12 +138,29 @@ export function normalizeMpesaPhone(raw: string): string | null {
 }
 
 /** Maps any provider status string onto our canonical payment statuses. */
-export function normalizePaymentStatus(raw: unknown): "completed" | "failed" | "cancelled" | "pending" {
-  const value = String(raw ?? "").trim().toLowerCase();
-  if (["completed", "complete", "success", "successful", "paid", "confirmed", "0"].includes(value)) {
+export function normalizePaymentStatus(
+  raw: unknown,
+): "completed" | "failed" | "cancelled" | "pending" {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    ["completed", "complete", "success", "successful", "paid", "confirmed", "0"].includes(value)
+  ) {
     return "completed";
   }
-  if (["failed", "failure", "error", "declined", "rejected", "insufficient_funds", "timeout", "expired"].includes(value)) {
+  if (
+    [
+      "failed",
+      "failure",
+      "error",
+      "declined",
+      "rejected",
+      "insufficient_funds",
+      "timeout",
+      "expired",
+    ].includes(value)
+  ) {
     return "failed";
   }
   if (["cancelled", "canceled", "user_cancelled", "aborted"].includes(value)) {
@@ -97,15 +169,87 @@ export function normalizePaymentStatus(raw: unknown): "completed" | "failed" | "
   return "pending";
 }
 
-
-
-
 function pick<T = unknown>(source: any, keys: string[]): T | undefined {
   for (const key of keys) {
     const value = source?.[key];
     if (value !== undefined && value !== null && value !== "") return value as T;
   }
   return undefined;
+}
+
+const VERIFICATION_ERROR_STATUSES = new Set([
+  "authentication_failed",
+  "provider_forbidden",
+  "payment_not_found",
+  "rate_limited",
+  "provider_unavailable",
+  "provider_request_error",
+  "verification_failed",
+]);
+
+function isVerificationErrorStatus(status: string): boolean {
+  return VERIFICATION_ERROR_STATUSES.has(status);
+}
+
+function mapHttpStatusToVerificationStatus(status: number): string {
+  if (status === 401) return "authentication_failed";
+  if (status === 403) return "provider_forbidden";
+  if (status === 404) return "payment_not_found";
+  if (status === 429) return "rate_limited";
+  if (status === 502 || status === 503 || status === 504) return "provider_unavailable";
+  return "provider_request_error";
+}
+
+async function payzaVerifyFetch(
+  path: string,
+): Promise<{ status: number; json: any; text: string }> {
+  const env = getEnv();
+  const url = `${env.baseUrl}${path}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Public-Key": env.publicKey,
+    "X-Secret-Key": env.secretKey,
+  };
+
+  let response: Response | null = null;
+  let text = "";
+
+  const maxAttempts = 3;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 1200));
+
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        headers,
+      });
+    } catch (error) {
+      if (attempt === maxAttempts - 1) {
+        throw new Error(
+          `Could not reach the payment provider at ${env.baseUrl}. Please try again in a moment.`,
+        );
+      }
+      continue;
+    }
+
+    text = await response.text().catch(() => "");
+    if (response.ok || ![502, 503, 504].includes(response.status)) break;
+  }
+
+  if (!response) {
+    throw new Error(`Could not reach the payment provider at ${env.baseUrl}.`);
+  }
+
+  let json: any = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+
+  return { status: response.status, json, text };
 }
 
 async function payzaFetch(
@@ -200,9 +344,12 @@ async function payzaFetch(
         `HTTP ${status}`;
       if (
         status === 400 &&
-        /coming soon|not (yet )?(live|supported|available|enabled)|unsupported currency|currency/i.test(message)
+        /coming soon|not (yet )?(live|supported|available|enabled)|unsupported currency|currency/i.test(
+          message,
+        )
       ) {
-        message = "This currency isn't live on our payment provider yet. Please choose another currency.";
+        message =
+          "This currency isn't live on our payment provider yet. Please choose another currency.";
       }
       message = `PayzaAPI request failed (${status}): ${message}`;
     }
@@ -212,8 +359,6 @@ async function payzaFetch(
     (error as any).body = text;
     throw error;
   }
-
-
 
   return json ?? {};
 }
@@ -229,9 +374,10 @@ export const payzaApiProvider: PaymentProvider = {
   async initializePayment(input: PaymentInitializeInput): Promise<PaymentInitializeResult> {
     const env = getEnv();
 
-    const callbackUrl = input.callbackUrl && input.callbackUrl.startsWith("http")
-      ? input.callbackUrl
-      : env.callbackUrl;
+    const callbackUrl =
+      input.callbackUrl && input.callbackUrl.startsWith("http")
+        ? input.callbackUrl
+        : env.callbackUrl;
 
     // The provider rejects blank/invalid emails with a 400.
     const emailValid = (v?: string) => !!v && /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(v);
@@ -257,8 +403,7 @@ export const payzaApiProvider: PaymentProvider = {
           ...(input.phoneNumber ? { phone: input.phoneNumber } : {}),
         },
         callback_url: callbackUrl,
-        redirect_url:
-          input.redirectUrl ?? `${appBase}/payment/confirm?reference=${encoded}`,
+        redirect_url: input.redirectUrl ?? `${appBase}/payment/confirm?reference=${encoded}`,
         cancel_url: input.cancelUrl ?? `${appBase}/advertiser/wallet`,
       };
     } else {
@@ -269,8 +414,8 @@ export const payzaApiProvider: PaymentProvider = {
       if (!isSafaricomNumber(msisdn)) {
         throw new SafaricomNumberError(
           "M-PESA STK push is only available for Safaricom numbers. " +
-          "Please use a Safaricom line (e.g. 0712345678 or 254712345678) " +
-          "or choose hosted checkout instead.",
+            "Please use a Safaricom line (e.g. 0712345678 or 254712345678) " +
+            "or choose hosted checkout instead.",
         );
       }
       body = {
@@ -285,7 +430,6 @@ export const payzaApiProvider: PaymentProvider = {
         },
         callback_url: callbackUrl,
       };
-
     }
 
     const json = await payzaFetch("/api/v1/pay", { method: "POST", body });
@@ -293,7 +437,8 @@ export const payzaApiProvider: PaymentProvider = {
     const data = json?.data ?? json;
 
     const reference =
-      pick<string>(data, ["reference", "merchant_reference", "account_reference"]) ?? input.reference;
+      pick<string>(data, ["reference", "merchant_reference", "account_reference"]) ??
+      input.reference;
     const providerReference = pick<string>(data, [
       "providerReference",
       "provider_reference",
@@ -315,23 +460,72 @@ export const payzaApiProvider: PaymentProvider = {
 
   async verifyPayment(reference: string): Promise<PaymentVerificationResult> {
     const encoded = encodeURIComponent(reference);
-    const json: any = await payzaFetch(`/api/v1/verify/${encoded}`, { method: "GET" });
+    const { status: httpStatus, json } = await payzaVerifyFetch(`/api/v1/verify/${encoded}`);
 
-    if (json && json.success === false) {
-      const reason = pick<string>(json, ["message", "error", "error_message", "detail"]) ?? "Provider returned failure";
-      const httpStatus = (json as any).status ?? (json as any).code ?? "unknown";
-      console.log("[payza][verify] provider returned failure", {
+    const httpStatusNum = Number(httpStatus);
+
+    if (httpStatusNum === 401) {
+      console.log("[payza][verify] authentication_failed", {
         reference,
+        httpStatus: httpStatusNum,
+      });
+      return { reference, status: "authentication_failed" };
+    }
+    if (httpStatusNum === 403) {
+      console.log("[payza][verify] provider_forbidden", { reference, httpStatus: httpStatusNum });
+      return { reference, status: "provider_forbidden" };
+    }
+    if (httpStatusNum === 404) {
+      console.log("[payza][verify] payment_not_found", { reference, httpStatus: httpStatusNum });
+      return { reference, status: "payment_not_found" };
+    }
+    if (httpStatusNum === 429) {
+      console.log("[payza][verify] rate_limited", { reference, httpStatus: httpStatusNum });
+      return { reference, status: "rate_limited" };
+    }
+    if ([502, 503, 504].includes(httpStatusNum)) {
+      console.log("[payza][verify] provider_unavailable", { reference, httpStatus: httpStatusNum });
+      return { reference, status: "provider_unavailable" };
+    }
+    if (!Number.isFinite(httpStatusNum) || httpStatusNum < 200 || httpStatusNum >= 500) {
+      console.log("[payza][verify] provider_request_error", {
+        reference,
+        httpStatus: httpStatusNum,
+      });
+      return { reference, status: "provider_request_error" };
+    }
+
+    if (httpStatusNum >= 400 && httpStatusNum < 500) {
+      console.log("[payza][verify] provider_request_error", {
+        reference,
+        httpStatus: httpStatusNum,
+      });
+      return { reference, status: "provider_request_error" };
+    }
+
+    const success = json?.success;
+    const data = json?.data ?? json;
+
+    if (success === false) {
+      const reason =
+        pick<string>(json, ["message", "error", "error_message", "detail"]) ??
+        "Provider returned failure";
+      console.log("[payza][verify] verification_failed", {
+        reference,
+        httpStatus: httpStatusNum,
+        success,
         reason,
-        httpStatus,
       });
       return {
         reference,
-        status: "failed",
+        status: "verification_failed",
+        providerTransactionId: pick<string>(data, [
+          "provider_transaction_id",
+          "transaction_id",
+          "id",
+        ]),
       };
     }
-
-    const data = json?.data ?? json;
 
     const statusRaw = pick(data, [
       "status",
@@ -344,7 +538,9 @@ export const payzaApiProvider: PaymentProvider = {
     ]);
     const amount = pick(data, ["amount", "Amount"]);
     const result: PaymentVerificationResult = {
-      reference: String(pick(data, ["reference", "merchant_reference", "account_reference"]) ?? reference),
+      reference: String(
+        pick(data, ["reference", "merchant_reference", "account_reference"]) ?? reference,
+      ),
       status: normalizePaymentStatus(statusRaw),
     };
     if (amount !== undefined) result.amount = Number(amount);
@@ -359,8 +555,24 @@ export const payzaApiProvider: PaymentProvider = {
       "checkout_request_id",
     ]);
     if (txnId) result.providerTransactionId = String(txnId);
-    const receipt = pick<string>(data, ["providerReceipt", "receipt", "mpesa_receipt_number", "MpesaReceiptNumber"]);
+    const receipt = pick<string>(data, [
+      "providerReceipt",
+      "receipt",
+      "mpesa_receipt_number",
+      "MpesaReceiptNumber",
+    ]);
     if (receipt) result.providerReceipt = String(receipt);
+
+    console.log("[payza][verify] normalized", {
+      reference,
+      httpStatus: httpStatusNum,
+      success,
+      providerStatus: statusRaw,
+      normalizedStatus: result.status,
+      amount: result.amount,
+      currency: result.currency,
+    });
+
     return result;
   },
 
@@ -371,7 +583,6 @@ export const payzaApiProvider: PaymentProvider = {
   verifyWebhookSignature(): boolean {
     return true;
   },
-
 
   async getPaymentStatus(reference: string): Promise<{ status: string }> {
     const result = await payzaApiProvider.verifyPayment(reference);
@@ -400,14 +611,6 @@ export async function verifyPayzaPayment(reference: string): Promise<PaymentVeri
 
   try {
     const result = await payzaApiProvider.verifyPayment(reference);
-    console.log("[payza][verify] provider response", {
-      reference,
-      status: result.status,
-      amount: result.amount,
-      currency: result.currency,
-      providerTransactionId: result.providerTransactionId,
-      providerReceipt: result.providerReceipt,
-    });
     return result;
   } catch (error) {
     console.log("[payza][verify] provider error", {
