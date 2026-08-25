@@ -244,6 +244,7 @@ export type AdResponse =
       ok: true;
       requestId: string;
       token: string;
+      fillType?: "house_ad";
       ad: {
         format: string;
         width: number | null;
@@ -253,22 +254,11 @@ export type AdResponse =
         clickUrl: string;
       };
     }
-  | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" | "blocked_ip" };
+  | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" | "blocked_ip" | "serve_timeout" };
 
-export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
+async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   const t0 = Date.now();
   console.debug("[ad] serve_ip", input.ipAddress);
-
-  if (redis && input.ipAddress) {
-    const blocked = await redis.sismember("blocked_ips", input.ipAddress);
-    if (blocked) {
-      console.warn("[ad] blocklist_hit", { ip: input.ipAddress, zone: input.zoneKey });
-      const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
-      void recordBlockedIpHit(input.ipAddress, input.zoneKey, "serve");
-      console.debug("[ad] serve_total_ms", Date.now() - t0);
-      return { ok: false, reason: "blocked_ip" };
-    }
-  }
 
   const zone = await loadZoneContext(input.zoneKey);
   if (!zone) {
@@ -354,6 +344,83 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
   };
 }
 
+async function loadHouseAd(): Promise<{
+  creativeUrl: string;
+  clickUrl: string;
+  format: string;
+  width: number | null;
+  height: number | null;
+} | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("house_ads")
+      .select("creative_url, click_url")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return {
+      creativeUrl: data.creative_url,
+      clickUrl: data.click_url,
+      format: "300x250",
+      width: 300,
+      height: 250,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
+  if (redis && input.ipAddress) {
+    const blocked = await redis.sismember("blocked_ips", input.ipAddress);
+    if (blocked) {
+      console.warn("[ad] blocklist_hit", { ip: input.ipAddress, zone: input.zoneKey });
+      const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+      void recordBlockedIpHit(input.ipAddress, input.zoneKey, "serve");
+      return { ok: false, reason: "blocked_ip" };
+    }
+  }
+
+  try {
+    const result = await Promise.race([
+      serveAdInner(input),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("serve_timeout")), 200),
+      ),
+    ]);
+    return result;
+  } catch (error) {
+    const isTimeout = error instanceof Error && error.message === "serve_timeout";
+    console.warn("[ad] serve_timeout_or_error", {
+      zone: input.zoneKey,
+      timeout: isTimeout,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    const houseAd = await loadHouseAd();
+    if (houseAd) {
+      console.debug("[ad] house_ad_served", { zone: input.zoneKey, reason: isTimeout ? "timeout" : "error" });
+      return {
+        ok: true,
+        requestId: input.requestId,
+        fillType: "house_ad",
+        ad: {
+          format: houseAd.format,
+          width: houseAd.width,
+          height: houseAd.height,
+          imageUrl: houseAd.creativeUrl,
+          alt: "Advertisement",
+          clickUrl: houseAd.clickUrl,
+        },
+      };
+    }
+
+    return { ok: false, reason: isTimeout ? "serve_timeout" : "no_ad" };
+  }
+}
+
 /** Idempotent: the unique index on request_id absorbs duplicate beacons. */
 export async function recordImpression(
   payload: ServedTokenPayload,
@@ -412,6 +479,7 @@ export async function recordImpression(
   });
   if (error) return error.code === "23505" ? "duplicate" : "failed";
 
+  let fraudEvaluation: { status: string } | null = null;
   if (ipAddress) {
     try {
       const evaluation = await evaluateImpressionFraud(supabaseAdmin as never, {
@@ -423,6 +491,7 @@ export async function recordImpression(
         adZoneId: payload.zoneId,
         requestId: payload.rid,
       });
+      fraudEvaluation = evaluation;
       await recordFraudEvent(supabaseAdmin as never, evaluation, {
         eventType: "impression_fraud",
         actorType: "ip",
@@ -438,24 +507,33 @@ export async function recordImpression(
     }
   }
 
-  if (!isLikelyBot) {
-    const { chargeAdEvent } = await import("@/lib/billing-charge.server");
-    await chargeAdEvent({
-      eventType: "impression",
-      requestId: payload.rid,
-      campaignId: payload.campaignId,
-      adId: payload.adId,
-      publisherId: payload.publisherId,
-      websiteId: payload.websiteId,
-      adZoneId: payload.zoneId,
-    });
-  } else if (typeof botScore === "number" && botScore >= 11 && botScore <= 30) {
-    console.info("[ad] bot_score_tier_11_30", {
-      requestId: payload.rid,
-      campaignId: payload.campaignId,
-      botScore,
-    });
+  const shouldBlockBilling =
+    fraudEvaluation?.status === "blocked" || isLikelyBot === true;
+
+  if (shouldBlockBilling) {
+    if (fraudEvaluation?.status === "blocked") {
+      try {
+        await supabaseAdmin
+          .from("impressions")
+          .update({ is_likely_bot: true })
+          .eq("request_id", payload.rid);
+      } catch {
+        // best-effort flagging
+      }
+    }
+    return "recorded";
   }
+
+  const { chargeAdEvent } = await import("@/lib/billing-charge.server");
+  await chargeAdEvent({
+    eventType: "impression",
+    requestId: payload.rid,
+    campaignId: payload.campaignId,
+    adId: payload.adId,
+    publisherId: payload.publisherId,
+    websiteId: payload.websiteId,
+    adZoneId: payload.zoneId,
+  });
 
   return "recorded";
 }
@@ -508,6 +586,7 @@ export async function recordClick(
     return null;
   }
 
+  let clickFraudEvaluation: { status: string } | null = null;
   if (!clickError && ipAddress) {
     try {
       const evaluation = await evaluateClickFraud(supabaseAdmin as never, {
@@ -519,6 +598,7 @@ export async function recordClick(
         adZoneId: payload.zoneId,
         requestId: payload.rid,
       });
+      clickFraudEvaluation = evaluation;
       await recordFraudEvent(supabaseAdmin as never, evaluation, {
         eventType: "click_fraud",
         actorType: "ip",
@@ -534,25 +614,34 @@ export async function recordClick(
     }
   }
 
-  if (!clickError) {
-    if (!isLikelyBot) {
-      const { chargeAdEvent } = await import("@/lib/billing-charge.server");
-      await chargeAdEvent({
-        eventType: "click",
-        requestId: payload.rid,
-        campaignId: payload.campaignId,
-        adId: payload.adId,
-        publisherId: payload.publisherId,
-        websiteId: payload.websiteId,
-        adZoneId: payload.zoneId,
-      });
-    } else if (typeof botScore === "number" && botScore >= 11 && botScore <= 30) {
-      console.info("[ad] bot_score_tier_11_30", {
-        requestId: payload.rid,
-        campaignId: payload.campaignId,
-        botScore,
-      });
+  const shouldBlockClickBilling =
+    clickFraudEvaluation?.status === "blocked" || isLikelyBot === true;
+
+  if (shouldBlockClickBilling) {
+    if (clickFraudEvaluation?.status === "blocked") {
+      try {
+        await supabaseAdmin
+          .from("clicks")
+          .update({ is_likely_bot: true })
+          .eq("request_id", payload.rid);
+      } catch {
+        // best-effort flagging
+      }
     }
+    return { destination: ad.destination_url };
+  }
+
+  if (!clickError) {
+    const { chargeAdEvent } = await import("@/lib/billing-charge.server");
+    await chargeAdEvent({
+      eventType: "click",
+      requestId: payload.rid,
+      campaignId: payload.campaignId,
+      adId: payload.adId,
+      publisherId: payload.publisherId,
+      websiteId: payload.websiteId,
+      adZoneId: payload.zoneId,
+    });
   }
 
   return { destination: ad.destination_url };

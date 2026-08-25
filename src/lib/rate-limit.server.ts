@@ -110,7 +110,7 @@ export function extractGeoAndBotScore(request: Request): GeoAndBotScore {
     const parsed = Number(botScoreHeader);
     if (!Number.isNaN(parsed)) {
       botScore = parsed;
-      isLikelyBot = parsed <= 10;
+      isLikelyBot = parsed <= 30;
     }
   }
   return { ipAddress, country, region, botScore, isLikelyBot };

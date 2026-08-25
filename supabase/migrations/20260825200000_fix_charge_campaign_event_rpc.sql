@@ -149,6 +149,8 @@ BEGIN
 
   -- Check daily budget pacing
   IF _campaign.daily_budget IS NOT NULL AND _campaign.daily_budget > 0 THEN
+    PERFORM pg_advisory_xact_lock(hashtext(_campaign_id::text || _today::text));
+
     SELECT * INTO _daily_stats
     FROM public.campaign_daily_stats
     WHERE campaign_id = _campaign_id AND date = _today
@@ -159,10 +161,11 @@ BEGIN
         'ok', false,
         'reason', 'daily_budget_exhausted',
         'amount', 0,
-        'publisher_amount', 0,
-        'platform_amount', 0
+        'publisher_amount': 0,
+        'platform_amount': 0
       );
     END IF;
+  END IF;
   END IF;
 
   -- Lock and fetch wallet

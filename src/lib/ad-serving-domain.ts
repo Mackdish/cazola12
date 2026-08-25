@@ -96,6 +96,7 @@ export type IneligibleReason =
   | "campaign_not_started"
   | "campaign_ended"
   | "budget_exhausted"
+  | "bid_amount_zero"
   | "ad_not_approved"
   | "ad_not_active"
   | "no_creative"
@@ -139,6 +140,7 @@ export function candidateIsEligible(
   if (candidate.campaignStatus !== "active" && candidate.campaignStatus !== "approved") {
     return no("campaign_not_active");
   }
+  if (candidate.bidAmount <= 0) return no("bid_amount_zero");
   const today = utcDate(ctx.now);
   if (candidate.startDate && candidate.startDate > today) return no("campaign_not_started");
   if (candidate.endDate && candidate.endDate < today) return no("campaign_ended");

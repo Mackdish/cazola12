@@ -189,6 +189,14 @@ describe("selection", () => {
     expect(selectAd([candidate({ campaignStatus: "draft" })], zone, ctx).winner).toBeNull();
   });
 
+  it("excludes campaigns with zero or null bid_amount", () => {
+    const zeroBid = candidate({ adId: "zero-bid", bidAmount: 0 });
+    const nullBid = candidate({ adId: "null-bid", bidAmount: null as any });
+    const normalBid = candidate({ adId: "normal-bid", bidAmount: 5 });
+    const result = selectAd([zeroBid, nullBid, normalBid], zone, ctx);
+    expect(result.winner?.adId).toBe("normal-bid");
+  });
+
   it("puts cpc and cpm bids on the same scale", () => {
     expect(valuePerImpression({ bidType: "cpm", bidAmount: 10 })).toBeCloseTo(0.01);
     expect(valuePerImpression({ bidType: "cpc", bidAmount: 1 })).toBeCloseTo(0.01);
