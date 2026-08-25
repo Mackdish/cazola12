@@ -32,10 +32,25 @@ function getAiIpAddress(): string {
 
 function mapAiError(error: unknown): Error {
   if (error instanceof AIServiceError) {
-    switch (error.message) {
+    switch (error.category) {
       case "AI_CONFIGURATION_MISSING":
+        return new Error("AI assistance is temporarily unavailable. Please contact support.");
+      case "AI_AUTH_ERROR":
+        return new Error("AI assistance is temporarily unavailable. Please contact support.");
+      case "AI_RATE_LIMIT_ERROR":
+        return new Error("AI usage is temporarily limited. Please try again shortly.");
+      case "AI_MODEL_ERROR":
+        return new Error("AI assistance is temporarily unavailable. Please contact support.");
+      case "AI_REQUEST_ERROR":
+        return new Error("Please provide more information about your product or service.");
+      case "AI_SCHEMA_ERROR":
+        return new Error("We couldn't generate that content. Please try again.");
+      case "AI_TIMEOUT":
+        return new Error("AI is temporarily unavailable. Please try again.");
+      case "AI_PROVIDER_ERROR":
+        return new Error("AI is temporarily unavailable. Please try again.");
       case "AI_PROVIDER_UNAVAILABLE":
-        return new Error("AI assistance is temporarily unavailable. Please try again later.");
+        return new Error("AI is temporarily unavailable. Please try again.");
       case "AI_RESPONSE_INVALID":
         return new Error("We couldn't generate that content. Please try again.");
       case "AI_REQUEST_FAILED":

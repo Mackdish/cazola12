@@ -24,15 +24,65 @@ import {
 import { z } from "zod";
 
 export class AIServiceError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public override readonly category:
+      | "AI_CONFIGURATION_MISSING"
+      | "AI_AUTH_ERROR"
+      | "AI_RATE_LIMIT_ERROR"
+      | "AI_MODEL_ERROR"
+      | "AI_REQUEST_ERROR"
+      | "AI_SCHEMA_ERROR"
+      | "AI_TIMEOUT"
+      | "AI_PROVIDER_ERROR"
+      | "AI_INTERNAL_ERROR"
+      | "AI_PROVIDER_UNAVAILABLE"
+      | "AI_RESPONSE_INVALID"
+      | "AI_REQUEST_FAILED" = "AI_INTERNAL_ERROR",
+    public override readonly cause?: unknown,
+  ) {
     super(message);
   }
 }
 
 function assertConfigured() {
   if (!isAIConfigured()) {
-    throw new AIServiceError("AI service is not configured.");
+    throw new AIServiceError("AI service is not configured.", "AI_CONFIGURATION_MISSING");
   }
+}
+
+function classifyOpenAIError(error: unknown): {
+  category: AIServiceError["category"];
+  message: string;
+} {
+  const err = error as any;
+  const status = err?.status ?? err?.response?.status;
+  const code = err?.code ?? err?.type;
+  const message = err?.message ?? String(error);
+
+  if (status === 401) {
+    return { category: "AI_AUTH_ERROR", message: "Invalid API key." };
+  }
+  if (status === 403) {
+    return { category: "AI_AUTH_ERROR", message: "API key lacks permission." };
+  }
+  if (status === 429) {
+    return { category: "AI_RATE_LIMIT_ERROR", message: "Rate limit exceeded." };
+  }
+  if (status === 404) {
+    return { category: "AI_MODEL_ERROR", message: `Model not found: ${AI_MODEL}` };
+  }
+  if (status === 400) {
+    return { category: "AI_REQUEST_ERROR", message };
+  }
+  if (status && status >= 500) {
+    return { category: "AI_PROVIDER_ERROR", message: `Provider error (HTTP ${status}).` };
+  }
+  if (code === "ECONNREFUSED" || code === "ETIMEDOUT" || code === "ENOTFOUND" || code === "EAI_AGAIN") {
+    return { category: "AI_TIMEOUT", message: "Network error reaching provider." };
+  }
+
+  return { category: "AI_INTERNAL_ERROR", message };
 }
 
 async function callOpenAI<T>(
@@ -42,11 +92,18 @@ async function callOpenAI<T>(
 ): Promise<T> {
   const configStatus = getAiConfigurationStatus();
   if (configStatus !== "configured") {
-    throw new AIServiceError("AI_CONFIGURATION_MISSING");
+    throw new AIServiceError("AI_CONFIGURATION_MISSING", "AI_CONFIGURATION_MISSING");
   }
 
   try {
     const openai = getOpenAIClient();
+
+    console.log("[ai] request start", {
+      model: AI_MODEL,
+      systemPromptLength: systemPrompt.length,
+      userPromptLength: userPrompt.length,
+    });
+
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
@@ -58,21 +115,52 @@ async function callOpenAI<T>(
       max_tokens: 2000,
     });
 
+    console.log("[ai] request complete", {
+      model: AI_MODEL,
+      finishReason: response.choices[0]?.finish_reason,
+      hasContent: Boolean(response.choices[0]?.message?.content),
+    });
+
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new AIServiceError("AI_PROVIDER_UNAVAILABLE");
+      const finishReason = response.choices[0]?.finish_reason;
+      console.log("[ai] provider unavailable", { finishReason });
+      throw new AIServiceError("AI_PROVIDER_UNAVAILABLE", "AI_PROVIDER_UNAVAILABLE");
     }
 
-    const parsed = schema.safeParse(JSON.parse(content));
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(content);
+    } catch (parseError) {
+      console.log("[ai] json parse failed", { contentPreview: content.slice(0, 200) });
+      throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
+    }
+
+    const parsed = schema.safeParse(parsedJson);
     if (!parsed.success) {
       console.error("[ai] schema validation failed", parsed.error.flatten());
-      throw new AIServiceError("AI_RESPONSE_INVALID");
+      throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
     }
 
     return parsed.data;
   } catch (error) {
-    if (error instanceof AIServiceError) throw error;
-    throw new AIServiceError("AI_REQUEST_FAILED", error);
+    if (error instanceof AIServiceError) {
+      console.log("[ai] known error", {
+        category: error.category,
+        message: error.message,
+        cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
+      });
+      throw error;
+    }
+
+    const { category, message } = classifyOpenAIError(error);
+    console.log("[ai] unexpected error", {
+      category,
+      message,
+      errorType: error instanceof Error ? error.constructor.name : String(error),
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw new AIServiceError(message, category);
   }
 }
 
