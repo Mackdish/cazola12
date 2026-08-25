@@ -61,10 +61,10 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
     platformAmount: amount(result.platform_amount),
   };
 
-  if (!chargeResult.ok && chargeResult.reason === "insufficient_funds") {
+  if (!chargeResult.ok && (chargeResult.reason === "insufficient_funds" || chargeResult.reason === "budget_exhausted")) {
     await client
       .from("campaigns")
-      .update({ status: "paused", pause_reason: "insufficient_funds" })
+      .update({ status: "paused", pause_reason: chargeResult.reason })
       .eq("id", input.campaignId)
       .eq("status", "active");
   }
