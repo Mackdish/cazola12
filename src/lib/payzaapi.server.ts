@@ -463,6 +463,25 @@ export const payzaApiProvider: PaymentProvider = {
     const { status: httpStatus, json } = await payzaVerifyFetch(`/api/v1/verify/${encoded}`);
 
     const httpStatusNum = Number(httpStatus);
+    const success = json?.success;
+    const data = json?.data ?? json;
+    const providerStatus = data?.status ?? data?.state ?? null;
+    const providerMessage = json?.message ?? json?.error ?? null;
+    const amount = data?.amount ?? null;
+    const currency = data?.currency ?? null;
+    const providerTransactionId =
+      data?.provider_transaction_id ?? data?.providerReference ?? data?.transaction_id ?? data?.id ?? null;
+
+    console.log("[payza][verify][RESULT]", {
+      reference,
+      httpStatus: httpStatusNum,
+      success,
+      providerStatus,
+      providerMessage,
+      amount,
+      currency,
+      providerTransactionId,
+    });
 
     if (httpStatusNum === 401) {
       console.log("[payza][verify] authentication_failed", {

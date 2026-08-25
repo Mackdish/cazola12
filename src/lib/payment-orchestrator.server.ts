@@ -491,10 +491,30 @@ export async function verifyAndCompletePayment(
 
   if (error) {
     console.log("[payment] verifyAndCompletePayment RPC error:", error);
+    console.log("[payment][completion][RESULT]", {
+      reference,
+      paymentId: (payment as any).id,
+      verifiedAmount: verification.amount,
+      verifiedCurrency: verification.currency,
+      rpcCalled: true,
+      rpcSucceeded: false,
+      walletBalance: null,
+      rpcError: error.message,
+    });
     fail("We couldn't complete the payment. Please contact support.");
   }
 
   const result = Array.isArray(data) ? data[0] : data;
+  console.log("[payment][completion][RESULT]", {
+    reference,
+    paymentId: (payment as any).id,
+    verifiedAmount: verification.amount,
+    verifiedCurrency: verification.currency,
+    rpcCalled: true,
+    rpcSucceeded: true,
+    walletBalance: (result as any).wallet_balance,
+    rpcResult: result,
+  });
   console.log("[payment] verifyAndCompletePayment RPC result:", result);
   return { ...(result as any), alreadyCompleted: false };
 }

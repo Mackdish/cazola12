@@ -135,6 +135,16 @@ export async function completePaymentByReference(
 
   if ((payment as any).status === "completed") {
     console.log("[payment] completePaymentByReference already completed");
+    console.log("[payment][completion][RESULT]", {
+      reference,
+      paymentId: (payment as any).id,
+      verifiedAmount,
+      verifiedCurrency,
+      rpcCalled: false,
+      rpcSucceeded: true,
+      walletBalance: null,
+      alreadyCompleted: true,
+    });
     return { paymentId: (payment as any).id, status: "completed", alreadyCompleted: true };
   }
 
@@ -166,10 +176,30 @@ export async function completePaymentByReference(
 
   if (error) {
     console.log("[payment] completePaymentByReference RPC error:", error);
+    console.log("[payment][completion][RESULT]", {
+      reference,
+      paymentId: (payment as any).id,
+      verifiedAmount,
+      verifiedCurrency,
+      rpcCalled: true,
+      rpcSucceeded: false,
+      walletBalance: null,
+      rpcError: error.message,
+    });
     fail("We couldn't complete the payment. Please contact support.");
   }
 
   const result = Array.isArray(data) ? data[0] : data;
+  console.log("[payment][completion][RESULT]", {
+    reference,
+    paymentId: (payment as any).id,
+    verifiedAmount,
+    verifiedCurrency,
+    rpcCalled: true,
+    rpcSucceeded: true,
+    walletBalance: (result as any).wallet_balance,
+    rpcResult: result,
+  });
   console.log("[payment] completePaymentByReference RPC result:", {
     ...result,
     walletBalance: (result as any).wallet_balance,

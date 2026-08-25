@@ -65,6 +65,16 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
           providerStatus: verification.status,
           source,
         });
+        console.log("[payment][completion][RESULT]", {
+          reference,
+          paymentId: null,
+          verifiedAmount: verification.amount,
+          verifiedCurrency: verification.currency,
+          rpcCalled: false,
+          rpcSucceeded: false,
+          walletBalance: null,
+          reason: `verification_status=${verification.status}`,
+        });
         return { ok: true as const, status: verification.status };
       }
 
@@ -94,6 +104,25 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
           },
         },
       );
+
+      const { data: finalPayment } = await (supabaseAdmin as any)
+        .from("payments")
+        .select("status, wallet_id")
+        .eq("reference", reference)
+        .maybeSingle();
+
+      const { data: finalWallet } = await (supabaseAdmin as any)
+        .from("wallets")
+        .select("balance_amount")
+        .eq("id", (finalPayment as any)?.wallet_id)
+        .maybeSingle();
+
+      console.log("[payment][final]", {
+        reference,
+        paymentStatus: (finalPayment as any)?.status,
+        walletId: (finalPayment as any)?.wallet_id,
+        walletBalance: (finalWallet as any)?.balance_amount,
+      });
 
       return { ok: true as const, status: "completed", paymentId: result.paymentId };
     } catch (error) {
