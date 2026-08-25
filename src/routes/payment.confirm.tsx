@@ -55,20 +55,32 @@ function Page() {
     if (!reference || attempted.current) return;
     if (!payment) return;
     if (state !== "pending" && state !== "processing") return;
+
+    console.log("[payment][confirm][CALL]", {
+      reference,
+      paymentStatus: payment.status,
+    });
+
     attempted.current = true;
     confirm.mutate(reference, {
       onSettled: (data) => {
+        console.log("[payment][confirm][RESULT]", {
+          reference,
+          status: data?.status,
+          verifiedAmount: data?.amount,
+          verifiedCurrency: data?.currency,
+        });
+
         if (data?.status && data.status !== "pending") {
           setVerificationStatus(data.status);
           return;
         }
-        if (data?.verified && data?.status === "pending") {
-          setTimeout(() => {
-            attempted.current = false;
-            setVerificationStatus(null);
-            void status.refetch();
-          }, 10000);
-        }
+
+        setTimeout(() => {
+          attempted.current = false;
+          setVerificationStatus(null);
+          void status.refetch();
+        }, 10000);
       },
     });
   }, [reference, payment, state]);
