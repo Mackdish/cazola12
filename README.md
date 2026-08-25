@@ -1,498 +1,67 @@
-# Remix of Remix of Remix of AdConnect Foundation
-
-You are acting as a principal software architect and senior full-stack engineer.
-
-We are building a production-grade digital advertising network platform using:
-
-Lovable
-
-React
-
-TypeScript
-
-Tailwind CSS
-
-Supabase
-
-Supabase Auth
-
-Supabase PostgreSQL
-
-Supabase Storage
-
-Supabase Edge Functions
-
-The platform will connect:
-
-Advertisers — businesses that pay to display advertisements.
-
-Publishers — website owners who display advertisements and earn revenue.
-
-Administrators — platform operators who control the network.
-
-This is PHASE 1 ONLY.
-
-Do not implement campaigns, ad serving, billing, analytics, or publisher monetization yet.
-
-PRIMARY OBJECTIVE
-
-Establish a clean, secure, scalable foundation that all future phases can build upon.
-
-Before making changes, inspect the entire existing Lovable project.
-
-Do not destroy existing functionality.
-
-If this is a new project, establish the architecture from scratch.
-
-1. APPLICATION ARCHITECTURE
-
-Create a professional SaaS application shell with:
-
-responsive sidebar
-
-top navigation
-
-authenticated layout
-
-public layout
-
-dashboard layout
-
-role-aware navigation
-
-notifications area
-
-profile menu
-
-logout
-
-mobile navigation
-
-Create separate dashboard areas:
-
-/admin
-/advertiser
-/publisher
-
-Do not expose unauthorized navigation items.
-
-2. AUTHENTICATION
-
-Implement Supabase Auth.
-
-Support:
-
-email/password registration
-
-email/password login
-
-logout
-
-password reset
-
-session persistence
-
-protected routes
-
-authenticated user loading
-
-authentication error states
-
-loading states
-
-Do not store passwords manually.
-
-Use Supabase Auth as the identity provider.
-
-3. DATABASE FOUNDATION
-
-Create migrations for:
-
-profiles
-
-Fields:
-
-id
-
-full_name
-
-avatar_url
-
-phone
-
-status
-
-created_at
-
-updated_at
-
-The ID must reference the authenticated Supabase user.
-
-organizations
-
-Fields:
-
-id
-
-name
-
-slug
-
-type
-
-status
-
-created_at
-
-updated_at
-
-Organization types:
-
-advertiser
-
-publisher
-
-platform
-
-organization_members
-
-Fields:
-
-id
-
-organization_id
-
-user_id
-
-role
-
-status
-
-created_at
-
-updated_at
-
-Roles:
-
-owner
-
-admin
-
-manager
-
-analyst
-
-member
-
-platform_roles
-
-If a separate platform-level role system is necessary, implement it securely.
-
-Platform roles:
-
-super_admin
-
-admin
-
-analyst
-
-Do not rely only on frontend role checks.
-
-4. PROFILE CREATION
-
-Create the appropriate database trigger/function so that when a user registers through Supabase Auth, their profile is created safely.
-
-Do not create duplicate profiles.
-
-Handle failed profile creation gracefully.
-
-5. RLS
-
-Implement Row Level Security from the beginning.
-
-Every user-facing table must have appropriate RLS.
-
-Rules:
-
-Users can access their own profile.
-
-Organization members can access their organization's permitted data.
-
-Users cannot access another organization's private data.
-
-Advertiser users must eventually be isolated from publisher organizations.
-
-Publisher users must eventually be isolated from advertiser organizations.
-
-Admin access must be controlled through secure server-side authorization.
-
-Never implement security only in React.
-
-6. DATABASE SECURITY
-
-Do not expose:
-
-Supabase service-role key
-
-private credentials
-
-privileged functions
-
-secret environment variables
-
-to the browser.
-
-Use SECURITY DEFINER functions only when necessary and secure them carefully.
-
-Avoid overly permissive policies such as:
-
-USING (true)
-
-unless there is a specific public-read requirement.
-
-7. TYPESCRIPT
-
-Generate or update the Supabase TypeScript database types.
-
-Use strongly typed database access.
-
-Avoid any unless absolutely unavoidable.
-
-Create reusable authentication and authorization utilities.
-
-8. DESIGN SYSTEM
-
-Create a premium ad-tech SaaS visual language.
-
-Do not create a generic AI-generated dashboard.
-
-Use:
-
-strong typography
-
-consistent spacing
-
-restrained visual hierarchy
-
-professional cards
-
-clean tables
-
-status badges
-
-responsive layouts
-
-accessible controls
-
-clear empty states
-
-loading skeletons
-
-error states
-
-Create reusable components for:
-
-Button
-
-Card
-
-Modal
-
-DataTable
-
-Badge
-
-Input
-
-Select
-
-Tabs
-
-Dropdown
-
-Toast
-
-EmptyState
-
-LoadingState
-
-ErrorState
-
-9. DASHBOARD PLACEHOLDERS
-
-Create dashboard shells only.
-
-Admin:
-
-Overview
-
-Users
-
-Advertisers
-
-Publishers
-
-Campaigns
-
-Websites
-
-Ad Zones
-
-Transactions
-
-Analytics
-
-Payouts
-
-Settings
-
-Advertiser:
-
-Overview
-
-Campaigns
-
-Advertisements
-
-Creatives
-
-Wallet
-
-Transactions
-
-Analytics
-
-Settings
-
-Publisher:
-
-Overview
-
-Websites
-
-Ad Zones
-
-Earnings
-
-Payouts
-
-Analytics
-
-Settings
-
-These should be navigation shells only.
-
-Do not implement the actual business functionality yet.
-
-10. ERROR HANDLING
-
-Implement:
-
-auth errors
-
-expired sessions
-
-unauthorized access
-
-database errors
-
-network errors
-
-form validation errors
-
-Do not expose raw database errors to users.
-
-11. ACCEPTANCE TESTS
-
-Verify:
-
-User can register.
-
-User can log in.
-
-User can log out.
-
-Password reset works.
-
-Session persists after refresh.
-
-Profile is automatically created.
-
-Unauthorized users cannot access protected routes.
-
-Advertiser users cannot access publisher data.
-
-Publisher users cannot access advertiser data.
-
-Admin routes are protected.
-
-RLS policies work independently of frontend restrictions.
-
-TypeScript builds successfully.
-
-No major console errors.
-
-No broken routes.
-
-No duplicate database migrations.
-
-No secrets are exposed client-side.
-
-IMPORTANT
-
-Do not move to Phase 2.
-
-After completing this phase:
-
-inspect the implementation
-
-test the database
-
-test authentication
-
-test RLS
-
-fix any errors
-
-verify the production build
-
-Then provide a concise implementation report containing:
-
-Files created/modified.
-
-Database tables created.
-
-RLS policies created.
-
-Authentication functionality completed.
-
-Tests performed.
-
-Errors found and fixed.
-
-Anything genuinely incomplete.
-
-Stop after Phase 1.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://vertise-flow.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/43d18fdb-af75-4ed8-8ec5-9091f6161cef).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+# Architecture Overview
+
+What this covers: a map of every major component in the TradeMall ad server, how they connect, and the exact code paths a request flows through. Who should read this: anyone working on serving, bidding, billing, or fraud logic.
+
+## System Components
+
+| Component | Responsibility | Key file(s) |
+|---|---|---|
+| Publisher SDK | Injects ad slots into publisher pages, calls `/api/public/ad`, fires impression/click beacons | `src/lib/ad-sdk-source.ts` |
+| Ad server | Validates zone, loads candidates, runs auction, selects winner, returns creative + HMAC token | `src/lib/ad-serving.server.ts` |
+| Bidding/selection | Pure eligibility + scoring logic, no DB access | `src/lib/ad-serving-domain.ts` |
+| Billing RPC | Atomic charge event: validates campaign/ad status, budget, wallet, inserts spend rows | `supabase/migrations/20260825200000_fix_charge_campaign_event_rpc.sql` |
+| Billing caller | Thin wrapper that invokes the RPC and pauses campaign on budget exhaustion | `src/lib/billing-charge.server.ts` |
+| Fraud detection | Evaluates impression/click signals for bot patterns, rapid-fire, IP repeat offenders | `src/lib/fraud-detection.server.ts` |
+| Admin approval | Admin reviews pending campaigns/ads, transitions status machine | `src/lib/advertiser-service.server.ts` |
+| HMAC tokens | Signs served ad payloads so impression/click endpoints can verify authenticity without trusting the browser | `src/lib/ad-token.server.ts` |
+| Impression buffer | Optional Redis-backed buffer for high-throughput impression ingestion | `src/lib/impression-buffer.server.ts` |
+| Scheduled jobs | Runs in Cloudflare Workers `scheduled()` handler: buffer flush, fraud retention purge, blocklist sync | `src/server.ts:109-152` |
+
+## Data Stores
+
+| Store | What it holds | Accessed by |
+|---|---|---|
+| Postgres (Supabase) | campaigns, ads, ad_groups, ad_zones, websites, publishers, organizations, wallets, wallet_transactions, campaign_spend, publisher_earnings, impressions, clicks, fraud_events, campaign_daily_stats, house_ads, platform_settings | All server-side code via `supabaseAdmin` |
+| In-memory CREATIVE_CACHE | Map of `mediaAssetId → { url, width, height, _ts }` with 60s TTL | `src/lib/ad-serving.server.ts:48-62` |
+| In-memory serve-cache | Map of `requestId → { zoneId, adId, campaignId, ... }` with 5min TTL, used only for impression/click validation | `src/lib/serve-cache.server.ts` |
+| Optional Redis | blocked_ips set, impression buffer backlog | `src/lib/impression-buffer.server.ts`, `src/lib/fraud-center.server.ts` |
+
+## Request Lifecycle (numbered)
+
+The following traces a single ad request from the publisher's page through to billing.
+
+1. Publisher page loads `ad-sdk-source.ts` string, which calls `GET /api/public/ad?zone=<zone_key>` (`src/lib/ad-sdk-source.ts:197`).
+2. Route handler `src/routes/api/public/ad.ts:39-101` validates the zone key, checks rate limit (`extractIpAddress`, `checkRateLimit`), and generates a fresh `requestId = crypto.randomUUID()` (`src/routes/api/public/ad.ts:69`).
+3. `serveAd(input)` is called (`src/lib/ad-serving.server.ts:258`). It checks Redis for blocked IPs, then calls `loadZoneContext(zoneKey)` (`src/lib/ad-serving.server.ts:273`) which queries `websites`, `publishers`, `ad_zones`, and `campaign_targeting` in a single join.
+4. `zoneIsServeable(zone)` (`src/lib/ad-serving-domain.ts:111-119`) runs supply-side checks: zone active, website active+approved+verified, publisher active+approved. If any fail, returns `zone_unavailable`.
+5. `loadCandidates(zone)` (`src/lib/ad-serving.server.ts:110-183`) queries `ads` with an inner join on `campaigns` and `campaign_targeting`, filtered by:
+   - `ads.status = 'active'`
+   - `ads.approval_status = 'approved'`
+   - `campaigns.approval_status = 'approved'`
+   - `campaigns.status IN ('active', 'approved')`
+   - `ads.media_asset_id IS NOT NULL`
+   - Format match if zone is not responsive
+   - Limit 50 rows
+6. `fundedOrganizationIds()` (`src/lib/billing-charge.server.ts:79-94`) filters out campaigns whose advertiser wallet has `balance_amount <= 0`. On DB failure, it falls back to serving all (delivery over pacing).
+7. `selectAd(fundedCandidates, zone, { now, signals })` (`src/lib/ad-serving-domain.ts:194-209`) runs demand-side eligibility (`candidateIsEligible`, line 133), scores each candidate (`scoreCandidate`, line 176), sorts by score descending, and breaks ties by `adId.localeCompare`.
+8. `creativeUrl(winner.mediaAssetId)` (`src/lib/ad-serving.server.ts:185-228`) fetches the media asset from Supabase Storage, generates a signed URL with 30-minute TTL, and caches it in `CREATIVE_CACHE`.
+9. `issueServedToken()` (`src/lib/ad-token.server.ts:43-50`) creates an HMAC-signed JWT-like token containing `requestId`, `adId`, `campaignId`, `publisherId`, `websiteId`, `zoneId`, device/browser/os/country, and expiry (6 hours).
+10. `serveAd()` returns `{ ok: true, requestId, token, ad: { format, width, height, imageUrl, alt, clickUrl } }`. The `clickUrl` is empty here; the route fills it in with the token (`src/routes/api/public/ad.ts:95`).
+11. The SDK renders the ad, then fires an impression beacon via `navigator.sendBeacon` or `fetch` with `keepalive: true` to `POST /api/public/impression` with body `{ token }` (`src/lib/ad-sdk-source.ts:42-58`).
+12. The impression endpoint verifies the HMAC token, extracts the payload, and calls `recordImpression(payload, ipAddress, userAgent, botScore, isLikelyBot)` (`src/lib/ad-serving.server.ts:358-461`).
+13. `recordImpression()` inserts the impression row, runs `evaluateImpressionFraud()` **before** billing, and if fraud status is `"blocked"` or `isLikelyBot === true`, it skips `chargeAdEvent()` and flags `is_likely_bot = true` (`src/lib/ad-serving.server.ts:415-458`). Otherwise it calls `chargeAdEvent()`.
+14. `chargeAdEvent()` (`src/lib/billing-charge.server.ts:29-73`) invokes the `charge_campaign_event` RPC. The RPC performs all validation and spend atomically, returning `{ ok, reason, amount, publisher_amount, platform_amount }`. On `budget_exhausted` or `insufficient_funds`, the caller pauses the campaign (`src/lib/billing-charge.server.ts:64-70`).
+15. On click, the SDK calls `GET /api/public/click?t=<token>`. The click endpoint verifies the token, confirms an impression exists, inserts a click row, runs `evaluateClickFraud()` before billing, and calls `chargeAdEvent()` for clicks if not blocked (`src/lib/ad-serving.server.ts:478-570`).
+
+## Timeout and Fallback (Current Behavior)
+
+`serveAd()` is wrapped in a 200ms `Promise.race` timeout (`src/lib/ad-serving.server.ts:258-355`). The inner `serveAdInner()` does the actual work. If it times out or throws, the outer `serveAd()` catches the error and attempts to serve a house ad from the `house_ads` table (`src/lib/ad-serving.server.ts:365-393`). House ads are never billed (`chargeAdEvent` is never called for them) and are logged with `fill_type: 'house_ad'`. If no house ad exists, the response is `{ ok: false, reason: "serve_timeout" }`.
+
+## Tech Stack Summary
+
+- Runtime: Cloudflare Workers / Nitro
+- Framework: TanStack Router, React
+- Database: Supabase (Postgres) with PostgREST
+- Auth: Supabase Auth + custom `api-authorization.server.ts`
+- Storage: Supabase Storage for creatives
+- Optional: Redis (for blocked IPs, impression buffer)
