@@ -522,9 +522,6 @@ export const payzaApiProvider: PaymentProvider = {
       return { reference, status: "provider_request_error" };
     }
 
-    const success = json?.success;
-    const data = json?.data ?? json;
-
     if (success === false) {
       const reason =
         pick<string>(json, ["message", "error", "error_message", "detail"]) ??
@@ -555,16 +552,16 @@ export const payzaApiProvider: PaymentProvider = {
       "transaction_status",
       "result",
     ]);
-    const amount = pick(data, ["amount", "Amount"]);
+    const verifiedAmount = pick(data, ["amount", "Amount"]);
     const result: PaymentVerificationResult = {
       reference: String(
         pick(data, ["reference", "merchant_reference", "account_reference"]) ?? reference,
       ),
       status: normalizePaymentStatus(statusRaw),
     };
-    if (amount !== undefined) result.amount = Number(amount);
-    const currency = pick<string>(data, ["currency"]);
-    if (currency) result.currency = String(currency).toUpperCase();
+    if (verifiedAmount !== undefined) result.amount = Number(verifiedAmount);
+    const verifiedCurrency = pick<string>(data, ["currency"]);
+    if (verifiedCurrency) result.currency = String(verifiedCurrency).toUpperCase();
     const txnId = pick<string>(data, [
       "providerTransactionId",
       "provider_transaction_id",

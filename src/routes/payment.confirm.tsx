@@ -42,7 +42,7 @@ function Page() {
   const { reference } = Route.useSearch();
   const status = usePublicPaymentStatus(reference ?? null);
   const confirm = usePublicConfirmPayment();
-  const attempted = useRef(false);
+  const confirmedRef = useRef<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
   const payment = status.data as
@@ -52,25 +52,24 @@ function Page() {
   const isPending = state === "pending" || state === "processing";
 
   useEffect(() => {
+    confirmedRef.current = null;
+    setVerificationStatus(null);
+  }, [reference]);
+
+  useEffect(() => {
     if (!reference || !isPending) return;
+    if (confirmedRef.current === reference) return;
+    if (confirm.isPending) return;
 
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let intervalId: ReturnType<typeof setInterval>;
+    confirmedRef.current = reference;
 
-    async function verify() {
-      if (cancelled || attempted.current) return;
+    console.log("[payment][confirm][CALL]", {
+      reference,
+      paymentStatus: payment?.status,
+    });
 
-      console.log("[payment][confirm][CALL]", {
-        reference,
-        paymentStatus: payment?.status,
-      });
-
-      attempted.current = true;
-
-      try {
-        const data = await confirm.mutateAsync(reference);
-
+    confirm.mutate(reference, {
+      onSuccess: (data) => {
         console.log("[payment][confirm][RESULT]", {
           reference,
           status: data?.status,
@@ -80,34 +79,17 @@ function Page() {
 
         if (data?.status && data.status !== "pending") {
           setVerificationStatus(data.status);
-          return;
         }
-      } catch (error) {
+      },
+      onError: (error) => {
         console.log("[payment][confirm][ERROR]", {
           reference,
           error: error instanceof Error ? error.message : String(error),
         });
-      }
-
-      timeoutId = setTimeout(() => {
-        attempted.current = false;
-      }, 10000);
-    }
-
-    verify();
-
-    intervalId = setInterval(() => {
-      if (!cancelled && !attempted.current && isPending) {
-        verify();
-      }
-    }, 10000);
-
-    return () => {
-      cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [reference, isPending, confirm, payment?.status]);
+        confirmedRef.current = null;
+      },
+    });
+  }, [reference, isPending, confirm.isPending, payment?.status]);
 
   const done = state === "completed";
   const failed = state === "failed" || state === "cancelled";
@@ -214,7 +196,7 @@ function Page() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    attempted.current = false;
+                    confirmedRef.current = null;
                     setVerificationStatus(null);
                     void status.refetch();
                   }}
