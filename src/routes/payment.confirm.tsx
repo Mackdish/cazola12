@@ -49,21 +49,28 @@ function Page() {
     | { status?: string; amount?: number | string; currency?: string; reference?: string }
     | undefined;
   const state = verificationStatus ?? payment?.status ?? "pending";
+  const isPending = state === "pending" || state === "processing";
 
-  // Fallback path: the webhook may not have landed yet, so verify server-side.
   useEffect(() => {
-    if (!reference || attempted.current) return;
-    if (!payment) return;
-    if (state !== "pending" && state !== "processing") return;
+    if (!reference || !isPending) return;
 
-    console.log("[payment][confirm][CALL]", {
-      reference,
-      paymentStatus: payment.status,
-    });
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let intervalId: ReturnType<typeof setInterval>;
 
-    attempted.current = true;
-    confirm.mutate(reference, {
-      onSettled: (data) => {
+    async function verify() {
+      if (cancelled || attempted.current) return;
+
+      console.log("[payment][confirm][CALL]", {
+        reference,
+        paymentStatus: payment?.status,
+      });
+
+      attempted.current = true;
+
+      try {
+        const data = await confirm.mutateAsync(reference);
+
         console.log("[payment][confirm][RESULT]", {
           reference,
           status: data?.status,
@@ -75,15 +82,32 @@ function Page() {
           setVerificationStatus(data.status);
           return;
         }
+      } catch (error) {
+        console.log("[payment][confirm][ERROR]", {
+          reference,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
-        setTimeout(() => {
-          attempted.current = false;
-          setVerificationStatus(null);
-          void status.refetch();
-        }, 10000);
-      },
-    });
-  }, [reference, payment, state]);
+      timeoutId = setTimeout(() => {
+        attempted.current = false;
+      }, 10000);
+    }
+
+    verify();
+
+    intervalId = setInterval(() => {
+      if (!cancelled && !attempted.current && isPending) {
+        verify();
+      }
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [reference, isPending, confirm, payment?.status]);
 
   const done = state === "completed";
   const failed = state === "failed" || state === "cancelled";
