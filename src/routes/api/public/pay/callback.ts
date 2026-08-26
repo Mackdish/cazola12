@@ -25,7 +25,9 @@ const callbackSchema = z.object({
   gateway: z.string().optional(),
   reference: z.string().min(1),
   status: z.string().min(1).optional(),
-  amount: z.number().optional(),
+  // Provider callback values can be serialized as JSON strings. This value is
+  // never used to credit a wallet; Payza verification remains authoritative.
+  amount: z.coerce.number().finite().positive().optional(),
   currency: z.string().optional(),
   provider_transaction_id: z.string().optional(),
   provider_receipt: z.string().optional(),
@@ -36,7 +38,7 @@ async function getRawBody(request: Request): Promise<string> {
 }
 
 async function processPayzaCallback(reference: string, rawStatus: string | null, source: string) {
-  console.log("[callback][process] start", { reference, rawStatus, source });
+  console.log("[PAYMENT_CALLBACK_RECEIVED]", { reference, rawStatus, source });
   const status = normalizePaymentStatus(
     rawStatus ?? undefined,
   );
@@ -45,8 +47,14 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
     try {
       let verification;
       try {
+        console.log("[PAYZAAPI_VERIFICATION_STARTED]", { reference, source });
         verification = await verifyPayzaPayment(reference);
       } catch {
+        console.log("[PAYMENT_PROCESSING_FAILED]", {
+          reference,
+          source,
+          stage: "payza_verification",
+        });
         await logAuditEvent(
           { supabase: supabaseAdmin as never, userId: "system" } as never,
           {
@@ -58,6 +66,15 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
         );
         return { ok: false as const, error: "verification_failed", message: "Payment verification failed.", status: "failed" };
       }
+
+      console.log("[PAYZAAPI_VERIFICATION_RESULT]", {
+        reference,
+        source,
+        status: verification.status,
+        amount: verification.amount,
+        currency: verification.currency,
+        providerTransactionId: verification.providerTransactionId ?? null,
+      });
 
       if (verification.status !== "completed") {
         console.log("[callback][process] provider verification not completed", {
@@ -80,6 +97,13 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
 
       const verifiedAmount = verification.amount as number | undefined;
       const verifiedCurrency = verification.currency as string | undefined;
+
+      console.log("[PAYMENT_VERIFICATION_ACCEPTED]", {
+        reference,
+        source,
+        verifiedAmount,
+        verifiedCurrency,
+      });
 
       const result = await (completePaymentByReference as any)(
         { supabase: supabaseAdmin as never, userId: "system" } as never,
@@ -123,10 +147,23 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
         walletId: (finalPayment as any)?.wallet_id,
         walletBalance: (finalWallet as any)?.balance_amount,
       });
+      console.log("[PAYMENT_PROCESSING_COMMITTED]", {
+        reference,
+        paymentId: result.paymentId,
+        status: "completed",
+        source,
+      });
 
       return { ok: true as const, status: "completed", paymentId: result.paymentId };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment processing failed";
+      console.log("[PAYMENT_PROCESSING_FAILED]", {
+        reference,
+        source,
+        stage: "complete_payment",
+        message,
+        code: (error as any)?.code ?? null,
+      });
       await logAuditEvent(
         { supabase: supabaseAdmin as never, userId: "system" } as never,
         {
@@ -189,8 +226,6 @@ export const Route = createFileRoute("/api/public/pay/callback")({
       POST: async ({ request }) => {
         const rawBody = await getRawBody(request);
 
-        console.log("[callback][POST] raw body:", rawBody);
-
         let payload: unknown;
         try {
           payload = JSON.parse(rawBody);
@@ -211,9 +246,23 @@ export const Route = createFileRoute("/api/public/pay/callback")({
         }
 
         const data = parsed.data;
-        console.log("[callback][POST] parsed data:", data);
+        const normalizedCallbackStatus = normalizePaymentStatus(
+          data.status ?? (data.event ? data.event.split(".").pop() : undefined),
+        );
+        const rawStatus = normalizedCallbackStatus === "pending" ? data.status ?? null : normalizedCallbackStatus;
+        console.log("[callback][POST] accepted callback", {
+          reference: data.reference,
+          status: data.status ?? null,
+          event: data.event ?? null,
+          normalizedStatus: normalizedCallbackStatus,
+          rawPayloadLength: rawBody.length,
+        });
+        console.log("[PAYMENT_REFERENCE_EXTRACTED]", {
+          reference: data.reference,
+          source: "payzaapi_post_callback",
+        });
 
-        const result = await processPayzaCallback(data.reference, data.status ?? null, "payzaapi_post_callback");
+        const result = await processPayzaCallback(data.reference, rawStatus, "payzaapi_post_callback");
         return jsonResponse(result, result.ok ? 200 : 500, publicCorsHeaders("POST"));
       },
 
@@ -231,6 +280,11 @@ export const Route = createFileRoute("/api/public/pay/callback")({
             400,
           );
         }
+
+        console.log("[PAYMENT_REFERENCE_EXTRACTED]", {
+          reference,
+          source: "payzaapi_get_callback",
+        });
 
         const status = normalizePaymentStatus(
           callbackStatus ?? (event ? event.split(".").pop() : undefined),

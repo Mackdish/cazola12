@@ -124,7 +124,7 @@ export async function completePaymentByReference(
     fail("Payment not found.");
   }
 
-  console.log("[payment] completePaymentByReference found:", {
+  console.log("[PAYMENT_FOUND]", {
     id: (payment as any).id,
     status: (payment as any).status,
     walletId: (payment as any).wallet_id,
@@ -177,6 +177,13 @@ export async function completePaymentByReference(
     verifiedCurrency,
     verifiedAmount,
   });
+  console.log("[WALLET_CREDIT_STARTED]", {
+    reference,
+    paymentId: (payment as any).id,
+    walletId: (payment as any).wallet_id,
+    amount: (payment as any).amount,
+    currency: (payment as any).currency,
+  });
 
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
     _payment_id: (payment as any).id,
@@ -218,6 +225,27 @@ export async function completePaymentByReference(
     newBalance: (result as any).wallet_balance,
     alreadyCompleted: (result as any).already_completed,
   });
+  console.log("[PAYMENT_STATUS_UPDATE]", {
+    reference,
+    paymentId: (payment as any).id,
+    status: (result as any).status,
+    alreadyCompleted: Boolean((result as any).already_completed),
+  });
+  console.log("[WALLET_BALANCE_UPDATED]", {
+    reference,
+    paymentId: (payment as any).id,
+    walletId: (payment as any).wallet_id,
+    balanceAfter: (result as any).wallet_balance,
+  });
+  if (!(result as any).already_completed) {
+    console.log("[WALLET_TRANSACTION_CREATED]", {
+      reference,
+      paymentId: (payment as any).id,
+      walletId: (payment as any).wallet_id,
+      amount: (payment as any).amount,
+      currency: (payment as any).currency,
+    });
+  }
   console.log("[wallet][transaction]", {
     reference,
     paymentId: (payment as any).id,

@@ -145,7 +145,19 @@ export function normalizePaymentStatus(
     .trim()
     .toLowerCase();
   if (
-    ["completed", "complete", "success", "successful", "paid", "confirmed", "0"].includes(value)
+    [
+      "completed",
+      "complete",
+      "success",
+      "successful",
+      "paid",
+      "confirmed",
+      "0",
+      "payment.completed",
+      "payment.success",
+      "payment.successful",
+      "payment.paid",
+    ].includes(value)
   ) {
     return "completed";
   }
