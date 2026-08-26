@@ -30,6 +30,7 @@ export class AIServiceError extends Error {
       | "AI_CONFIGURATION_MISSING"
       | "AI_AUTH_ERROR"
       | "AI_RATE_LIMIT_ERROR"
+      | "AI_QUOTA_ERROR"
       | "AI_MODEL_ERROR"
       | "AI_REQUEST_ERROR"
       | "AI_SCHEMA_ERROR"
@@ -59,6 +60,7 @@ function classifyOpenAIError(error: unknown): {
   const status = err?.status ?? err?.response?.status;
   const code = err?.code ?? err?.type;
   const message = err?.message ?? String(error);
+  const openaiError = err?.error;
 
   if (status === 401) {
     return { category: "AI_AUTH_ERROR", message: "Invalid API key." };
@@ -67,6 +69,13 @@ function classifyOpenAIError(error: unknown): {
     return { category: "AI_AUTH_ERROR", message: "API key lacks permission." };
   }
   if (status === 429) {
+    const openaiCode = openaiError?.error?.code ?? code;
+    const openaiMessage = openaiError?.error?.message ?? message;
+
+    if (openaiCode === "insufficient_quota" || /quota|billing|credits/i.test(openaiMessage)) {
+      return { category: "AI_QUOTA_ERROR", message: "Quota or billing limit reached." };
+    }
+
     return { category: "AI_RATE_LIMIT_ERROR", message: "Rate limit exceeded." };
   }
   if (status === 404) {
@@ -85,84 +94,87 @@ function classifyOpenAIError(error: unknown): {
   return { category: "AI_INTERNAL_ERROR", message };
 }
 
-async function callOpenAI<T>(
-  systemPrompt: string,
-  userPrompt: string,
-  schema: z.ZodSchema<T>,
-): Promise<T> {
-  const configStatus = getAiConfigurationStatus();
-  if (configStatus !== "configured") {
-    throw new AIServiceError("AI_CONFIGURATION_MISSING", "AI_CONFIGURATION_MISSING");
-  }
-
-  try {
-    const openai = getOpenAIClient();
-
-    console.log("[ai] request start", {
-      model: AI_MODEL,
-      systemPromptLength: systemPrompt.length,
-      userPromptLength: userPrompt.length,
-    });
-
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
-
-    console.log("[ai] request complete", {
-      model: AI_MODEL,
-      finishReason: response.choices[0]?.finish_reason,
-      hasContent: Boolean(response.choices[0]?.message?.content),
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      const finishReason = response.choices[0]?.finish_reason;
-      console.log("[ai] provider unavailable", { finishReason });
-      throw new AIServiceError("AI_PROVIDER_UNAVAILABLE", "AI_PROVIDER_UNAVAILABLE");
+  async function callOpenAI<T>(
+    systemPrompt: string,
+    userPrompt: string,
+    schema: z.ZodSchema<T>,
+  ): Promise<T> {
+    const configStatus = getAiConfigurationStatus();
+    if (configStatus !== "configured") {
+      throw new AIServiceError("AI_CONFIGURATION_MISSING", "AI_CONFIGURATION_MISSING");
     }
 
-    let parsedJson: unknown;
     try {
-      parsedJson = JSON.parse(content);
-    } catch (parseError) {
-      console.log("[ai] json parse failed", { contentPreview: content.slice(0, 200) });
-      throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
-    }
+      const openai = getOpenAIClient();
 
-    const parsed = schema.safeParse(parsedJson);
-    if (!parsed.success) {
-      console.error("[ai] schema validation failed", parsed.error.flatten());
-      throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
-    }
-
-    return parsed.data;
-  } catch (error) {
-    if (error instanceof AIServiceError) {
-      console.log("[ai] known error", {
-        category: error.category,
-        message: error.message,
-        cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
+      console.log("[ai] request start", {
+        model: AI_MODEL,
+        systemPromptLength: systemPrompt.length,
+        userPromptLength: userPrompt.length,
       });
-      throw error;
-    }
 
-    const { category, message } = classifyOpenAIError(error);
-    console.log("[ai] unexpected error", {
-      category,
-      message,
-      errorType: error instanceof Error ? error.constructor.name : String(error),
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-    throw new AIServiceError(message, category);
+      const response = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      console.log("[ai] request complete", {
+        model: AI_MODEL,
+        finishReason: response.choices[0]?.finish_reason,
+        hasContent: Boolean(response.choices[0]?.message?.content),
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        const finishReason = response.choices[0]?.finish_reason;
+        console.log("[ai] provider unavailable", { finishReason });
+        throw new AIServiceError("AI_PROVIDER_UNAVAILABLE", "AI_PROVIDER_UNAVAILABLE");
+      }
+
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(content);
+      } catch (parseError) {
+        console.log("[ai] json parse failed", { contentPreview: content.slice(0, 200) });
+        throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
+      }
+
+      const parsed = schema.safeParse(parsedJson);
+      if (!parsed.success) {
+        console.error("[ai] schema validation failed", parsed.error.flatten());
+        throw new AIServiceError("AI_RESPONSE_INVALID", "AI_RESPONSE_INVALID");
+      }
+
+      return parsed.data;
+    } catch (error) {
+      if (error instanceof AIServiceError) {
+        console.log("[ai] known error", {
+          category: error.category,
+          message: error.message,
+          cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
+        });
+        throw error;
+      }
+
+      const { category, message } = classifyOpenAIError(error);
+      console.log("[ai] unexpected error", {
+        category,
+        message,
+        errorType: error instanceof Error ? error.constructor.name : String(error),
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStatus: (error as any)?.status ?? (error as any)?.response?.status,
+        errorCode: (error as any)?.code ?? (error as any)?.type,
+        openaiError: (error as any)?.error,
+      });
+      throw new AIServiceError(message, category, error);
+    }
   }
-}
 
 export async function generateCampaignPlan(input: {
   description: string;
@@ -262,3 +274,5 @@ RULES:
 
   return callOpenAI(systemPrompt, userPrompt, CreativeConceptSchema);
 }
+
+export { diagnoseOpenAIConnection } from "./openai.server";
