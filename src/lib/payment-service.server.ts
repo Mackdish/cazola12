@@ -115,7 +115,7 @@ export async function completePaymentByReference(
   });
   const { data: payment, error: findError } = await ctx.supabase
     .from("payments" as never)
-    .select("id, status, amount, currency, wallet_id, organization_id")
+    .select("id, status, amount, currency, wallet_id, organization_id, provider")
     .eq("reference", reference)
     .maybeSingle();
 
@@ -240,7 +240,10 @@ export async function completePaymentByReference(
     ...result,
     walletBalance: (result as any).wallet_balance,
   });
-  return { ...(result as any), alreadyCompleted: false };
+  return {
+    ...(result as any),
+    alreadyCompleted: Boolean((result as any)?.already_completed),
+  };
 }
 
 export async function getPaymentStatus(

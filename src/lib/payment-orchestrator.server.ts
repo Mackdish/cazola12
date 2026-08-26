@@ -536,5 +536,8 @@ export async function verifyAndCompletePayment(
     rpcResult: result,
   });
   console.log("[payment] verifyAndCompletePayment RPC result:", result);
-  return { ...(result as any), alreadyCompleted: false };
+  return {
+    ...(result as any),
+    alreadyCompleted: Boolean((result as any)?.already_completed),
+  };
 }
