@@ -16,8 +16,7 @@ import {
   generateAdCopy,
   generateTargetingSuggestion,
   generateCreativeConcept,
-  AIServiceError,
-  diagnoseOpenAIConnection,
+  diagnoseAIConnection,
 } from "@/lib/ai/campaign-copilot.server";
 
 const uuid = z.string().uuid();
@@ -32,37 +31,35 @@ function getAiIpAddress(): string {
 }
 
 function mapAiError(error: unknown): Error {
-  if (error instanceof AIServiceError) {
-    switch (error.category) {
-      case "AI_CONFIGURATION_MISSING":
-        return new Error("AI assistance is temporarily unavailable. Please contact support.");
-      case "AI_AUTH_ERROR":
-        return new Error("AI assistance is temporarily unavailable. Please contact support.");
-      case "AI_RATE_LIMIT_ERROR":
-        return new Error("AI requests are temporarily limited. Please try again shortly.");
-      case "AI_QUOTA_ERROR":
-        return new Error("AI assistance is temporarily unavailable because the AI service has reached its usage limit. Please try again later.");
-      case "AI_MODEL_ERROR":
-        return new Error("AI assistance is temporarily unavailable. Please contact support.");
-      case "AI_REQUEST_ERROR":
-        return new Error("Please provide more information about your product or service.");
-      case "AI_SCHEMA_ERROR":
-        return new Error("We couldn't generate that content. Please try again.");
-      case "AI_TIMEOUT":
-        return new Error("AI is taking longer than expected. Please try again.");
-      case "AI_PROVIDER_ERROR":
-        return new Error("AI assistance is temporarily unavailable. Please try again later.");
-      case "AI_PROVIDER_UNAVAILABLE":
-        return new Error("AI assistance is temporarily unavailable. Please try again later.");
-      case "AI_RESPONSE_INVALID":
-        return new Error("We couldn't generate that content. Please try again.");
-      case "AI_REQUEST_FAILED":
-        return new Error("We couldn't process your AI request. Please try again.");
-      default:
-        return new Error("We couldn't process your AI request. Please try again.");
-    }
+  const category = (error as any)?.category;
+  switch (category) {
+    case "AI_CONFIGURATION_MISSING":
+      return new Error("AI assistance is temporarily unavailable. Please contact support.");
+    case "AI_AUTH_ERROR":
+      return new Error("AI assistance is temporarily unavailable. Please contact support.");
+    case "AI_RATE_LIMIT_ERROR":
+      return new Error("AI requests are temporarily limited. Please try again shortly.");
+    case "AI_QUOTA_ERROR":
+      return new Error("AI assistance is temporarily unavailable because the AI service has reached its usage limit. Please try again later.");
+    case "AI_MODEL_ERROR":
+      return new Error("AI assistance is temporarily unavailable. Please contact support.");
+    case "AI_REQUEST_ERROR":
+      return new Error("Please provide more information about your product or service.");
+    case "AI_SCHEMA_ERROR":
+      return new Error("We couldn't generate that content. Please try again.");
+    case "AI_TIMEOUT":
+      return new Error("AI is taking longer than expected. Please try again.");
+    case "AI_PROVIDER_ERROR":
+      return new Error("AI assistance is temporarily unavailable. Please try again later.");
+    case "AI_PROVIDER_UNAVAILABLE":
+      return new Error("AI assistance is temporarily unavailable. Please try again later.");
+    case "AI_RESPONSE_INVALID":
+      return new Error("We couldn't generate that content. Please try again.");
+    case "AI_REQUEST_FAILED":
+      return new Error("We couldn't process your AI request. Please try again.");
+    default:
+      return new Error("We couldn't process your AI request. Please try again.");
   }
-  return new Error("We couldn't process your AI request. Please try again.");
 }
 
 export const generateAICampaignPlan = createServerFn({ method: "POST" })
@@ -226,6 +223,6 @@ export const generateAICreativeConcept = createServerFn({ method: "POST" })
 export const diagnoseAIService = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const result = await diagnoseOpenAIConnection();
+    const result = await diagnoseAIConnection();
     return result;
   });

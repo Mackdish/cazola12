@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { CampaignPlanSchema, AdCopyVariantSchema, TargetingSuggestionSchema, CreativeConceptSchema } from "@/lib/ai/campaign-schema";
-import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError } from "@/lib/ai/campaign-copilot.server";
-import { resetAiCache, getAiConfigurationStatus } from "@/lib/ai/openai.server";
+import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError, getAiConfigurationStatus, resetAiCache } from "@/lib/ai/campaign-copilot.server";
 
 describe("AI campaign schemas", () => {
   it("validates a complete campaign plan", () => {
@@ -50,22 +49,22 @@ describe("AI service configuration", () => {
   });
 
   it("reports missing when API key is absent", () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
+    const original = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "";
     try {
       expect(getAiConfigurationStatus()).toBe("missing");
     } finally {
-      process.env.OPENAI_API_KEY = original;
+      process.env.GEMINI_API_KEY = original;
     }
   });
 
   it("reports invalid when API key is too short", () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "short";
+    const original = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "short";
     try {
       expect(getAiConfigurationStatus()).toBe("invalid");
     } finally {
-      process.env.OPENAI_API_KEY = original;
+      process.env.GEMINI_API_KEY = original;
     }
   });
 });
@@ -76,22 +75,22 @@ describe("AI service error handling", () => {
   });
 
   it("throws AIServiceError when API key is missing", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
+    const original = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "";
     try {
       await expect(generateCampaignPlan({ description: "test", currency: "KES" })).rejects.toThrow(AIServiceError);
     } finally {
-      process.env.OPENAI_API_KEY = original;
+      process.env.GEMINI_API_KEY = original;
     }
   });
 
   it("throws AIServiceError for empty description", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
+    const original = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "";
     try {
       await expect(generateCampaignPlan({ description: "", currency: "KES" })).rejects.toThrow(AIServiceError);
     } finally {
-      process.env.OPENAI_API_KEY = original;
+      process.env.GEMINI_API_KEY = original;
     }
   });
 });
