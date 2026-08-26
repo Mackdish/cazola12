@@ -169,24 +169,60 @@ async function main() {
     const payment = payments[i];
     const progress = `[${i + 1}/${payments.length}]`;
 
-    console.log(`${progress} [backfill] Verifying ${payment.reference} (${payment.amount} ${payment.currency})...`);
+  console.log(`${progress} [backfill] Verifying ${payment.reference} (${payment.amount} ${payment.currency})...`);
 
-    try {
-      const verification = await verifyWithPayzaApi(payment.reference);
-      const status = verification.status;
+  try {
+    const verification = await verifyWithPayzaApi(payment.reference);
+    const status = verification.status;
 
-      console.log(`${progress} [backfill] PayzaAPI status for ${payment.reference}: ${status}`);
+    console.log(`${progress} [backfill] PayzaAPI status for ${payment.reference}: ${status}`);
 
-      if (status === "completed") {
-        const ok = await completePayment(payment, verification);
-        if (ok) {
-          completed++;
-          console.log(`${progress} [backfill] ✅ Completed ${payment.reference}`);
-        } else {
-          errors++;
-          console.log(`${progress} [backfill] ❌ Failed to complete ${payment.reference}`);
-        }
+    if (status === "completed") {
+      console.log(`${progress} [payment][confirmed]`, {
+        reference: payment.reference,
+        transactionId: verification.providerTransactionId,
+        amount: payment.amount,
+        currency: payment.currency,
+        walletId: payment.wallet_id,
+        organizationId: payment.organization_id,
+      });
+
+      const { data, error } = await supabase.rpc("complete_payment", {
+        _payment_id: payment.id,
+        _provider: payment.provider,
+        _provider_reference: verification.providerTransactionId ?? payment.provider_reference ?? payment.reference,
+        _provider_transaction_id: verification.providerTransactionId ?? payment.provider_transaction_id ?? null,
+        _provider_receipt: verification.providerReceipt ?? payment.provider_receipt ?? null,
+      });
+
+      if (error) {
+        console.error(`${progress} [wallet][credit][ERROR]`, {
+          reference: payment.reference,
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        errors++;
+        console.log(`${progress} [backfill] ❌ Failed to complete ${payment.reference}`);
+        continue;
+      }
+
+      const result = Array.isArray(data) ? data[0] : data;
+      console.log(`${progress} [wallet][credit][SUCCESS]`, {
+        reference: payment.reference,
+        walletId: payment.wallet_id,
+        newBalance: result?.wallet_balance,
+        alreadyCompleted: result?.already_completed,
+      });
+      console.log(`${progress} [backfill] ✅ Completed ${payment.reference}`);
+      completed++;
       } else if (status === "failed" || status === "verification_failed") {
+        console.log(`${progress} [payment][deposit]`, {
+          reference: payment.reference,
+          status: "failed",
+          reason: `provider reported ${status}`,
+        });
         const ok = await markPaymentFailed(payment, `Backfill: provider reported ${status}`);
         if (ok) {
           failed++;
@@ -196,6 +232,10 @@ async function main() {
           console.log(`${progress} [backfill] ❌ Failed to mark failed ${payment.reference}`);
         }
       } else if (status === "cancelled") {
+        console.log(`${progress} [payment][deposit]`, {
+          reference: payment.reference,
+          status: "cancelled",
+        });
         const ok = await markPaymentCancelled(payment);
         if (ok) {
           cancelled++;
@@ -205,6 +245,10 @@ async function main() {
           console.log(`${progress} [backfill] ❌ Failed to mark cancelled ${payment.reference}`);
         }
       } else {
+        console.log(`${progress} [payment][deposit]`, {
+          reference: payment.reference,
+          status: "pending",
+        });
         stillPending++;
         console.log(`${progress} [backfill] ⏳ Still pending: ${payment.reference}`);
       }
