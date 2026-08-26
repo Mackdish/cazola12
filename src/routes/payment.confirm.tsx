@@ -38,12 +38,16 @@ export const Route = createFileRoute("/payment/confirm")({
   component: Page,
 });
 
+const MAX_VERIFICATION_ATTEMPTS = 3;
+const VERIFICATION_RETRY_DELAY_MS = 5000;
+
 function Page() {
   const { reference } = Route.useSearch();
   const status = usePublicPaymentStatus(reference ?? null);
   const confirm = usePublicConfirmPayment();
   const confirmedRef = useRef<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
 
   const payment = status.data as
     | { status?: string; amount?: number | string; currency?: string; reference?: string }
@@ -54,18 +58,21 @@ function Page() {
   useEffect(() => {
     confirmedRef.current = null;
     setVerificationStatus(null);
+    setAttemptCount(0);
   }, [reference]);
 
   useEffect(() => {
     if (!reference || !isPending) return;
     if (confirmedRef.current === reference) return;
     if (confirm.isPending) return;
+    if (attemptCount >= MAX_VERIFICATION_ATTEMPTS) return;
 
     confirmedRef.current = reference;
 
     console.log("[payment][confirm][CALL]", {
       reference,
       paymentStatus: payment?.status,
+      attempt: attemptCount + 1,
     });
 
     confirm.mutate(reference, {
@@ -75,21 +82,33 @@ function Page() {
           status: data?.status,
           verifiedAmount: data?.amount,
           verifiedCurrency: data?.currency,
+          attempt: attemptCount + 1,
         });
 
         if (data?.status && data.status !== "pending") {
           setVerificationStatus(data.status);
+        } else if (data?.status === "pending" && attemptCount + 1 < MAX_VERIFICATION_ATTEMPTS) {
+          setTimeout(() => {
+            confirmedRef.current = null;
+            setAttemptCount((c) => c + 1);
+          }, VERIFICATION_RETRY_DELAY_MS);
         }
       },
       onError: (error) => {
         console.log("[payment][confirm][ERROR]", {
           reference,
           error: error instanceof Error ? error.message : String(error),
+          attempt: attemptCount + 1,
         });
         confirmedRef.current = null;
+        if (attemptCount + 1 < MAX_VERIFICATION_ATTEMPTS) {
+          setTimeout(() => {
+            setAttemptCount((c) => c + 1);
+          }, VERIFICATION_RETRY_DELAY_MS);
+        }
       },
     });
-  }, [reference, isPending, confirm.isPending, payment?.status]);
+  }, [reference, isPending, confirm.isPending, payment?.status, attemptCount]);
 
   const done = state === "completed";
   const failed = state === "failed" || state === "cancelled";
@@ -198,6 +217,7 @@ function Page() {
                   onClick={() => {
                     confirmedRef.current = null;
                     setVerificationStatus(null);
+                    setAttemptCount(0);
                     void status.refetch();
                   }}
                 >

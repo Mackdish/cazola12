@@ -617,12 +617,11 @@ export async function verifyPayzaPayment(reference: string): Promise<PaymentVeri
   const baseUrlConfigured = Boolean(readEnv("PAYZA_API_BASE_URL"));
   const verifyUrl = `${(readEnv("PAYZA_API_BASE_URL") ?? DEFAULT_BASE_URL).replace(/\/+$/, "")}/api/v1/verify/${encodeURIComponent(reference)}`;
 
-  console.log("[payza][verify] config check", {
+  console.log("[payza][verify][CALL]", {
     reference,
+    endpoint: verifyUrl,
     publicKeyConfigured,
     secretKeyConfigured,
-    baseUrlConfigured,
-    verifyUrl,
   });
 
   try {

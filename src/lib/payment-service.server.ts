@@ -166,14 +166,18 @@ export async function completePaymentByReference(
     verifiedAmount,
     verifiedCurrency,
   });
-  console.log("[wallet][credit][START]", {
+
+  console.log("[wallet][target]", {
     reference,
     paymentId: (payment as any).id,
-    walletId: (payment as any).wallet_id,
-    amount: (payment as any).amount,
-    currency: (payment as any).currency,
     organizationId: (payment as any).organization_id,
+    userId: ctx.userId,
+    walletId: (payment as any).wallet_id,
+    walletCurrency: (payment as any).currency,
+    verifiedCurrency,
+    verifiedAmount,
   });
+
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
     _payment_id: (payment as any).id,
     _provider: provider,
@@ -213,6 +217,14 @@ export async function completePaymentByReference(
     walletId: (payment as any).wallet_id,
     newBalance: (result as any).wallet_balance,
     alreadyCompleted: (result as any).already_completed,
+  });
+  console.log("[wallet][transaction]", {
+    reference,
+    paymentId: (payment as any).id,
+    walletId: (payment as any).wallet_id,
+    walletBalance: (result as any).wallet_balance,
+    alreadyCompleted: (result as any).already_completed,
+    rpcResult: result,
   });
   console.log("[payment][completion][RESULT]", {
     reference,

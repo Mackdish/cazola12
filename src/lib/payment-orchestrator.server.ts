@@ -340,6 +340,15 @@ export async function initializePaymentWithProvider(
         },
       });
 
+      console.log("[payment][init]", {
+        reference: created.reference,
+        amount: input.amount,
+        currency: normalizedCurrency,
+        callbackUrl: getCallbackUrl(),
+        redirectUrl: `${getAppBaseUrl()}/payment/confirm?reference=${encodeURIComponent(created.reference)}`,
+        paymentUrl: providerResult.paymentUrl || null,
+      });
+
       return {
         paymentId: created.id,
         reference: created.reference,
@@ -479,6 +488,17 @@ export async function verifyAndCompletePayment(
     walletId: (payment as any).wallet_id,
     providerName,
     providerReference: verification.providerTransactionId ?? reference,
+  });
+
+  console.log("[wallet][target]", {
+    reference,
+    paymentId: (payment as any).id,
+    organizationId: (payment as any).organization_id,
+    userId: ctx.userId,
+    walletId: (payment as any).wallet_id,
+    walletCurrency: (payment as any).currency,
+    verifiedCurrency: verification.currency,
+    verifiedAmount: verification.amount,
   });
 
   const { data, error } = await ctx.supabase.rpc("complete_payment" as never, {
