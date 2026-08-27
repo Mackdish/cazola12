@@ -10,8 +10,16 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const KEY_ID_PREFIX = "tm_";
 
+function getApiKeyPepper(): string {
+  const pepper = process.env.API_KEY_PEPPER;
+  if (!pepper) {
+    throw new Error("API_KEY_PEPPER environment variable is required for API key hashing");
+  }
+  return pepper;
+}
+
 function hashSecret(secret: string): string {
-  return createHmac("sha256", secret).update("trademall-api-key").digest("hex");
+  return createHmac("sha256", getApiKeyPepper()).update(secret).digest("hex");
 }
 
 export type IssuedApiKey = {

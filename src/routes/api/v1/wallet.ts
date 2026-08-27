@@ -39,6 +39,7 @@ export const Route = createFileRoute("/api/v1/wallet")({
           authResult.context.userId,
           organizationId,
           authResult.context.authMethod,
+          "analyst",
         );
         if (!access.allowed) return access.response!;
 

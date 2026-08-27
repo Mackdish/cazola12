@@ -51,6 +51,7 @@ export const Route = createFileRoute("/api/v1/campaigns/$id/submit")({
           authResult.context.userId,
           campaign.organization_id,
           authResult.context.authMethod,
+          "admin",
         );
         if (!access.allowed) return access.response!;
 

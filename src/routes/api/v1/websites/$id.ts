@@ -73,6 +73,7 @@ export const Route = createFileRoute("/api/v1/websites/$id")({
           authResult.context.userId,
           website.organization_id,
           authResult.context.authMethod,
+          "analyst",
         );
         if (!access.allowed) return access.response!;
 
@@ -111,6 +112,7 @@ export const Route = createFileRoute("/api/v1/websites/$id")({
           authResult.context.userId,
           website.organization_id,
           authResult.context.authMethod,
+          "admin",
         );
         if (!access.allowed) return access.response!;
 

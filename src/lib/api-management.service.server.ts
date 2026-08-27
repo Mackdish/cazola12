@@ -6,7 +6,19 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 
+function getApiKeyPepper(): string {
+  const pepper = process.env.API_KEY_PEPPER;
+  if (!pepper) {
+    throw new Error("API_KEY_PEPPER environment variable is required for API key hashing");
+  }
+  return pepper;
+}
+
 function hashSecret(secret: string): string {
+  return createHmac("sha256", getApiKeyPepper()).update(secret).digest("hex");
+}
+
+function legacyHashSecret(secret: string): string {
   return createHmac("sha256", secret).update("trademall-api-key").digest("hex");
 }
 

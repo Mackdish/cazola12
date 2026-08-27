@@ -10,10 +10,24 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 
+export type PlatformRole = "super_admin" | "admin" | "analyst";
+
+const PLATFORM_ROLE_RANK: Record<PlatformRole, number> = {
+  super_admin: 3,
+  admin: 2,
+  analyst: 1,
+};
+
+function hasMinimumPlatformRole(role: string | undefined, minRole: PlatformRole): boolean {
+  if (!role) return false;
+  return (PLATFORM_ROLE_RANK[role as PlatformRole] ?? 0) >= PLATFORM_ROLE_RANK[minRole];
+}
+
 export async function assertOrganizationAccess(
   userId: string,
   organizationId: string,
   authMethod?: string,
+  minRole?: PlatformRole,
 ): Promise<{ allowed: true } | { allowed: false; response: Response }> {
   const client = supabaseAdmin as unknown as SupabaseClient<Database>;
 
@@ -49,11 +63,13 @@ export async function assertOrganizationAccess(
 
   const { data: platformRole } = await client
     .from("platform_roles")
-    .select("id")
+    .select("role")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (platformRole) return { allowed: true };
+  if (platformRole && hasMinimumPlatformRole(platformRole.role, minRole ?? "analyst")) {
+    return { allowed: true };
+  }
 
   return {
     allowed: false,
@@ -68,8 +84,9 @@ export async function assertAdvertiserAccess(
   userId: string,
   organizationId: string,
   authMethod?: string,
+  minRole?: PlatformRole,
 ): Promise<{ allowed: true } | { allowed: false; response: Response }> {
-  const access = await assertOrganizationAccess(userId, organizationId, authMethod);
+  const access = await assertOrganizationAccess(userId, organizationId, authMethod, minRole);
   if (!access.allowed) return access;
 
   const client = supabaseAdmin as unknown as SupabaseClient<Database>;
@@ -94,8 +111,9 @@ export async function assertPublisherAccess(
   userId: string,
   organizationId: string,
   authMethod?: string,
+  minRole?: PlatformRole,
 ): Promise<{ allowed: true } | { allowed: false; response: Response }> {
-  const access = await assertOrganizationAccess(userId, organizationId, authMethod);
+  const access = await assertOrganizationAccess(userId, organizationId, authMethod, minRole);
   if (!access.allowed) return access;
 
   const client = supabaseAdmin as unknown as SupabaseClient<Database>;

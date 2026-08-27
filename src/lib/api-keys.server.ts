@@ -10,7 +10,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -25,7 +25,19 @@ export type ForbiddenError = { status: 403; body: { ok: false; error: string } }
 
 const API_KEY_PREFIX = "tm_";
 
+function getApiKeyPepper(): string {
+  const pepper = process.env.API_KEY_PEPPER;
+  if (!pepper) {
+    throw new Error("API_KEY_PEPPER environment variable is required for API key hashing");
+  }
+  return pepper;
+}
+
 function hashSecret(secret: string): string {
+  return createHmac("sha256", getApiKeyPepper()).update(secret).digest("hex");
+}
+
+function legacyHashSecret(secret: string): string {
   return createHmac("sha256", secret).update("trademall-api-key").digest("hex");
 }
 
@@ -83,8 +95,19 @@ export async function authenticateApiKey(
   }
 
   const secretHash = hashSecret(secret);
-  if (!timingSafeCompare(apiKey.secret_hash, secretHash)) {
+  const legacySecretHash = legacyHashSecret(secret);
+  const matchesNew = timingSafeCompare(apiKey.secret_hash, secretHash);
+  const matchesLegacy = timingSafeCompare(apiKey.secret_hash, legacySecretHash);
+
+  if (!matchesNew && !matchesLegacy) {
     return { status: 401, body: { ok: false, error: "invalid_api_key" } };
+  }
+
+  if (matchesLegacy && !matchesNew) {
+    await client
+      .from("api_keys")
+      .update({ secret_hash: secretHash })
+      .eq("id", apiKey.id);
   }
 
   await client

@@ -14,6 +14,14 @@ for (const line of lines) {
   }
 }
 
+const targetEmail = process.argv[2] || process.env.ASSIGN_ADMIN_EMAIL;
+if (!targetEmail) {
+  console.error('ERROR: Target email is required.');
+  console.error('Usage: node scripts/assign-admin.mjs <email>');
+  console.error('   or: ASSIGN_ADMIN_EMAIL=<email> node scripts/assign-admin.mjs');
+  process.exit(1);
+}
+
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
@@ -24,9 +32,9 @@ if (error) {
   process.exit(1);
 }
 
-const target = data.users.find(u => u.email?.toLowerCase() === 'marklilian548@gmail.com');
+const target = data.users.find(u => u.email?.toLowerCase() === targetEmail.toLowerCase());
 if (!target) {
-  console.error('User not found: marklilian548@gmail.com');
+  console.error(`User not found: ${targetEmail}`);
   process.exit(1);
 }
 

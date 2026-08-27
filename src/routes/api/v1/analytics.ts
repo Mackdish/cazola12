@@ -71,6 +71,7 @@ export const Route = createFileRoute("/api/v1/analytics")({
           authResult.context.userId,
           organizationId,
           authResult.context.authMethod,
+          "analyst",
         );
         if (!access.allowed) return access.response!;
 

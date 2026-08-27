@@ -46,7 +46,7 @@ export const Route = createFileRoute("/api/v1/pay")({
 
         const ipAddress = extractIpAddress(request);
         try {
-          checkRateLimit(
+          await checkRateLimit(
             supabaseAdmin as unknown as Parameters<typeof checkRateLimit>[0],
             getRateLimitConfig("payout"),
             ipAddress,

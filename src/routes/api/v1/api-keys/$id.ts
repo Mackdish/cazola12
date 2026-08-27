@@ -29,6 +29,7 @@ export const Route = createFileRoute("/api/v1/api-keys/$id")({
           auth.context.userId,
           org.organizationId,
           auth.context.authMethod,
+          "admin",
         );
         if (!access.allowed) return access.response;
 

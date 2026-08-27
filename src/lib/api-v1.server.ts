@@ -18,13 +18,20 @@ function getAllowedOrigin(requestOrigin: string | null): string | null {
   if (!requestOrigin) return null;
   const envOrigins = (process.env["CORS_ALLOWED_ORIGINS"] || "").split(",").map((o) => o.trim()).filter(Boolean);
   const allowed = envOrigins.length > 0 ? envOrigins : DEFAULT_ALLOWED_ORIGINS;
-  if (allowed.includes("*")) return "*";
   if (allowed.includes(requestOrigin)) return requestOrigin;
   return null;
 }
 
 export function corsHeaders(methods: string, requestOrigin: string | null = null): Record<string, string> {
-  const allowedOrigin = getAllowedOrigin(requestOrigin) ?? "*";
+  const allowedOrigin = getAllowedOrigin(requestOrigin);
+  if (!allowedOrigin) {
+    return {
+      "Access-Control-Allow-Methods": `${methods}, OPTIONS`,
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+      "Vary": "Origin",
+    };
+  }
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": `${methods}, OPTIONS`,
@@ -35,6 +42,13 @@ export function corsHeaders(methods: string, requestOrigin: string | null = null
 }
 
 export function preflight(methods: string, requestOrigin: string | null = null): Response {
+  const allowedOrigin = getAllowedOrigin(requestOrigin);
+  if (!allowedOrigin) {
+    return new Response(JSON.stringify({ ok: false, error: "forbidden", message: "Origin not allowed" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
   return new Response(null, { status: 204, headers: corsHeaders(methods, requestOrigin) });
 }
 

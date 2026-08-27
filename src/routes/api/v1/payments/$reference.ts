@@ -49,6 +49,7 @@ export const Route = createFileRoute("/api/v1/payments/$reference")({
               authResult.context.userId,
               payment.organization_id,
               authResult.context.authMethod,
+              "analyst",
             );
             if (!access.allowed) return access.response!;
           }
