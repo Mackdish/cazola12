@@ -61,6 +61,14 @@ function cleanupCreativeCache() {
   }
 }
 
+export function invalidateCreativeCache(mediaAssetId?: string) {
+  if (mediaAssetId) {
+    CREATIVE_CACHE.delete(mediaAssetId);
+  } else {
+    CREATIVE_CACHE.clear();
+  }
+}
+
 /** One row, one index hit on ad_zones.zone_key. */
 export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | null> {
   return cachedServePathGet(zoneKey, 60, async () => {

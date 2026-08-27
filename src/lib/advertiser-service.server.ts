@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { getR2Bucket } from "@/lib/runtime-bindings.server";
 import { readEnv } from "@/lib/runtime-env.server";
+import { invalidateCreativeCache } from "@/lib/ad-serving.server";
 import {
   adFormatSpec,
   assertTransition,
@@ -865,7 +866,18 @@ export async function adminReviewCampaign(
           }
         : {};
   if (Object.keys(adPatch).length > 0) {
+    const { data: campaignAds } = await service
+      .from("ads")
+      .select("media_asset_id")
+      .eq("campaign_id", input.campaignId);
+
     await service.from("ads").update(adPatch).eq("campaign_id", input.campaignId);
+
+    if (input.action === "approve" && campaignAds) {
+      for (const ad of campaignAds) {
+        if (ad.media_asset_id) invalidateCreativeCache(ad.media_asset_id);
+      }
+    }
   }
 
   return data;
@@ -918,7 +930,14 @@ export async function adminReviewAd(
   await assertPlatformAdmin(ctx);
   if (input.action === "reject" && !(input.reason ?? "").trim())
     fail("A rejection reason is required.");
+
   const service = await admin();
+  const { data: existing } = await service
+    .from("ads")
+    .select("media_asset_id")
+    .eq("id", input.adId)
+    .maybeSingle();
+
   const { data, error } = await service
     .from("ads")
     .update(
@@ -935,6 +954,10 @@ export async function adminReviewAd(
     .maybeSingle();
   if (error) fail("We couldn't save that review.");
   if (!data) fail("That ad doesn't exist.");
+
+  if (input.action === "approve" && existing?.media_asset_id) {
+    invalidateCreativeCache(existing.media_asset_id);
+  }
 
   const { logAuditEvent } = await import("@/lib/audit-log.server");
   await logAuditEvent(ctx, {
