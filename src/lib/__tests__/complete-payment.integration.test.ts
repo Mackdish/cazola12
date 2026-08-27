@@ -172,4 +172,89 @@ describe.skipIf(!canRun)("complete_payment", () => {
     expect(transactions?.length).toBe(1);
     expect(transactions?.[0]?.created_by).toBeNull();
   });
+
+  it("completePaymentByReference succeeds with correct amount and currency mapping", async () => {
+    const payment = await createPendingKesPayment();
+    const { completePaymentByReference } = await import("@/lib/payment-service.server");
+
+    const result = await completePaymentByReference(
+      { supabase, userId: "system" } as never,
+      payment.reference,
+      payment.paymentId,
+      payment.paymentId,
+      "RECEIPT-" + payment.paymentId.slice(0, 8),
+      100,
+      "KES",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.alreadyCompleted).toBe(false);
+
+    const { data: finalWallet } = await supabase
+      .from("wallets")
+      .select("balance_amount")
+      .eq("id", payment.walletId)
+      .single();
+    expect(Number(finalWallet?.balance_amount)).toBe(100);
+
+    const { data: transactions } = await supabase
+      .from("wallet_transactions")
+      .select("amount, reference_id, reference_type, created_by")
+      .eq("wallet_id", payment.walletId)
+      .eq("reference_type", "payment");
+
+    expect(transactions?.length).toBe(1);
+    expect(transactions?.[0]?.amount).toBe(100);
+    expect(transactions?.[0]?.reference_id).toBe(payment.paymentId);
+    expect(transactions?.[0]?.reference_type).toBe("payment");
+    expect(transactions?.[0]?.created_by).toBeNull();
+  });
+
+  it("completePaymentByReference rejects mismatched verified amount", async () => {
+    const payment = await createPendingKesPayment();
+    const { completePaymentByReference } = await import("@/lib/payment-service.server");
+
+    await expect(
+      completePaymentByReference(
+        { supabase, userId: "system" } as never,
+        payment.reference,
+        payment.paymentId,
+        payment.paymentId,
+        "RECEIPT-" + payment.paymentId.slice(0, 8),
+        200,
+        "KES",
+      ),
+    ).rejects.toThrow("Payment amount mismatch.");
+
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance_amount")
+      .eq("id", payment.walletId)
+      .single();
+    expect(Number(wallet?.balance_amount)).toBe(0);
+  });
+
+  it("completePaymentByReference rejects mismatched verified currency", async () => {
+    const payment = await createPendingKesPayment();
+    const { completePaymentByReference } = await import("@/lib/payment-service.server");
+
+    await expect(
+      completePaymentByReference(
+        { supabase, userId: "system" } as never,
+        payment.reference,
+        payment.paymentId,
+        payment.paymentId,
+        "RECEIPT-" + payment.paymentId.slice(0, 8),
+        100,
+        "USD",
+      ),
+    ).rejects.toThrow("Payment currency mismatch.");
+
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance_amount")
+      .eq("id", payment.walletId)
+      .single();
+    expect(Number(wallet?.balance_amount)).toBe(0);
+  });
 });

@@ -105,11 +105,26 @@ async function processPayzaCallback(reference: string, rawStatus: string | null,
         verifiedCurrency,
       });
 
+      const providerReference = verification.providerTransactionId ?? reference;
+      const providerTransactionId = verification.providerTransactionId ?? null;
+      const providerReceipt = verification.providerReceipt ?? null;
+
+      console.log("[payment] completePaymentByReference mapped args:", {
+        reference,
+        providerReference,
+        providerTransactionId,
+        providerReceipt,
+        verifiedAmount,
+        verifiedCurrency,
+        userId: "system",
+      });
+
       const result = await (completePaymentByReference as any)(
         { supabase: supabaseAdmin as never, userId: "system" } as never,
         reference,
-        verification.providerTransactionId ?? reference,
-        verification.providerReceipt ?? null,
+        providerReference,
+        providerTransactionId,
+        providerReceipt,
         verifiedAmount,
         verifiedCurrency,
       );
