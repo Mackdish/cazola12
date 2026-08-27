@@ -81,9 +81,9 @@ BEGIN
     _wallet.currency,
     _description,
     _idempotency_key,
-    'payment_deposit',
+      'payment_deposit',
     NULL,
-    'system'
+    NULL
   );
 
   RETURN jsonb_build_object('ok', true, 'duplicate', false, 'balance', _balance_after, 'currency', _wallet.currency);
@@ -189,7 +189,7 @@ BEGIN
       'payment_' || _payment.id,
       'payment',
       _payment.id,
-      'system'
+      NULL
     );
   END IF;
 

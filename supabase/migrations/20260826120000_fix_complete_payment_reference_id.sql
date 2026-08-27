@@ -94,7 +94,7 @@ BEGIN
       'payment_' || _payment.id::text,
       'payment',
       _payment.id::text,
-      'system'
+      NULL
     );
   END IF;
 

@@ -129,4 +129,47 @@ describe.skipIf(!canRun)("complete_payment", () => {
       .single();
     expect(Number(wallet?.balance_amount)).toBe(0);
   });
+
+  it("sets created_by to NULL for unauthenticated public callbacks", async () => {
+    const payment = await createPendingKesPayment();
+
+    const { error } = await supabase.rpc("complete_payment", {
+      _payment_id: payment.paymentId,
+      _provider: "payzaapi",
+      _provider_reference: payment.reference,
+      _provider_transaction_id: "TXN-" + payment.paymentId.slice(0, 8),
+      _provider_receipt: "RECEIPT-" + payment.paymentId.slice(0, 8),
+    });
+    expect(error).toBeNull();
+
+    const { data: transactions } = await supabase
+      .from("wallet_transactions")
+      .select("created_by")
+      .eq("wallet_id", payment.walletId)
+      .eq("reference_type", "payment");
+
+    expect(transactions?.length).toBe(1);
+    expect(transactions?.[0]?.created_by).toBeNull();
+  });
+
+  it("deposit_to_wallet_for_currency sets created_by to NULL", async () => {
+    const payment = await createPendingKesPayment();
+
+    const { error } = await supabase.rpc("deposit_to_wallet_for_currency", {
+      _organization_id: payment.organizationId,
+      _amount: 50,
+      _currency: "KES",
+      _idempotency_key: "test-deposit-" + payment.paymentId,
+    });
+    expect(error).toBeNull();
+
+    const { data: transactions } = await supabase
+      .from("wallet_transactions")
+      .select("created_by")
+      .eq("wallet_id", payment.walletId)
+      .eq("reference_type", "payment_deposit");
+
+    expect(transactions?.length).toBe(1);
+    expect(transactions?.[0]?.created_by).toBeNull();
+  });
 });
