@@ -5,11 +5,14 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
+import { readEnv } from "@/lib/runtime-env.server";
 
 function getApiKeyPepper(): string {
-  const pepper = process.env.API_KEY_PEPPER;
+  const pepper = readEnv("API_KEY_PEPPER");
   if (!pepper) {
-    throw new Error("API_KEY_PEPPER environment variable is required for API key hashing");
+    throw new Error(
+      "API_KEY_PEPPER missing — checked: runtime env cache, process.env, import.meta.env",
+    );
   }
   return pepper;
 }

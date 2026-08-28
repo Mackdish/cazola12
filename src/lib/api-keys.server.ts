@@ -13,6 +13,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 
 import type { Database } from "@/integrations/supabase/types";
+import { readEnv } from "@/lib/runtime-env.server";
 
 export type ApiKeyContext = {
   apiKeyId: string;
@@ -26,9 +27,11 @@ export type ForbiddenError = { status: 403; body: { ok: false; error: string } }
 const API_KEY_PREFIX = "tm_";
 
 function getApiKeyPepper(): string {
-  const pepper = process.env.API_KEY_PEPPER;
+  const pepper = readEnv("API_KEY_PEPPER");
   if (!pepper) {
-    throw new Error("API_KEY_PEPPER environment variable is required for API key hashing");
+    throw new Error(
+      "API_KEY_PEPPER missing — checked: runtime env cache, process.env, import.meta.env",
+    );
   }
   return pepper;
 }
