@@ -5,7 +5,7 @@
  */
 
 import { GoogleGenAI, type GenerationResponse } from "@google/genai";
-import { readEnv } from "@/lib/runtime-env.server";
+import { readEnv, traceEnv } from "@/lib/runtime-env.server";
 import type { AIChatProvider, AIGenerationOptions } from "./ai-provider";
 import { AIServiceError, classifyProviderError } from "./ai-provider";
 
@@ -14,7 +14,9 @@ let _cachedKey: string | undefined;
 
 function resolveApiKey(): string | undefined {
   if (_cachedKey) return _cachedKey;
-  _cachedKey = readEnv("GEMINI_API_KEY");
+  _cachedKey = traceEnv("GEMINI_API_KEY", (name, checked) => {
+    console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
+  });
   return _cachedKey;
 }
 

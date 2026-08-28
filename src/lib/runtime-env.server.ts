@@ -39,3 +39,32 @@ export function readEnv(...names: string[]): string | undefined {
   }
   return undefined;
 }
+
+export function traceEnv(
+  name: string,
+  onMiss?: (name: string, checked: string[]) => void,
+): string | undefined {
+  const checked: string[] = [];
+  const cached = cache.get(name);
+  checked.push("runtime env cache");
+  if (cached) return cached;
+
+  try {
+    const fromProcess = process.env?.[name];
+    checked.push("process.env");
+    if (typeof fromProcess === "string" && fromProcess !== "") return fromProcess;
+  } catch {
+    checked.push("process.env");
+  }
+
+  try {
+    const fromVite = (import.meta as any)?.env?.[name];
+    checked.push("import.meta.env");
+    if (typeof fromVite === "string" && fromVite !== "") return fromVite;
+  } catch {
+    checked.push("import.meta.env");
+  }
+
+  if (onMiss) onMiss(name, checked);
+  return undefined;
+}

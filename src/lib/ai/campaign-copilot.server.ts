@@ -10,7 +10,7 @@
  * All AI calls happen server-side. Never expose this service to the browser.
  */
 
-import { readEnv } from "@/lib/runtime-env.server";
+import { readEnv, traceEnv } from "@/lib/runtime-env.server";
 import { createGeminiProvider, GEMINI_MODEL, isGeminiConfigured } from "./gemini.provider";
 import { createOpenAIProvider, OPENAI_MODEL, isOpenAIConfigured } from "./openai.provider";
 import {
@@ -74,14 +74,21 @@ export function isAIConfigured(): boolean {
 export function getAiConfigurationStatus(): "configured" | "missing" | "invalid" {
   if (AI_PROVIDER === "openai") {
     const key = readEnv("OPENAI_API_KEY");
-    if (!key) return "missing";
+    if (!key) {
+      traceEnv("OPENAI_API_KEY", (name, checked) => {
+        console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
+      });
+      return "missing";
+    }
     if (key.length < 20) return "invalid";
     return "configured";
   }
 
-  const key = readEnv("GEMINI_API_KEY");
+  const key = traceEnv("GEMINI_API_KEY", (name, checked) => {
+    console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
+  });
   if (!key) return "missing";
-  if (key.length < 20) return "invalid";
+  if (key.length < 30 || !key.startsWith("AIza")) return "invalid";
   return "configured";
 }
 

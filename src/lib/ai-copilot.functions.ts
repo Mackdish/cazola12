@@ -18,6 +18,7 @@ import {
   generateCreativeConcept,
   diagnoseAIConnection,
 } from "@/lib/ai/campaign-copilot.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const uuid = z.string().uuid();
 
@@ -30,36 +31,52 @@ function getAiIpAddress(): string {
   }
 }
 
-function mapAiError(error: unknown): Error {
-  const category = (error as any)?.category;
-  switch (category) {
-    case "AI_CONFIGURATION_MISSING":
-      return new Error("AI assistance is temporarily unavailable. Please contact support.");
-    case "AI_AUTH_ERROR":
-      return new Error("AI assistance is temporarily unavailable. Please contact support.");
-    case "AI_RATE_LIMIT_ERROR":
-      return new Error("AI requests are temporarily limited. Please try again shortly.");
-    case "AI_QUOTA_ERROR":
-      return new Error("AI assistance is temporarily unavailable because the AI service has reached its usage limit. Please try again later.");
-    case "AI_MODEL_ERROR":
-      return new Error("AI assistance is temporarily unavailable. Please contact support.");
-    case "AI_REQUEST_ERROR":
-      return new Error("Please provide more information about your product or service.");
-    case "AI_SCHEMA_ERROR":
-      return new Error("We couldn't generate that content. Please try again.");
-    case "AI_TIMEOUT":
-      return new Error("AI is taking longer than expected. Please try again.");
-    case "AI_PROVIDER_ERROR":
-      return new Error("AI assistance is temporarily unavailable. Please try again later.");
-    case "AI_PROVIDER_UNAVAILABLE":
-      return new Error("AI assistance is temporarily unavailable. Please try again later.");
-    case "AI_RESPONSE_INVALID":
-      return new Error("We couldn't generate that content. Please try again.");
-    case "AI_REQUEST_FAILED":
-      return new Error("We couldn't process your AI request. Please try again.");
-    default:
-      return new Error("We couldn't process your AI request. Please try again.");
+async function isAiAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("platform_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return data?.role === "super_admin" || data?.role === "admin";
+  } catch {
+    return false;
   }
+}
+
+function mapAiError(error: unknown, isAdmin: boolean): Error {
+  const category = (error as any)?.category;
+  const message = (error as any)?.message ?? "We couldn't process your AI request. Please try again.";
+
+  if (!isAdmin) {
+    switch (category) {
+      case "AI_CONFIGURATION_MISSING":
+      case "AI_AUTH_ERROR":
+        return new Error("AI assistance is temporarily unavailable. Please contact support.");
+      case "AI_RATE_LIMIT_ERROR":
+        return new Error("AI requests are temporarily limited. Please try again shortly.");
+      case "AI_QUOTA_ERROR":
+        return new Error("AI assistance is temporarily unavailable because the AI service has reached its usage limit. Please try again later.");
+      case "AI_MODEL_ERROR":
+      case "AI_PROVIDER_UNAVAILABLE":
+      case "AI_PROVIDER_ERROR":
+        return new Error("AI assistance is temporarily unavailable. Please try again later.");
+      case "AI_REQUEST_ERROR":
+        return new Error("Please provide more information about your product or service.");
+      case "AI_SCHEMA_ERROR":
+        return new Error("We couldn't generate that content. Please try again.");
+      case "AI_TIMEOUT":
+        return new Error("AI is taking longer than expected. Please try again.");
+      case "AI_RESPONSE_INVALID":
+        return new Error("We couldn't generate that content. Please try again.");
+      case "AI_REQUEST_FAILED":
+        return new Error("We couldn't process your AI request. Please try again.");
+      default:
+        return new Error("We couldn't process your AI request. Please try again.");
+    }
+  }
+
+  return new Error(`${category}: ${message}`);
 }
 
 export const generateAICampaignPlan = createServerFn({ method: "POST" })
@@ -102,7 +119,8 @@ export const generateAICampaignPlan = createServerFn({ method: "POST" })
       });
       return plan;
     } catch (error) {
-      throw mapAiError(error);
+      const admin = await isAiAdmin(context.userId);
+      throw mapAiError(error, admin);
     }
   });
 
@@ -142,7 +160,8 @@ export const generateAIAdCopy = createServerFn({ method: "POST" })
       });
       return { variants };
     } catch (error) {
-      throw mapAiError(error);
+      const admin = await isAiAdmin(context.userId);
+      throw mapAiError(error, admin);
     }
   });
 
@@ -180,7 +199,8 @@ export const generateAITargeting = createServerFn({ method: "POST" })
       });
       return suggestion;
     } catch (error) {
-      throw mapAiError(error);
+      const admin = await isAiAdmin(context.userId);
+      throw mapAiError(error, admin);
     }
   });
 
@@ -216,7 +236,8 @@ export const generateAICreativeConcept = createServerFn({ method: "POST" })
       });
       return concept;
     } catch (error) {
-      throw mapAiError(error);
+      const admin = await isAiAdmin(context.userId);
+      throw mapAiError(error, admin);
     }
   });
 
