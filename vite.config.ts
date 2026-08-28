@@ -108,7 +108,6 @@ export default defineConfig(async ({ mode, command }) => {
               "**/.workspace/**",
               "**/.agents/**",
               "**/.claude/**",
-              "**/.lovable/**",
               "**/.tanstack/tmp/**",
             ],
           },
