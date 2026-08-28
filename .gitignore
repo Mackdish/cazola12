@@ -28,7 +28,6 @@ dist-ssr
 *.sw?
 
 # Environment variables
-# Keep .env tracked for Lovable Cloud public Supabase config.
 # Secrets must go in .env.local (gitignored below).
 .env.local
 .env.*.local
