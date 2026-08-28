@@ -232,6 +232,7 @@ export async function createCampaign(
     startDate?: string | null | undefined;
     endDate?: string | null | undefined;
     landingPageUrl: string;
+    frequencyCap?: { impressions: number; periodHours: number } | null | undefined;
   },
 ) {
   const advertiser = await requireAdvertiser(ctx, input.organizationId);
@@ -299,6 +300,15 @@ export async function createCampaign(
   });
   if (groupError) {
     fail(`Could not create default ad group: ${groupError.message}`);
+  }
+
+  const { error: targetingError } = await db.from("campaign_targeting").insert({
+    campaign_id: data!.id,
+    organization_id: input.organizationId,
+    frequency_cap: input.frequencyCap ?? null,
+  });
+  if (targetingError) {
+    fail(`Could not create campaign targeting: ${targetingError.message}`);
   }
 
   return data!;
@@ -671,6 +681,7 @@ export async function saveTargeting(
     browsers: BrowserType[];
     websiteCategories: WebsiteCategory[];
     schedule: Record<string, Array<{ start: number; end: number }>>;
+    frequencyCap?: { impressions: number; periodHours: number } | null | undefined;
   },
 ) {
   const campaign = await loadOwnCampaign(ctx, input.campaignId);
@@ -685,6 +696,7 @@ export async function saveTargeting(
     browsers: input.browsers,
     website_categories: input.websiteCategories,
     schedule: input.schedule,
+    frequency_cap: input.frequencyCap ?? null,
   };
   console.error("[TARGETING_AUTH_DEBUG]", {
     userId: ctx.userId,

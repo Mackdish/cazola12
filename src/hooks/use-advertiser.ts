@@ -159,6 +159,7 @@ export type CreateCampaignInput = {
   startDate?: string | null | undefined;
   endDate?: string | null | undefined;
   landingPageUrl: string;
+  frequencyCap?: { impressions: number; periodHours: number } | null | undefined;
 };
 
 export function useCreateCampaign() {

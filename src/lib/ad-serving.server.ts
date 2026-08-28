@@ -10,6 +10,7 @@ import { parseSchedule, type RequestSignals } from "@/lib/advertiser-domain";
 import {
   FORMAT_SIZES,
   classifyUserAgent,
+  deriveSessionId,
   isSafeDestination,
   selectAd,
   weekdayOf,
@@ -43,6 +44,7 @@ type TargetingRow = {
   browsers: ServingCandidate["targeting"]["browsers"];
   website_categories: ServingCandidate["targeting"]["websiteCategories"];
   schedule: unknown;
+  frequency_cap: { impressions: number; periodHours: number } | null;
 };
 
 const CREATIVE_CACHE = new Map<
@@ -123,7 +125,7 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
   let query = supabaseAdmin
     .from("ads")
     .select(
-      `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule))`,
+      `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule, frequency_cap))`,
     )
     .eq("status", "active")
     .eq("approval_status", "approved")
@@ -185,7 +187,9 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
         browsers: targeting?.browsers ?? [],
         websiteCategories: targeting?.website_categories ?? [],
         schedule: parseSchedule(targeting?.schedule),
+        frequencyCap: targeting?.frequency_cap ?? null,
       },
+      frequencyCap: targeting?.frequency_cap ?? null,
     } satisfies ServingCandidate;
   });
 }
@@ -280,6 +284,13 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
 
   const now = new Date();
   const agent = classifyUserAgent(input.userAgent);
+  const sessionId = deriveSessionId({
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+    device: agent.device,
+    os: agent.os,
+    browser: agent.browser,
+  });
   const signals: RequestSignals = {
     device: agent.device,
     os: agent.os,
@@ -287,6 +298,7 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     websiteCategory: zone.websiteCategory,
     weekday: weekdayOf(now),
     hour: now.getUTCHours(),
+    sessionId,
     ...(input.country ? { country: input.country } : {}),
     ...(input.county ? { county: input.county } : {}),
     ...(input.city ? { city: input.city } : {}),
@@ -310,7 +322,21 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     return { ok: false, reason: "no_ad" };
   }
 
-  const { winner } = selectAd(fundedCandidates, zone, { now, signals });
+  const { checkFrequencyCap } = await import("@/lib/frequency-cap.server");
+  const frequencyCapResults = await Promise.all(
+    fundedCandidates.map((c) =>
+      checkFrequencyCap(sessionId, c.campaignId, c.frequencyCap),
+    ),
+  );
+  const frequencyCapEligible = fundedCandidates.filter(
+    (c, index) => !frequencyCapResults[index].capped,
+  );
+  if (frequencyCapEligible.length === 0) {
+    console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "no_ad" };
+  }
+
+  const { winner } = selectAd(frequencyCapEligible, zone, { now, signals });
   if (!winner || !winner.mediaAssetId) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };

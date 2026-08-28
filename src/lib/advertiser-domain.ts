@@ -291,6 +291,7 @@ export type TargetingRules = {
   browsers: BrowserType[];
   websiteCategories: WebsiteCategory[];
   schedule: TargetingSchedule;
+  frequencyCap: { impressions: number; periodHours: number } | null;
 };
 
 export const EMPTY_TARGETING: TargetingRules = {
@@ -302,6 +303,7 @@ export const EMPTY_TARGETING: TargetingRules = {
   browsers: [],
   websiteCategories: [],
   schedule: {},
+  frequencyCap: null,
 };
 
 export function parseSchedule(value: unknown): TargetingSchedule {
@@ -339,6 +341,7 @@ export type RequestSignals = {
   /** Local weekday + hour of the request. */
   weekday?: Weekday | undefined;
   hour?: number | undefined;
+  sessionId?: string | undefined;
 };
 
 function listMatches<T extends string>(allowed: T[], value: T | undefined | null): boolean {

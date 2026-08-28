@@ -4,6 +4,7 @@ import { EMPTY_TARGETING } from "@/lib/advertiser-domain";
 import {
   candidateIsEligible,
   classifyUserAgent,
+  deriveSessionId,
   formatMatches,
   isSafeDestination,
   scoreCandidate,
@@ -230,5 +231,32 @@ describe("redirect safety", () => {
     expect(isSafeDestination("http://example.com")).toBe(true);
     expect(isSafeDestination("javascript:alert(1)")).toBe(false);
     expect(isSafeDestination("/relative")).toBe(false);
+  });
+});
+
+describe("frequency capping", () => {
+  it("derives a stable session id from request attributes", () => {
+    const first = deriveSessionId({
+      ipAddress: "1.2.3.4",
+      userAgent: "Mozilla/5.0",
+      device: "desktop",
+      os: "windows",
+      browser: "chrome",
+    });
+    const second = deriveSessionId({
+      ipAddress: "1.2.3.4",
+      userAgent: "Mozilla/5.0",
+      device: "desktop",
+      os: "windows",
+      browser: "chrome",
+    });
+    expect(first).toBe(second);
+    expect(first).toMatch(/^sess:\d+$/);
+  });
+
+  it("changes the session id when the input changes", () => {
+    const a = deriveSessionId({ ipAddress: "1.2.3.4", userAgent: "ua", device: "desktop", os: "windows", browser: "chrome" });
+    const b = deriveSessionId({ ipAddress: "5.6.7.8", userAgent: "ua", device: "desktop", os: "windows", browser: "chrome" });
+    expect(a).not.toBe(b);
   });
 });

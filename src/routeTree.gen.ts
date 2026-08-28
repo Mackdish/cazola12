@@ -75,6 +75,7 @@ import { Route as AuthenticatedPublisherPayoutsRouteImport } from './routes/_aut
 import { Route as AuthenticatedPublisherPoliciesRouteImport } from './routes/_authenticated/publisher.policies'
 import { Route as AuthenticatedPublisherSandboxRouteImport } from './routes/_authenticated/publisher.sandbox'
 import { Route as AuthenticatedPublisherSettingsRouteImport } from './routes/_authenticated/publisher.settings'
+import { Route as ApiInternalConfigCheckRouteImport } from './routes/api/_internal/config-check'
 import { Route as ApiPublicAdRouteImport } from './routes/api/public/ad'
 import { Route as ApiPublicAdReportRouteImport } from './routes/api/public/ad-report'
 import { Route as ApiPublicClickRouteImport } from './routes/api/public/click'
@@ -93,6 +94,7 @@ import { Route as AuthenticatedPublisherWebsitesWebsiteIdRouteImport } from './r
 import { Route as ApiPublicPayCallbackRouteImport } from './routes/api/public/pay/callback'
 import { Route as ApiV1AdZonesIndexRouteImport } from './routes/api/v1/ad-zones/index'
 import { Route as ApiV1AdZonesIdRouteImport } from './routes/api/v1/ad-zones/$id'
+import { Route as ApiV1AdminAiDiagnosticsRouteImport } from './routes/api/v1/admin/ai-diagnostics'
 import { Route as ApiV1AdsIndexRouteImport } from './routes/api/v1/ads/index'
 import { Route as ApiV1AdsIdRouteImport } from './routes/api/v1/ads/$id'
 import { Route as ApiV1AdsServeRouteImport } from './routes/api/v1/ads/serve'
@@ -478,6 +480,11 @@ const AuthenticatedPublisherSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedPublisherRoute,
   } as any)
+const ApiInternalConfigCheckRoute = ApiInternalConfigCheckRouteImport.update({
+  id: '/api/_internal/config-check',
+  path: '/api/config-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAdRoute = ApiPublicAdRouteImport.update({
   id: '/api/public/ad',
   path: '/api/public/ad',
@@ -572,6 +579,11 @@ const ApiV1AdZonesIndexRoute = ApiV1AdZonesIndexRouteImport.update({
 const ApiV1AdZonesIdRoute = ApiV1AdZonesIdRouteImport.update({
   id: '/api/v1/ad-zones/$id',
   path: '/api/v1/ad-zones/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminAiDiagnosticsRoute = ApiV1AdminAiDiagnosticsRouteImport.update({
+  id: '/api/v1/admin/ai-diagnostics',
+  path: '/api/v1/admin/ai-diagnostics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AdsIndexRoute = ApiV1AdsIndexRouteImport.update({
@@ -730,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
   '/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
   '/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/config-check': typeof ApiInternalConfigCheckRoute
   '/api/public/ad': typeof ApiPublicAdRoute
   '/api/public/ad-report': typeof ApiPublicAdReportRoute
   '/api/public/click': typeof ApiPublicClickRoute
@@ -748,6 +761,7 @@ export interface FileRoutesByFullPath {
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -831,6 +845,7 @@ export interface FileRoutesByTo {
   '/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
   '/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
   '/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/config-check': typeof ApiInternalConfigCheckRoute
   '/api/public/ad': typeof ApiPublicAdRoute
   '/api/public/ad-report': typeof ApiPublicAdReportRoute
   '/api/public/click': typeof ApiPublicClickRoute
@@ -849,6 +864,7 @@ export interface FileRoutesByTo {
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -936,6 +952,7 @@ export interface FileRoutesById {
   '/_authenticated/publisher/policies': typeof AuthenticatedPublisherPoliciesRoute
   '/_authenticated/publisher/sandbox': typeof AuthenticatedPublisherSandboxRoute
   '/_authenticated/publisher/settings': typeof AuthenticatedPublisherSettingsRoute
+  '/api/_internal/config-check': typeof ApiInternalConfigCheckRoute
   '/api/public/ad': typeof ApiPublicAdRoute
   '/api/public/ad-report': typeof ApiPublicAdReportRoute
   '/api/public/click': typeof ApiPublicClickRoute
@@ -954,6 +971,7 @@ export interface FileRoutesById {
   '/_authenticated/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
+  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -1041,6 +1059,7 @@ export interface FileRouteTypes {
     | '/publisher/policies'
     | '/publisher/sandbox'
     | '/publisher/settings'
+    | '/api/config-check'
     | '/api/public/ad'
     | '/api/public/ad-report'
     | '/api/public/click'
@@ -1059,6 +1078,7 @@ export interface FileRouteTypes {
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
+    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1142,6 +1162,7 @@ export interface FileRouteTypes {
     | '/publisher/policies'
     | '/publisher/sandbox'
     | '/publisher/settings'
+    | '/api/config-check'
     | '/api/public/ad'
     | '/api/public/ad-report'
     | '/api/public/click'
@@ -1160,6 +1181,7 @@ export interface FileRouteTypes {
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
+    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1246,6 +1268,7 @@ export interface FileRouteTypes {
     | '/_authenticated/publisher/policies'
     | '/_authenticated/publisher/sandbox'
     | '/_authenticated/publisher/settings'
+    | '/api/_internal/config-check'
     | '/api/public/ad'
     | '/api/public/ad-report'
     | '/api/public/click'
@@ -1264,6 +1287,7 @@ export interface FileRouteTypes {
     | '/_authenticated/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
+    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1309,6 +1333,7 @@ export interface RootRouteChildren {
   PoliciesPublisherGuidelinesRoute: typeof PoliciesPublisherGuidelinesRoute
   SitemapXmlRoute: typeof SitemapXmlRoute
   PoliciesIndexRoute: typeof PoliciesIndexRoute
+  ApiInternalConfigCheckRoute: typeof ApiInternalConfigCheckRoute
   ApiPublicAdRoute: typeof ApiPublicAdRoute
   ApiPublicAdReportRoute: typeof ApiPublicAdReportRoute
   ApiPublicClickRoute: typeof ApiPublicClickRoute
@@ -1321,6 +1346,7 @@ export interface RootRouteChildren {
   ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
+  ApiV1AdminAiDiagnosticsRoute: typeof ApiV1AdminAiDiagnosticsRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
   ApiV1AdsServeRoute: typeof ApiV1AdsServeRoute
   ApiV1ApiKeysIdRoute: typeof ApiV1ApiKeysIdRoute
@@ -1801,6 +1827,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPublisherSettingsRouteImport
       parentRoute: typeof AuthenticatedPublisherRoute
     }
+    '/api/_internal/config-check': {
+      id: '/api/_internal/config-check'
+      path: '/api/config-check'
+      fullPath: '/api/config-check'
+      preLoaderRoute: typeof ApiInternalConfigCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ad': {
       id: '/api/public/ad'
       path: '/api/public/ad'
@@ -1925,6 +1958,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/ad-zones/$id'
       fullPath: '/api/v1/ad-zones/$id'
       preLoaderRoute: typeof ApiV1AdZonesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/ai-diagnostics': {
+      id: '/api/v1/admin/ai-diagnostics'
+      path: '/api/v1/admin/ai-diagnostics'
+      fullPath: '/api/v1/admin/ai-diagnostics'
+      preLoaderRoute: typeof ApiV1AdminAiDiagnosticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/ads/': {
@@ -2267,6 +2307,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliciesPublisherGuidelinesRoute: PoliciesPublisherGuidelinesRoute,
   SitemapXmlRoute: SitemapXmlRoute,
   PoliciesIndexRoute: PoliciesIndexRoute,
+  ApiInternalConfigCheckRoute: ApiInternalConfigCheckRoute,
   ApiPublicAdRoute: ApiPublicAdRoute,
   ApiPublicAdReportRoute: ApiPublicAdReportRoute,
   ApiPublicClickRoute: ApiPublicClickRoute,
@@ -2279,6 +2320,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
+  ApiV1AdminAiDiagnosticsRoute: ApiV1AdminAiDiagnosticsRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,
   ApiV1AdsServeRoute: ApiV1AdsServeRoute,
   ApiV1ApiKeysIdRoute: ApiV1ApiKeysIdRoute,

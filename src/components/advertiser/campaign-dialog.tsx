@@ -52,6 +52,8 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [landingPageUrl, setLandingPageUrl] = useState("");
+  const [frequencyCapImpressions, setFrequencyCapImpressions] = useState("");
+  const [frequencyCapPeriodHours, setFrequencyCapPeriodHours] = useState("24");
 
   const applyAIPlan = (plan: CampaignPlan) => {
     setName(plan.campaign.name);
@@ -113,6 +115,13 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
     }
 
     try {
+      const impressions = frequencyCapImpressions ? Number(frequencyCapImpressions) : null;
+      const periodHours = frequencyCapPeriodHours ? Number(frequencyCapPeriodHours) : null;
+      const frequencyCap =
+        impressions !== null && periodHours !== null && Number.isFinite(impressions) && Number.isFinite(periodHours)
+          ? { impressions, periodHours }
+          : null;
+
       await createCampaign.mutateAsync({
         organizationId,
         name: name.trim(),
@@ -124,11 +133,14 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
         startDate: startDate || null,
         endDate: endDate || null,
         landingPageUrl: url,
+        frequencyCap,
       });
       toast.success("Campaign created as a draft.");
       setOpen(false);
       setName("");
       setLandingPageUrl("");
+      setFrequencyCapImpressions("");
+      setFrequencyCapPeriodHours("24");
     } catch (error) {
       toast.error(toFriendlyError(error, "We couldn't create that campaign").message);
     }
@@ -268,6 +280,34 @@ export function CampaignDialog({ organizationId }: { organizationId: string | nu
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="campaign-frequency-cap">Max impressions per user</Label>
+              <Input
+                id="campaign-frequency-cap"
+                inputMode="numeric"
+                placeholder="Optional"
+                value={frequencyCapImpressions}
+                onChange={(event) => setFrequencyCapImpressions(event.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no limit.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-frequency-period">Period (hours)</Label>
+              <Input
+                id="campaign-frequency-period"
+                inputMode="numeric"
+                value={frequencyCapPeriodHours}
+                onChange={(event) => setFrequencyCapPeriodHours(event.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Rolling window length.
+              </p>
             </div>
           </div>
 

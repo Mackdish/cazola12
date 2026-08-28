@@ -74,6 +74,7 @@ export type ServingCandidate = {
   /** Advertiser organization that funds this campaign (billing gate). */
   organizationId?: string;
   targeting: TargetingRules;
+  frequencyCap?: { impressions: number; periodHours: number } | null;
 };
 
 export type ServingContext = {
@@ -101,7 +102,8 @@ export type IneligibleReason =
   | "ad_not_active"
   | "no_creative"
   | "format_mismatch"
-  | "targeting_mismatch";
+  | "targeting_mismatch"
+  | "frequency_capped";
 
 export type EligibilityVerdict = { eligible: true } | { eligible: false; reason: IneligibleReason };
 
@@ -278,4 +280,26 @@ export function isSafeDestination(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Privacy-conscious request identifier for frequency capping.
+ *
+ * Combines ip + userAgent + classified device/os/browser into a stable
+ * short-lived session ID. The resulting identifier is hashed and is not
+ * reversible, and it rotates naturally as the Redis TTL expires.
+ */
+export function deriveSessionId(input: {
+  ipAddress: string | null | undefined;
+  userAgent: string | null | undefined;
+  device: DeviceType | undefined;
+  os: OsType | undefined;
+  browser: BrowserType | undefined;
+}): string {
+  const seed = `${input.ipAddress ?? "no-ip"}|${input.userAgent ?? ""}|${input.device ?? ""}|${input.os ?? ""}|${input.browser ?? ""}`;
+  let hash = 5381;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = ((hash << 5) + hash) ^ seed.charCodeAt(i);
+  }
+  return `sess:${Math.abs(hash) >>> 0}`;
 }

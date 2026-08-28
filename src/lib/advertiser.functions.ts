@@ -130,6 +130,13 @@ export const addCampaign = createServerFn({ method: "POST" })
         startDate: dateString.optional().nullable(),
         endDate: dateString.optional().nullable(),
         landingPageUrl: z.string().trim().min(4).max(2048),
+        frequencyCap: z
+          .object({
+            impressions: z.number().int().min(1),
+            periodHours: z.number().int().min(1),
+          })
+          .optional()
+          .nullable(),
       })
       .parse(data),
   )
@@ -240,6 +247,13 @@ export const saveCampaignTargeting = createServerFn({ method: "POST" })
             ),
           )
           .default({}),
+        frequencyCap: z
+          .object({
+            impressions: z.number().int().min(1),
+            periodHours: z.number().int().min(1),
+          })
+          .optional()
+          .nullable(),
       })
       .parse(data),
   )
