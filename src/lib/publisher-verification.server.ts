@@ -7,30 +7,16 @@
  */
 import { VERIFICATION_KEY, verificationFileName } from "@/lib/publisher-domain";
 import type { VerificationMethod } from "@/lib/publisher-domain";
+import { safeFetch } from "@/lib/safe-fetch.server";
 
 export type VerificationOutcome = { ok: true } | { ok: false; reason: string };
 
-const TIMEOUT_MS = 8000;
 const MAX_BODY_BYTES = 512 * 1024;
 
 export function createVerificationToken(): string {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function fetchWithTimeout(url: string): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    return await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: { "user-agent": "TradeMallVerifier/1.0 (+domain-verification)", accept: "*/*" },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function readBody(response: Response): Promise<string> {
@@ -44,7 +30,7 @@ async function checkDnsTxt(domain: string, token: string): Promise<VerificationO
 
   for (const name of names) {
     try {
-      const response = await fetchWithTimeout(
+      const response = await safeFetch(
         `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=TXT`,
       );
       if (!response.ok) continue;
@@ -74,7 +60,9 @@ async function checkDnsTxt(domain: string, token: string): Promise<VerificationO
 async function checkMetaTag(domain: string, token: string): Promise<VerificationOutcome> {
   for (const url of [`https://${domain}/`, `https://www.${domain}/`]) {
     try {
-      const response = await fetchWithTimeout(url);
+      const response = await safeFetch(url, {
+        headers: { "user-agent": "TradeMallVerifier/1.0 (+domain-verification)", accept: "*/*" },
+      });
       if (!response.ok) continue;
       const html = await readBody(response);
       const pattern = new RegExp(
@@ -108,7 +96,9 @@ async function checkHtmlFile(domain: string, token: string): Promise<Verificatio
   const path = verificationFileName(token);
   for (const url of [`https://${domain}/${path}`, `https://www.${domain}/${path}`]) {
     try {
-      const response = await fetchWithTimeout(url);
+      const response = await safeFetch(url, {
+        headers: { "user-agent": "TradeMallVerifier/1.0 (+domain-verification)", accept: "*/*" },
+      });
       if (!response.ok) continue;
       const body = await readBody(response);
       if (body.includes(token)) return { ok: true };

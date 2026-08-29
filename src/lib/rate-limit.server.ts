@@ -31,6 +31,12 @@ const DEFAULT_LIMITS: Record<string, RateLimitConfig> = {
     limit: 10,
     windowSeconds: 3600,
   },
+  domain_verification: {
+    key: "domain:verify",
+    action: "domain_verification",
+    limit: 10,
+    windowSeconds: 3600,
+  },
   upload: { key: "upload", action: "upload", limit: 20, windowSeconds: 3600 },
   payout: { key: "payout", action: "payout", limit: 5, windowSeconds: 86400 },
   ai_copilot: { key: "ai:copilot", action: "ai_copilot", limit: 20, windowSeconds: 3600 },

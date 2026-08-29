@@ -12,6 +12,7 @@ import { authenticateRequest } from "@/lib/api-auth.server";
 import { assertPublisherAccess } from "@/lib/api-authorization.server";
 import { jsonResponse, validationError, notFoundError, serverError } from "@/lib/api-response";
 import { corsHeaders, preflight } from "@/lib/api-v1.server";
+import { checkRateLimit, extractIpAddress, getRateLimitConfig } from "@/lib/rate-limit.server";
 
 const JSON_HEADERS = {
   "Content-Type": "application/json",
@@ -54,6 +55,8 @@ export const Route = createFileRoute("/api/v1/websites/$id/verify")({
           "admin",
         );
         if (!access.allowed) return access.response!;
+
+        checkRateLimit(supabaseAdmin as never, getRateLimitConfig("domain_verification"), extractIpAddress(request), authResult.context.userId, website.organization_id);
 
         let body: unknown = null;
         try {
