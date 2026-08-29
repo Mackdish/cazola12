@@ -57,6 +57,7 @@ function mapAiError(error: unknown, isAdmin: boolean): Error {
         return new Error("AI requests are temporarily limited. Please try again shortly.");
       case "AI_QUOTA_ERROR":
         return new Error("AI assistance is temporarily unavailable because the AI service has reached its usage limit. Please try again later.");
+      case "AI_MODEL_UNAVAILABLE":
       case "AI_MODEL_ERROR":
       case "AI_PROVIDER_UNAVAILABLE":
       case "AI_PROVIDER_ERROR":

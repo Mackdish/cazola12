@@ -31,7 +31,19 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
-export const GEMINI_MODEL = readEnv("GEMINI_MODEL") ?? "gemini-2.0-flash";
+/**
+ * Default Gemini model.
+ *
+ * IMPORTANT: Google deprecates Gemini model IDs on a rolling basis.
+ * Before assuming this default is still valid, check:
+ * https://ai.google.dev/gemini-api/docs/deprecations
+ *
+ * As of 2026-08-29, `gemini-2.0-flash` is retired and the current default
+ * is `gemini-2.5-flash`, which is itself scheduled for deprecation around
+ * 2026-10-16. Set `GEMINI_MODEL` as a Cloudflare secret to pin a specific
+ * model instead of relying on this fallback.
+ */
+export const GEMINI_MODEL = readEnv("GEMINI_MODEL") ?? "gemini-2.5-flash";
 
 export function isGeminiConfigured(): boolean {
   return Boolean(resolveApiKey());

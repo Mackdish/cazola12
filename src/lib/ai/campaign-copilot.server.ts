@@ -167,7 +167,7 @@ function classifyProviderError(error: unknown): {
   }
 
   if (status === 404) {
-    return { category: "AI_MODEL_ERROR", message: `Model not found: ${getAiModel()}` };
+    return { category: "AI_MODEL_UNAVAILABLE", message: `Model not found: ${getAiModel()}` };
   }
 
   if (status === 400) {

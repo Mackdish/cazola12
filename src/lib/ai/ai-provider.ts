@@ -40,6 +40,7 @@ export class AIServiceError extends Error {
       | "AI_RATE_LIMIT_ERROR"
       | "AI_QUOTA_ERROR"
       | "AI_MODEL_ERROR"
+      | "AI_MODEL_UNAVAILABLE"
       | "AI_REQUEST_ERROR"
       | "AI_SCHEMA_ERROR"
       | "AI_TIMEOUT"
@@ -80,7 +81,7 @@ export function classifyProviderError(
   }
 
   if (status === 404) {
-    return { category: "AI_MODEL_ERROR", message: `Model not found.` };
+    return { category: "AI_MODEL_UNAVAILABLE", message: `Model not found.` };
   }
 
   if (status === 400) {
