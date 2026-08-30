@@ -26,7 +26,10 @@ function getClient(): GoogleGenAI {
     throw new AIServiceError("GEMINI_API_KEY is not configured.", "AI_CONFIGURATION_MISSING");
   }
   if (!_client) {
-    _client = new GoogleGenAI({ apiKey });
+    _client = new GoogleGenAI({
+      apiKey,
+      apiVersion: "v1beta",
+    });
   }
   return _client;
 }
@@ -50,7 +53,7 @@ export function isGeminiConfigured(): boolean {
 }
 
 export function createGeminiProvider(): AIChatProvider {
-  return {
+  const provider: AIChatProvider = {
     name: "gemini",
     model: GEMINI_MODEL,
 
@@ -70,7 +73,7 @@ export function createGeminiProvider(): AIChatProvider {
           contents: [
             { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
           ],
-          generationConfig: {
+          config: {
             temperature: options?.temperature ?? 0.7,
             maxOutputTokens: options?.maxOutputTokens ?? 2000,
             responseMimeType: "application/json",
@@ -123,7 +126,7 @@ export function createGeminiProvider(): AIChatProvider {
         const response = await client.models.generateContent({
           model,
           contents: [{ role: "user", parts: [{ text: "Return the word OK." }] }],
-          generationConfig: {
+          config: {
             maxOutputTokens: 10,
             responseMimeType: "text/plain",
           },
@@ -151,6 +154,8 @@ export function createGeminiProvider(): AIChatProvider {
       }
     },
   };
+
+  return provider;
 }
 
 export function resetGeminiCache(): void {

@@ -37,6 +37,7 @@ export { AIServiceError } from "./ai-provider";
 const AI_PROVIDER = (readEnv("AI_PROVIDER") ?? "gemini").toLowerCase();
 
 let _provider: AIChatProvider | null = null;
+let _providerDiagnostic: Promise<{ ok: boolean; category?: string; message?: string }> | null = null;
 
 function getProvider(): AIChatProvider {
   if (_provider) return _provider;
@@ -55,6 +56,36 @@ function getProvider(): AIChatProvider {
   }
 
   _provider = geminiProvider;
+
+  if (geminiProvider && !_providerDiagnostic) {
+    _providerDiagnostic = geminiProvider
+      .diagnoseConnection()
+      .then((result) => ({
+        ok: result.ok,
+        category: result.category,
+        message: result.message,
+      }))
+      .catch((error: any) => ({
+        ok: false,
+        category: "AI_INTERNAL_ERROR",
+        message: error?.message ?? String(error),
+      }))
+      .finally(() => {
+        _providerDiagnostic = null;
+      });
+
+    _providerDiagnostic.then((diagnostic) => {
+      if (!diagnostic.ok) {
+        console.log("[ai] provider startup diagnostic failed", {
+          provider: geminiProvider.name,
+          model: geminiProvider.model,
+          category: diagnostic.category,
+          message: diagnostic.message,
+        });
+      }
+    });
+  }
+
   return _provider;
 }
 
