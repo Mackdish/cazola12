@@ -2,7 +2,7 @@
  * Server functions for the AI Campaign Copilot.
  *
  * These are the only browser-accessible entry points into the AI service.
- * All OpenAI calls happen server-side.
+ * All AI calls happen server-side.
  */
 
 import { createServerFn } from "@tanstack/react-start";

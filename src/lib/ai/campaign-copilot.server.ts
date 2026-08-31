@@ -6,8 +6,7 @@
  * All AI calls happen server-side. Never expose this service to the browser.
  */
 
-import { readEnv, traceEnv } from "@/lib/runtime-env.server";
-import { createOpenAIProvider, OPENAI_MODEL, isOpenAIConfigured, resetOpenAICache } from "./openai.provider";
+import { readEnv } from "@/lib/runtime-env.server";
 import { createWorkersAIProvider, isWorkersAIConfigured, WORKERS_AI_MODEL } from "./workers-ai.provider";
 import {
   CampaignPlanSchema,
@@ -33,18 +32,12 @@ export { AIServiceError } from "./ai-provider";
 let _provider: AIChatProvider | null = null;
 let _providerDiagnostic: Promise<{ ok: boolean; category?: string; message?: string }> | null = null;
 
-type AIProviderName = "workers-ai" | "openai";
-
-function configuredProviderName(): AIProviderName {
-  return readEnv("AI_PROVIDER")?.trim().toLowerCase() === "openai" ? "openai" : "workers-ai";
-}
-
 function getProvider(): AIChatProvider {
   if (_provider) return _provider;
 
-  const provider = configuredProviderName() === "openai" ? createOpenAIProvider() : createWorkersAIProvider();
+  const provider = createWorkersAIProvider();
   if (!provider) {
-    throw new AIServiceError("AI service is not configured.", "AI_CONFIGURATION_MISSING");
+    throw new AIServiceError("Workers AI binding is not configured.", "AI_CONFIGURATION_MISSING");
   }
 
   _provider = provider;
@@ -86,27 +79,15 @@ export function getAiProviderName(): string {
 }
 
 export function getAiModel(): string {
-  return configuredProviderName() === "openai" ? OPENAI_MODEL : WORKERS_AI_MODEL;
+  return WORKERS_AI_MODEL;
 }
 
 export function isAIConfigured(): boolean {
-  return configuredProviderName() === "openai" ? isOpenAIConfigured() : isWorkersAIConfigured();
+  return isWorkersAIConfigured();
 }
 
-export function getAiConfigurationStatus(): "configured" | "missing" | "invalid" {
-  if (configuredProviderName() === "workers-ai") {
-    return isWorkersAIConfigured() ? "configured" : "missing";
-  }
-
-  const key = readEnv("OPENAI_API_KEY")?.trim();
-  if (!key) {
-    traceEnv("OPENAI_API_KEY", (name, checked) => {
-      console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
-    });
-    return "missing";
-  }
-  if (key.length < 20) return "invalid";
-  return "configured";
+export function getAiConfigurationStatus(): "configured" | "missing" {
+  return isWorkersAIConfigured() ? "configured" : "missing";
 }
 
 export async function diagnoseAIConnection(): Promise<{
@@ -122,7 +103,7 @@ export async function diagnoseAIConnection(): Promise<{
   const model = getAiModel();
 
   if (!configured) {
-    return { configured: false, model, ok: false, category: "AI_CONFIGURATION_MISSING", message: "API key missing." };
+    return { configured: false, model, ok: false, category: "AI_CONFIGURATION_MISSING", message: "Workers AI binding is not configured." };
   }
 
   try {
@@ -151,7 +132,6 @@ export async function diagnoseAIConnection(): Promise<{
 export function resetAiCache(): void {
   _provider = null;
   _providerDiagnostic = null;
-  resetOpenAICache();
 }
 
 function classifyProviderError(error: unknown): {
@@ -165,7 +145,7 @@ function classifyProviderError(error: unknown): {
   const providerError = err?.error;
 
   if (status === 401 || status === 403) {
-    return { category: "AI_AUTH_ERROR", message: "Invalid API key." };
+    return { category: "AI_AUTH_ERROR", message: "Authentication failed." };
   }
 
   if (status === 429) {

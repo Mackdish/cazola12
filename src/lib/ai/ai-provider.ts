@@ -66,7 +66,7 @@ export function classifyProviderError(
   const providerError = err?.error;
 
   if (status === 401 || status === 403) {
-    return { category: "AI_AUTH_ERROR", message: "Invalid API key." };
+    return { category: "AI_AUTH_ERROR", message: "Authentication failed." };
   }
 
   if (status === 429) {

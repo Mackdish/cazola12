@@ -31,9 +31,6 @@ export const Route = createFileRoute("/api/v1/admin/ai-diagnostics")({
         }
 
         let provider = "workers-ai";
-        try {
-          provider = getAiProviderName();
-        } catch {}
 
         const result = await diagnoseAIConnection();
         return jsonResponse(

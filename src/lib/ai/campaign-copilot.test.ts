@@ -7,8 +7,6 @@ import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, gene
 import { createWorkersAIProvider, isWorkersAIConfigured } from "@/lib/ai/workers-ai.provider";
 import { captureRuntimeBindings } from "@/lib/runtime-bindings.server";
 
-const originalAIProvider = process.env.AI_PROVIDER;
-
 describe("AI campaign schemas", () => {
   it("validates a complete campaign plan", () => {
     const input = {
@@ -52,7 +50,6 @@ describe("AI campaign schemas", () => {
 
 describe("AI service configuration", () => {
   beforeEach(() => {
-    process.env.AI_PROVIDER = "openai";
     mockFetch.mockReset();
     globalThis.fetch = mockFetch;
     resetAiCache();
@@ -62,103 +59,8 @@ describe("AI service configuration", () => {
     globalThis.fetch = originalFetch;
   });
 
-  afterAll(() => {
-    process.env.AI_PROVIDER = originalAIProvider;
-  });
-
-  it("reports missing when API key is absent", () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
-    try {
-      expect(getAiConfigurationStatus()).toBe("missing");
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
-  });
-
-  it("reports invalid when API key is too short", () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "short";
-    try {
-      expect(getAiConfigurationStatus()).toBe("invalid");
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
-  });
-});
-
-describe("AI service error handling", () => {
-  beforeEach(() => {
-    process.env.AI_PROVIDER = "openai";
-    mockFetch.mockReset();
-    globalThis.fetch = mockFetch;
-    resetAiCache();
-  });
-
-  afterEach(() => {
-    resetAiCache();
-    globalThis.fetch = originalFetch;
-  });
-
-  afterAll(() => {
-    process.env.AI_PROVIDER = originalAIProvider;
-  });
-
-  it("throws AIServiceError when API key is missing", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
-    try {
-      await expect(generateCampaignPlan({ description: "test", currency: "KES" })).rejects.toThrow(AIServiceError);
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
-  });
-
-  it("throws AIServiceError for empty description", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "";
-    try {
-      await expect(generateCampaignPlan({ description: "", currency: "KES" })).rejects.toThrow(AIServiceError);
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
-  });
-
-  it("reports an unavailable OpenAI model", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "test-openai-api-key-12345";
-    mockFetch.mockImplementation(() => Promise.resolve(
-      new Response(JSON.stringify({ error: { message: "Model not found" } }), { status: 404 }),
-    ));
-    try {
-      await expect(generateCampaignPlan({ description: "test", currency: "KES" })).rejects.toMatchObject({
-        category: "AI_MODEL_UNAVAILABLE",
-      });
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
-  });
-
-  it("generates a campaign plan with OpenAI", async () => {
-    const original = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "test-openai-api-key-12345";
-    mockFetch.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
-      choices: [{ message: { content: JSON.stringify({
-        campaign: { name: "Test", objective: "traffic", summary: "Summary" },
-        budget: { currency: "KES", total: 10000, daily: 714, duration_days: 14 },
-        targeting: { countries: [], counties: ["Nairobi"], cities: [], age_min: 25, age_max: 55, devices: ["mobile"], interests: [], keywords: [] },
-        ads: [{ headline: "H1", primary_text: "PT", description: "D", cta: "Buy", creative_concept: "CC" }],
-        recommendations: [],
-        warnings: [],
-      }) } }],
-    }), { status: 200, headers: { "content-type": "application/json" } })));
-    try {
-      await expect(generateCampaignPlan({ description: "test", currency: "KES" })).resolves.toMatchObject({
-        campaign: { name: "Test" },
-      });
-    } finally {
-      process.env.OPENAI_API_KEY = original;
-    }
+  it("reports missing when Workers AI binding is unavailable", () => {
+    expect(getAiConfigurationStatus()).toBe("missing");
   });
 });
 
