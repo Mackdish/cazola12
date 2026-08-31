@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/v1/admin/ai-diagnostics")({
           );
         }
 
-        let provider = "openai";
+        let provider = "workers-ai";
         try {
           provider = getAiProviderName();
         } catch {}

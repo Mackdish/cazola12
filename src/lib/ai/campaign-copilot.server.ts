@@ -1,13 +1,14 @@
 /**
  * Server-side AI Campaign Copilot service.
  *
- * Uses OpenAI for campaign generation.
+ * Uses the configured AI provider for campaign generation.
  *
  * All AI calls happen server-side. Never expose this service to the browser.
  */
 
 import { readEnv, traceEnv } from "@/lib/runtime-env.server";
 import { createOpenAIProvider, OPENAI_MODEL, isOpenAIConfigured, resetOpenAICache } from "./openai.provider";
+import { createWorkersAIProvider, isWorkersAIConfigured, WORKERS_AI_MODEL } from "./workers-ai.provider";
 import {
   CampaignPlanSchema,
   AdCopyVariantSchema,
@@ -32,10 +33,16 @@ export { AIServiceError } from "./ai-provider";
 let _provider: AIChatProvider | null = null;
 let _providerDiagnostic: Promise<{ ok: boolean; category?: string; message?: string }> | null = null;
 
+type AIProviderName = "workers-ai" | "openai";
+
+function configuredProviderName(): AIProviderName {
+  return readEnv("AI_PROVIDER")?.trim().toLowerCase() === "openai" ? "openai" : "workers-ai";
+}
+
 function getProvider(): AIChatProvider {
   if (_provider) return _provider;
 
-  const provider = createOpenAIProvider();
+  const provider = configuredProviderName() === "openai" ? createOpenAIProvider() : createWorkersAIProvider();
   if (!provider) {
     throw new AIServiceError("AI service is not configured.", "AI_CONFIGURATION_MISSING");
   }
@@ -79,14 +86,18 @@ export function getAiProviderName(): string {
 }
 
 export function getAiModel(): string {
-  return OPENAI_MODEL;
+  return configuredProviderName() === "openai" ? OPENAI_MODEL : WORKERS_AI_MODEL;
 }
 
 export function isAIConfigured(): boolean {
-  return isOpenAIConfigured();
+  return configuredProviderName() === "openai" ? isOpenAIConfigured() : isWorkersAIConfigured();
 }
 
 export function getAiConfigurationStatus(): "configured" | "missing" | "invalid" {
+  if (configuredProviderName() === "workers-ai") {
+    return isWorkersAIConfigured() ? "configured" : "missing";
+  }
+
   const key = readEnv("OPENAI_API_KEY")?.trim();
   if (!key) {
     traceEnv("OPENAI_API_KEY", (name, checked) => {

@@ -1,9 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFetch = vi.fn();
 const originalFetch = globalThis.fetch;
 import { CampaignPlanSchema, AdCopyVariantSchema, TargetingSuggestionSchema, CreativeConceptSchema } from "@/lib/ai/campaign-schema";
 import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError, getAiConfigurationStatus, resetAiCache } from "@/lib/ai/campaign-copilot.server";
+import { createWorkersAIProvider, isWorkersAIConfigured } from "@/lib/ai/workers-ai.provider";
+import { captureRuntimeBindings } from "@/lib/runtime-bindings.server";
+
+const originalAIProvider = process.env.AI_PROVIDER;
 
 describe("AI campaign schemas", () => {
   it("validates a complete campaign plan", () => {
@@ -48,6 +52,7 @@ describe("AI campaign schemas", () => {
 
 describe("AI service configuration", () => {
   beforeEach(() => {
+    process.env.AI_PROVIDER = "openai";
     mockFetch.mockReset();
     globalThis.fetch = mockFetch;
     resetAiCache();
@@ -55,6 +60,10 @@ describe("AI service configuration", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  afterAll(() => {
+    process.env.AI_PROVIDER = originalAIProvider;
   });
 
   it("reports missing when API key is absent", () => {
@@ -80,6 +89,7 @@ describe("AI service configuration", () => {
 
 describe("AI service error handling", () => {
   beforeEach(() => {
+    process.env.AI_PROVIDER = "openai";
     mockFetch.mockReset();
     globalThis.fetch = mockFetch;
     resetAiCache();
@@ -88,6 +98,10 @@ describe("AI service error handling", () => {
   afterEach(() => {
     resetAiCache();
     globalThis.fetch = originalFetch;
+  });
+
+  afterAll(() => {
+    process.env.AI_PROVIDER = originalAIProvider;
   });
 
   it("throws AIServiceError when API key is missing", async () => {
@@ -145,5 +159,46 @@ describe("AI service error handling", () => {
     } finally {
       process.env.OPENAI_API_KEY = original;
     }
+  });
+});
+
+describe("Cloudflare Workers AI provider", () => {
+  beforeEach(() => {
+    captureRuntimeBindings({});
+  });
+
+  afterEach(() => {
+    captureRuntimeBindings({});
+  });
+
+  it("generates text from the Workers AI binding", async () => {
+    const run = vi.fn().mockResolvedValue({ response: "Generated copy" });
+    captureRuntimeBindings({ AI: { run } });
+
+    const provider = createWorkersAIProvider();
+    await expect(provider?.generateText("System instructions", "User request")).resolves.toBe("Generated copy");
+    expect(run).toHaveBeenCalledWith(
+      "@cf/meta/llama-3.1-8b-instruct",
+      expect.objectContaining({
+        messages: [
+          { role: "system", content: "System instructions" },
+          { role: "user", content: "User request" },
+        ],
+      }),
+    );
+  });
+
+  it("is unavailable when the Workers AI binding is missing", () => {
+    expect(isWorkersAIConfigured()).toBe(false);
+    expect(createWorkersAIProvider()).toBeNull();
+  });
+
+  it("rejects a malformed Workers AI response", async () => {
+    captureRuntimeBindings({ AI: { run: vi.fn().mockResolvedValue({}) } });
+
+    const provider = createWorkersAIProvider();
+    await expect(provider?.generateText("System instructions", "User request")).rejects.toMatchObject({
+      category: "AI_RESPONSE_INVALID",
+    });
   });
 });
