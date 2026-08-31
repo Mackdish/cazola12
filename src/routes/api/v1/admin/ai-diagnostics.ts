@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { diagnoseAIConnection, getAiProviderName } from "@/lib/ai/campaign-copilot.server";
-import { readEnv } from "@/lib/runtime-env.server";
 import { authenticateRequest } from "@/lib/api-auth.server";
 import { jsonResponse } from "@/lib/api-response";
 import { corsHeaders, preflight } from "@/lib/api-v1.server";
@@ -31,12 +30,10 @@ export const Route = createFileRoute("/api/v1/admin/ai-diagnostics")({
           );
         }
 
-        let provider = "gemini";
+        let provider = "openai";
         try {
           provider = getAiProviderName();
-        } catch {
-          provider = (readEnv("AI_PROVIDER") ?? "gemini").toLowerCase();
-        }
+        } catch {}
 
         const result = await diagnoseAIConnection();
         return jsonResponse(

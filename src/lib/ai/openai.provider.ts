@@ -1,22 +1,20 @@
 /**
  * OpenAI provider implementation.
  *
- * Retained as a fallback provider. Activated when AI_PROVIDER=openai.
- *
  * Server-side only. Never import this file from client/browser code.
  */
 
 import OpenAI from "openai";
 import { readEnv } from "@/lib/runtime-env.server";
 import type { AIChatProvider, AIGenerationOptions } from "./ai-provider";
-import { AIServiceError } from "./ai-provider";
+import { AIServiceError, classifyProviderError } from "./ai-provider";
 
 let _openai: OpenAI | null = null;
 let _cachedKey: string | undefined;
 
 function resolveApiKey(): string | undefined {
   if (_cachedKey) return _cachedKey;
-  _cachedKey = readEnv("OPENAI_API_KEY");
+  _cachedKey = readEnv("OPENAI_API_KEY")?.trim() || undefined;
   return _cachedKey;
 }
 
@@ -124,7 +122,7 @@ export function createOpenAIProvider(): AIChatProvider | null {
         };
       } catch (error: any) {
         const status = error?.status ?? error?.response?.status;
-        const { category, message } = classifyProviderError(error);
+        const { category, message } = classifyProviderError("openai", error);
 
         return {
           configured: true,

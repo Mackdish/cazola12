@@ -1,18 +1,13 @@
 /**
  * Server-side AI Campaign Copilot service.
  *
- * Uses a provider-agnostic abstraction so TradeMall can switch AI
- * providers without rewriting campaign logic.
- *
- * Current default provider: Gemini.
- * OpenAI is retained as a fallback for future restoration.
+ * Uses OpenAI for campaign generation.
  *
  * All AI calls happen server-side. Never expose this service to the browser.
  */
 
 import { readEnv, traceEnv } from "@/lib/runtime-env.server";
-import { createGeminiProvider, GEMINI_MODEL, isGeminiConfigured } from "./gemini.provider";
-import { createOpenAIProvider, OPENAI_MODEL, isOpenAIConfigured } from "./openai.provider";
+import { createOpenAIProvider, OPENAI_MODEL, isOpenAIConfigured, resetOpenAICache } from "./openai.provider";
 import {
   CampaignPlanSchema,
   AdCopyVariantSchema,
@@ -34,31 +29,21 @@ import type { AIChatProvider } from "./ai-provider";
 import { AIServiceError } from "./ai-provider";
 export { AIServiceError } from "./ai-provider";
 
-const AI_PROVIDER = (readEnv("AI_PROVIDER") ?? "gemini").toLowerCase();
-
 let _provider: AIChatProvider | null = null;
 let _providerDiagnostic: Promise<{ ok: boolean; category?: string; message?: string }> | null = null;
 
 function getProvider(): AIChatProvider {
   if (_provider) return _provider;
 
-  if (AI_PROVIDER === "openai") {
-    const provider = createOpenAIProvider();
-    if (provider) {
-      _provider = provider;
-      return _provider;
-    }
-  }
-
-  const geminiProvider = createGeminiProvider();
-  if (!geminiProvider && AI_PROVIDER === "gemini") {
+  const provider = createOpenAIProvider();
+  if (!provider) {
     throw new AIServiceError("AI service is not configured.", "AI_CONFIGURATION_MISSING");
   }
 
-  _provider = geminiProvider;
+  _provider = provider;
 
-  if (geminiProvider && !_providerDiagnostic) {
-    _providerDiagnostic = geminiProvider
+  if (!_providerDiagnostic) {
+    _providerDiagnostic = provider
       .diagnoseConnection()
       .then((result) => ({
         ok: result.ok,
@@ -77,8 +62,8 @@ function getProvider(): AIChatProvider {
     _providerDiagnostic.then((diagnostic) => {
       if (!diagnostic.ok) {
         console.log("[ai] provider startup diagnostic failed", {
-          provider: geminiProvider.name,
-          model: geminiProvider.model,
+          provider: provider.name,
+          model: provider.model,
           category: diagnostic.category,
           message: diagnostic.message,
         });
@@ -94,32 +79,22 @@ export function getAiProviderName(): string {
 }
 
 export function getAiModel(): string {
-  return getProvider().model;
+  return OPENAI_MODEL;
 }
 
 export function isAIConfigured(): boolean {
-  if (AI_PROVIDER === "openai") return isOpenAIConfigured();
-  return isGeminiConfigured();
+  return isOpenAIConfigured();
 }
 
 export function getAiConfigurationStatus(): "configured" | "missing" | "invalid" {
-  if (AI_PROVIDER === "openai") {
-    const key = readEnv("OPENAI_API_KEY");
-    if (!key) {
-      traceEnv("OPENAI_API_KEY", (name, checked) => {
-        console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
-      });
-      return "missing";
-    }
-    if (key.length < 20) return "invalid";
-    return "configured";
+  const key = readEnv("OPENAI_API_KEY")?.trim();
+  if (!key) {
+    traceEnv("OPENAI_API_KEY", (name, checked) => {
+      console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
+    });
+    return "missing";
   }
-
-  const key = traceEnv("GEMINI_API_KEY", (name, checked) => {
-    console.log(`[ai-copilot] ${name} missing — checked: ${checked.join(", ")}`);
-  });
-  if (!key) return "missing";
-  if (key.length < 30 || !key.startsWith("AIza")) return "invalid";
+  if (key.length < 20) return "invalid";
   return "configured";
 }
 
@@ -163,13 +138,9 @@ export async function diagnoseAIConnection(): Promise<{
 }
 
 export function resetAiCache(): void {
-  if (AI_PROVIDER === "openai") {
-    const { resetOpenAICache } = require("./openai.provider");
-    resetOpenAICache();
-  } else {
-    const { resetGeminiCache } = require("./gemini.provider");
-    resetGeminiCache();
-  }
+  _provider = null;
+  _providerDiagnostic = null;
+  resetOpenAICache();
 }
 
 function classifyProviderError(error: unknown): {

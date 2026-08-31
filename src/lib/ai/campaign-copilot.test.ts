@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockFetch = vi.fn();
+const originalFetch = globalThis.fetch;
 import { CampaignPlanSchema, AdCopyVariantSchema, TargetingSuggestionSchema, CreativeConceptSchema } from "@/lib/ai/campaign-schema";
 import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError, getAiConfigurationStatus, resetAiCache } from "@/lib/ai/campaign-copilot.server";
 
@@ -45,52 +48,102 @@ describe("AI campaign schemas", () => {
 
 describe("AI service configuration", () => {
   beforeEach(() => {
+    mockFetch.mockReset();
+    globalThis.fetch = mockFetch;
     resetAiCache();
   });
 
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   it("reports missing when API key is absent", () => {
-    const original = process.env.GEMINI_API_KEY;
-    process.env.GEMINI_API_KEY = "";
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "";
     try {
       expect(getAiConfigurationStatus()).toBe("missing");
     } finally {
-      process.env.GEMINI_API_KEY = original;
+      process.env.OPENAI_API_KEY = original;
     }
   });
 
   it("reports invalid when API key is too short", () => {
-    const original = process.env.GEMINI_API_KEY;
-    process.env.GEMINI_API_KEY = "short";
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "short";
     try {
       expect(getAiConfigurationStatus()).toBe("invalid");
     } finally {
-      process.env.GEMINI_API_KEY = original;
+      process.env.OPENAI_API_KEY = original;
     }
   });
 });
 
 describe("AI service error handling", () => {
   beforeEach(() => {
+    mockFetch.mockReset();
+    globalThis.fetch = mockFetch;
     resetAiCache();
   });
 
+  afterEach(() => {
+    resetAiCache();
+    globalThis.fetch = originalFetch;
+  });
+
   it("throws AIServiceError when API key is missing", async () => {
-    const original = process.env.GEMINI_API_KEY;
-    process.env.GEMINI_API_KEY = "";
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "";
     try {
       await expect(generateCampaignPlan({ description: "test", currency: "KES" })).rejects.toThrow(AIServiceError);
     } finally {
-      process.env.GEMINI_API_KEY = original;
+      process.env.OPENAI_API_KEY = original;
     }
   });
 
   it("throws AIServiceError for empty description", async () => {
-    const original = process.env.GEMINI_API_KEY;
-    process.env.GEMINI_API_KEY = "";
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "";
     try {
       await expect(generateCampaignPlan({ description: "", currency: "KES" })).rejects.toThrow(AIServiceError);
     } finally {
-      process.env.GEMINI_API_KEY = original;
+      process.env.OPENAI_API_KEY = original;
+    }
+  });
+
+  it("reports an unavailable OpenAI model", async () => {
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "test-openai-api-key-12345";
+    mockFetch.mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({ error: { message: "Model not found" } }), { status: 404 }),
+    ));
+    try {
+      await expect(generateCampaignPlan({ description: "test", currency: "KES" })).rejects.toMatchObject({
+        category: "AI_MODEL_UNAVAILABLE",
+      });
+    } finally {
+      process.env.OPENAI_API_KEY = original;
+    }
+  });
+
+  it("generates a campaign plan with OpenAI", async () => {
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "test-openai-api-key-12345";
+    mockFetch.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({
+        campaign: { name: "Test", objective: "traffic", summary: "Summary" },
+        budget: { currency: "KES", total: 10000, daily: 714, duration_days: 14 },
+        targeting: { countries: [], counties: ["Nairobi"], cities: [], age_min: 25, age_max: 55, devices: ["mobile"], interests: [], keywords: [] },
+        ads: [{ headline: "H1", primary_text: "PT", description: "D", cta: "Buy", creative_concept: "CC" }],
+        recommendations: [],
+        warnings: [],
+      }) } }],
+    }), { status: 200, headers: { "content-type": "application/json" } })));
+    try {
+      await expect(generateCampaignPlan({ description: "test", currency: "KES" })).resolves.toMatchObject({
+        campaign: { name: "Test" },
+      });
+    } finally {
+      process.env.OPENAI_API_KEY = original;
     }
   });
 });
