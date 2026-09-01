@@ -1,0 +1,43 @@
+User-agent: Googlebot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /_authenticated
+Disallow: /api/v1/contact
+Disallow: /api/public/pay
+Disallow: /api/public/pay/callback
+Disallow: /api/public/pay/optima-callback
+Disallow: /payment/confirm
+
+User-agent: Bingbot
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /_authenticated
+Disallow: /api/v1/contact
+Disallow: /api/public/pay
+Disallow: /api/public/pay/callback
+Disallow: /api/public/pay/optima-callback
+Disallow: /payment/confirm
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /_authenticated
+Disallow: /api/v1/contact
+Disallow: /api/public/pay
+Disallow: /api/public/pay/callback
+Disallow: /api/public/pay/optima-callback
+Disallow: /payment/confirm
+
+Sitemap: https://trademall.co.ke/sitemap/xml

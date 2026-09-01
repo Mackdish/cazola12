@@ -1,0 +1,350 @@
+import { useState } from "react";
+import { Plus, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCreateCampaign } from "@/hooks/use-advertiser";
+import { useBillingSettings } from "@/hooks/use-billing";
+import {
+  BID_TYPES,
+  CAMPAIGN_OBJECTIVES,
+  formatCurrency,
+  normalizeDestinationUrl,
+  type BidType,
+  type CampaignObjective,
+} from "@/lib/advertiser-domain";
+import { toFriendlyError } from "@/lib/errors";
+import { AICopilotPanel } from "@/components/advertiser/ai-copilot-panel";
+import type { CampaignPlan } from "@/lib/ai/campaign-schema";
+
+export function CampaignDialog({ organizationId }: { organizationId: string | null }) {
+  const createCampaign = useCreateCampaign();
+  const settings = useBillingSettings();
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const [name, setName] = useState("");
+  const [objective, setObjective] = useState<CampaignObjective>("traffic");
+  const [bidType, setBidType] = useState<BidType>("cpm");
+  const defaultBid = settings.data?.defaultBidAmount ?? 5;
+  const defaultTotal = settings.data?.defaultTotalBudget ?? 300;
+  const [bidAmount, setBidAmount] = useState(String(defaultBid));
+  const [totalBudget, setTotalBudget] = useState(String(defaultTotal));
+  const [dailyBudget, setDailyBudget] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [landingPageUrl, setLandingPageUrl] = useState("");
+  const [frequencyCapImpressions, setFrequencyCapImpressions] = useState("");
+  const [frequencyCapPeriodHours, setFrequencyCapPeriodHours] = useState("24");
+
+  const applyAIPlan = (plan: CampaignPlan) => {
+    setName(plan.campaign.name);
+    setObjective(plan.campaign.objective as CampaignObjective);
+    setBidType("cpm");
+    setBidAmount(String(plan.budget.daily));
+    setTotalBudget(String(plan.budget.total));
+    setDailyBudget(String(plan.budget.daily));
+    const durationMs = plan.budget.duration_days * 24 * 60 * 60 * 1000;
+    const start = new Date();
+    const end = new Date(start.getTime() + durationMs);
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+    setMode("manual");
+    toast.success("AI plan applied. Review and create your campaign.");
+  };
+
+  async function submit() {
+    if (!organizationId) {
+      toast.error("You need an advertiser organization to create campaigns.");
+      return;
+    }
+    if (name.trim().length < 2) {
+      toast.error("Give the campaign a name.");
+      return;
+    }
+    const url = normalizeDestinationUrl(landingPageUrl);
+    if (!url) {
+      toast.error("Enter a valid landing page URL, like https://example.com/offer.");
+      return;
+    }
+    if (startDate && endDate && endDate < startDate) {
+      toast.error("The end date has to come after the start date.");
+      return;
+    }
+
+    const total = Number(totalBudget || 0);
+    const daily = dailyBudget ? Number(dailyBudget) : null;
+    const bid = Number(bidAmount || 0);
+    const minTotal = settings.data?.campaignMinimumBudget ?? 300;
+    const minDaily = settings.data?.minimumDailyBudget ?? 100;
+    const minBid = settings.data?.startingCpc ?? 5;
+
+    if (total < minTotal) {
+      toast.error(`Total budget must be at least ${formatCurrency(minTotal, settings.data?.currency)}.`);
+      return;
+    }
+    if (daily !== null && daily < minDaily) {
+      toast.error(`Daily budget must be at least ${formatCurrency(minDaily, settings.data?.currency)}.`);
+      return;
+    }
+    if (bid < minBid) {
+      toast.error(`Bid amount must be at least ${formatCurrency(minBid, settings.data?.currency)}.`);
+      return;
+    }
+    if (daily !== null && daily > total) {
+      toast.error("The daily budget can't exceed the total budget.");
+      return;
+    }
+
+    try {
+      const impressions = frequencyCapImpressions ? Number(frequencyCapImpressions) : null;
+      const periodHours = frequencyCapPeriodHours ? Number(frequencyCapPeriodHours) : null;
+      const frequencyCap =
+        impressions !== null && periodHours !== null && Number.isFinite(impressions) && Number.isFinite(periodHours)
+          ? { impressions, periodHours }
+          : null;
+
+      await createCampaign.mutateAsync({
+        organizationId,
+        name: name.trim(),
+        objective,
+        bidType,
+        bidAmount: bid,
+        totalBudget: total,
+        dailyBudget: daily,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        landingPageUrl: url,
+        frequencyCap,
+      });
+      toast.success("Campaign created as a draft.");
+      setOpen(false);
+      setName("");
+      setLandingPageUrl("");
+      setFrequencyCapImpressions("");
+      setFrequencyCapPeriodHours("24");
+    } catch (error) {
+      toast.error(toFriendlyError(error, "We couldn't create that campaign").message);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="mr-1 size-4" />
+          New campaign
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl max-h-[90svh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Create a campaign</DialogTitle>
+          <DialogDescription>
+            Campaigns start as drafts. Add ads and targeting, then submit for review.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "manual" | "ai")} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="w-full">
+            <TabsTrigger value="manual" className="flex-1">Manual</TabsTrigger>
+            <TabsTrigger value="ai" className="flex-1">
+              <Sparkles className="size-3 mr-1" /> AI Copilot
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manual" className="flex-1 overflow-y-auto -mx-2 px-2 mt-4">
+            <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="campaign-name">Campaign name</Label>
+            <Input
+              id="campaign-name"
+              placeholder="Spring launch — display"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="campaign-objective">Objective</Label>
+              <Select
+                value={objective}
+                onValueChange={(value) => setObjective(value as CampaignObjective)}
+              >
+                <SelectTrigger id="campaign-objective">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAMPAIGN_OBJECTIVES.map((entry) => (
+                    <SelectItem key={entry.value} value={entry.value}>
+                      {entry.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-bid-type">Bid type</Label>
+              <Select value={bidType} onValueChange={(value) => setBidType(value as BidType)}>
+                <SelectTrigger id="campaign-bid-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BID_TYPES.map((entry) => (
+                    <SelectItem key={entry.value} value={entry.value}>
+                      {entry.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="campaign-bid">Bid amount</Label>
+              <Input
+                id="campaign-bid"
+                inputMode="decimal"
+                value={bidAmount}
+                onChange={(event) => setBidAmount(event.target.value.replace(/[^0-9.]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Starting from {formatCurrency(settings.data?.startingCpc ?? 5, settings.data?.currency)}/click for CPC
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-total">Total budget</Label>
+              <Input
+                id="campaign-total"
+                inputMode="decimal"
+                value={totalBudget}
+                onChange={(event) => setTotalBudget(event.target.value.replace(/[^0-9.]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum {formatCurrency(settings.data?.campaignMinimumBudget ?? 300, settings.data?.currency)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-daily">Daily budget</Label>
+              <Input
+                id="campaign-daily"
+                inputMode="decimal"
+                placeholder="Optional"
+                value={dailyBudget}
+                onChange={(event) => setDailyBudget(event.target.value.replace(/[^0-9.]/g, ""))}
+              />
+              {dailyBudget && Number(dailyBudget) > 0 && Number(bidAmount) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Estimated {Math.floor(Number(dailyBudget) / Number(bidAmount))} clicks/day
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="campaign-start">Start date</Label>
+              <Input
+                id="campaign-start"
+                type="date"
+                className="w-full"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-end">End date</Label>
+              <Input
+                id="campaign-end"
+                type="date"
+                className="w-full"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="campaign-frequency-cap">Max impressions per user</Label>
+              <Input
+                id="campaign-frequency-cap"
+                inputMode="numeric"
+                placeholder="Optional"
+                value={frequencyCapImpressions}
+                onChange={(event) => setFrequencyCapImpressions(event.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no limit.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign-frequency-period">Period (hours)</Label>
+              <Input
+                id="campaign-frequency-period"
+                inputMode="numeric"
+                value={frequencyCapPeriodHours}
+                onChange={(event) => setFrequencyCapPeriodHours(event.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Rolling window length.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="campaign-url">Landing page URL</Label>
+            <Input
+              id="campaign-url"
+              placeholder="https://example.com/offer"
+              value={landingPageUrl}
+              onChange={(event) => setLandingPageUrl(event.target.value)}
+            />
+          </div>
+        </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="flex-1 overflow-y-auto mt-4">
+            {organizationId ? (
+              <AICopilotPanel organizationId={organizationId} onApplyCampaign={applyAIPlan} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Select an organization to use AI.</p>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+          <Button
+            variant="ghost"
+            onClick={() => setOpen(false)}
+            disabled={createCampaign.isPending}
+          >
+            Cancel
+          </Button>
+          <Button onClick={() => void submit()} disabled={createCampaign.isPending}>
+            {createCampaign.isPending ? "Creating…" : "Create campaign"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
