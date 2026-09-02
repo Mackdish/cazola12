@@ -14,6 +14,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { seoDefaults, organizationStructuredData, websiteStructuredData } from "@/lib/seo";
+import { getTheme } from "@/lib/theme.server";
+import { ThemeProvider } from "@/components/theme-provider";
+
+export type RootRouteContext = {
+  queryClient: QueryClient;
+  theme: string;
+};
 
 function NotFoundComponent() {
   return (
@@ -75,7 +82,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<RootRouteContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -119,8 +126,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         type: "application/ld+json",
         children: JSON.stringify([organizationStructuredData, websiteStructuredData]),
       },
+      {
+        dangerouslySetInnerHTML: `(() => { try { var cookies = document.cookie.split('; '); var theme = 'system'; for (var i = 0; i < cookies.length; i++) { if (cookies[i].indexOf('theme=') === 0) { try { theme = decodeURIComponent(cookies[i].slice(6)); } catch (e) { theme = cookies[i].slice(6); } break; } } if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } } catch (e) {} })();`,
+      },
     ],
   }),
+  beforeLoad: async () => {
+    const theme = await getTheme();
+    return { theme };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -128,8 +142,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const { theme } = Route.useRouteContext();
+  const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
   return (
-    <html lang="en">
+    <html lang="en" className={isDark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
@@ -142,7 +159,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, theme } = Route.useRouteContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -157,9 +174,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster />
+        <ThemeProvider initialTheme={(theme as "light" | "dark" | "system") || "system"}>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

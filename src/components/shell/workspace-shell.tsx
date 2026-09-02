@@ -37,6 +37,7 @@ import {
   type Workspace,
 } from "@/lib/authorization";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function initialsOf(name: string | null, email: string | null): string {
   const source = name?.trim() || email?.split("@")[0] || "AD";
@@ -227,6 +228,7 @@ function TopBar({
             className="h-9 w-64 pl-8 text-xs"
           />
         </div>
+        <ThemeToggle />
         <Notifications />
         <ProfileMenu />
       </div>

@@ -12,6 +12,7 @@ import {
 import { TradeMallLogo } from "@/components/branding/trademall-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/footer";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
   { to: "/", label: "Home", icon: LayoutDashboard },
@@ -46,6 +47,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Button asChild size="sm" variant="ghost">
               <Link to="/auth">Sign in</Link>
             </Button>
