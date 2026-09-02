@@ -50,6 +50,11 @@ async function tryCloudflareWorkersAI(): Promise<WorkersAI | undefined> {
   }
 }
 
+export function resetRuntimeBindings(): void {
+  delete g.__r2Bucket;
+  delete g.__workersAI;
+}
+
 export function captureRuntimeBindings(env: unknown): void {
   if (!env || typeof env !== "object") return;
   const name = readEnv("R2_BINDING_NAME") || "R2";
@@ -61,8 +66,6 @@ export function captureRuntimeBindings(env: unknown): void {
   const ai = (env as Record<string, unknown>).AI;
   if (ai && typeof ai === "object" && "run" in ai) {
     g.__workersAI = ai as WorkersAI;
-  } else {
-    delete g.__workersAI;
   }
 }
 

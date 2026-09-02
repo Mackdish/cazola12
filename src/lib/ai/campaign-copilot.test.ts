@@ -5,7 +5,7 @@ const originalFetch = globalThis.fetch;
 import { CampaignPlanSchema, AdCopyVariantSchema, TargetingSuggestionSchema, CreativeConceptSchema } from "@/lib/ai/campaign-schema";
 import { generateCampaignPlan, generateAdCopy, generateTargetingSuggestion, generateCreativeConcept, AIServiceError, getAiConfigurationStatus, resetAiCache } from "@/lib/ai/campaign-copilot.server";
 import { createWorkersAIProvider, isWorkersAIConfigured } from "@/lib/ai/workers-ai.provider";
-import { captureRuntimeBindings } from "@/lib/runtime-bindings.server";
+import { captureRuntimeBindings, resetRuntimeBindings } from "@/lib/runtime-bindings.server";
 
 describe("AI campaign schemas", () => {
   it("validates a complete campaign plan", () => {
@@ -66,11 +66,11 @@ describe("AI service configuration", () => {
 
 describe("Cloudflare Workers AI provider", () => {
   beforeEach(() => {
-    captureRuntimeBindings({});
+    resetRuntimeBindings();
   });
 
   afterEach(() => {
-    captureRuntimeBindings({});
+    resetRuntimeBindings();
   });
 
   it("generates text from the Workers AI binding", async () => {
