@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, Monitor, Smartphone } from "lucide-react";
+import { Layers, Monitor, Smartphone, Square, Tablet } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,15 +10,15 @@ const FORMATS = [
     title: "Banner",
     size: "728×90",
     description: "Classic horizontal display ad placed above or within content.",
-    aspect: "aspect-[728/90]",
+    image: "/ad-mockups/banner-728x90.svg",
   },
   {
     id: "rectangle",
-    icon: Layers,
+    icon: Square,
     title: "Rectangle",
     size: "300×250",
     description: "High-impact medium rectangle, popular within articles and sidebars.",
-    aspect: "aspect-[300/250]",
+    image: "/ad-mockups/rectangle-300x250.svg",
   },
   {
     id: "mobile",
@@ -26,7 +26,31 @@ const FORMATS = [
     title: "Mobile Banner",
     size: "320×50",
     description: "Compact banner optimized for small mobile screens.",
-    aspect: "aspect-[320/50]",
+    image: "/ad-mockups/mobile-banner-320x50.svg",
+  },
+  {
+    id: "leaderboard",
+    icon: Monitor,
+    title: "Leaderboard",
+    size: "970×90",
+    description: "Large horizontal leaderboard for maximum visibility.",
+    image: "/ad-mockups/leaderboard-970x90.svg",
+  },
+  {
+    id: "skyscraper",
+    icon: Tablet,
+    title: "Skyscraper",
+    size: "160×600",
+    description: "Tall vertical format for side placements.",
+    image: "/ad-mockups/skyscraper-160x600.svg",
+  },
+  {
+    id: "interstitial",
+    icon: Layers,
+    title: "Interstitial",
+    size: "Full page",
+    description: "Full-screen format for high-impact campaigns.",
+    image: "/ad-mockups/interstitial.svg",
   },
   {
     id: "responsive",
@@ -45,7 +69,7 @@ export function AdFormatExplorer() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
         {FORMATS.map((format) => (
           <button
             key={format.id}
@@ -87,15 +111,24 @@ export function AdFormatExplorer() {
           </span>
         </div>
         <div className="mt-6 flex min-h-40 items-center justify-center rounded-xl bg-muted/50 p-6">
-          <div
-            key={active.id}
-            className={cn(
-              "w-full max-w-xs rounded-lg border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center text-xs font-medium text-primary transition-all duration-300",
-              active.aspect,
-            )}
-          >
-            {active.size} · illustrative
-          </div>
+          {active.image ? (
+            <img
+              key={active.id}
+              src={active.image}
+              alt={active.title}
+              className="h-full max-h-64 w-auto rounded-lg object-contain transition-all duration-300"
+            />
+          ) : (
+            <div
+              key={active.id}
+              className={cn(
+                "flex w-full max-w-xs items-center justify-center rounded-lg border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/15 to-accent/15 text-xs font-medium text-primary transition-all duration-300",
+                active.aspect,
+              )}
+            >
+              {active.size} · illustrative
+            </div>
+          )}
         </div>
       </div>
     </div>

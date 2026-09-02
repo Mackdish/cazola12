@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 600" width="160" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f1b3d"/>
+      <stop offset="1" stop-color="#1a3173"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="600" fill="url(#bg)" rx="12"/>
+  <text x="80" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff">STAND OUT</text>
+  <text x="80" y="244" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#a5b4fc">FROM THE</text>
+  <text x="80" y="268" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#a5b4fc">CROWD</text>
+  <rect x="20" y="310" width="120" height="36" fill="#ffffff" rx="8"/>
+  <text x="80" y="333" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f1b3d">GET STARTED</text>
+  <circle cx="80" cy="460" r="38" fill="#4f46e5" opacity="0.2"/>
+  <circle cx="80" cy="460" r="18" fill="#6366f1" opacity="0.45"/>
+</svg>
