@@ -94,7 +94,6 @@ import { Route as AuthenticatedPublisherWebsitesWebsiteIdRouteImport } from './r
 import { Route as ApiPublicPayCallbackRouteImport } from './routes/api/public/pay/callback'
 import { Route as ApiV1AdZonesIndexRouteImport } from './routes/api/v1/ad-zones/index'
 import { Route as ApiV1AdZonesIdRouteImport } from './routes/api/v1/ad-zones/$id'
-import { Route as ApiV1AdminAiDiagnosticsRouteImport } from './routes/api/v1/admin/ai-diagnostics'
 import { Route as ApiV1AdsIndexRouteImport } from './routes/api/v1/ads/index'
 import { Route as ApiV1AdsIdRouteImport } from './routes/api/v1/ads/$id'
 import { Route as ApiV1AdsServeRouteImport } from './routes/api/v1/ads/serve'
@@ -581,11 +580,6 @@ const ApiV1AdZonesIdRoute = ApiV1AdZonesIdRouteImport.update({
   path: '/api/v1/ad-zones/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1AdminAiDiagnosticsRoute = ApiV1AdminAiDiagnosticsRouteImport.update({
-  id: '/api/v1/admin/ai-diagnostics',
-  path: '/api/v1/admin/ai-diagnostics',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1AdsIndexRoute = ApiV1AdsIndexRouteImport.update({
   id: '/api/v1/ads/',
   path: '/api/v1/ads/',
@@ -761,7 +755,6 @@ export interface FileRoutesByFullPath {
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
-  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -864,7 +857,6 @@ export interface FileRoutesByTo {
   '/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
-  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -971,7 +963,6 @@ export interface FileRoutesById {
   '/_authenticated/publisher/websites/$websiteId': typeof AuthenticatedPublisherWebsitesWebsiteIdRoute
   '/api/public/pay/callback': typeof ApiPublicPayCallbackRoute
   '/api/v1/ad-zones/$id': typeof ApiV1AdZonesIdRoute
-  '/api/v1/admin/ai-diagnostics': typeof ApiV1AdminAiDiagnosticsRoute
   '/api/v1/ads/$id': typeof ApiV1AdsIdRoute
   '/api/v1/ads/serve': typeof ApiV1AdsServeRoute
   '/api/v1/api-keys/$id': typeof ApiV1ApiKeysIdRoute
@@ -1078,7 +1069,6 @@ export interface FileRouteTypes {
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
-    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1181,7 +1171,6 @@ export interface FileRouteTypes {
     | '/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
-    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1287,7 +1276,6 @@ export interface FileRouteTypes {
     | '/_authenticated/publisher/websites/$websiteId'
     | '/api/public/pay/callback'
     | '/api/v1/ad-zones/$id'
-    | '/api/v1/admin/ai-diagnostics'
     | '/api/v1/ads/$id'
     | '/api/v1/ads/serve'
     | '/api/v1/api-keys/$id'
@@ -1346,7 +1334,6 @@ export interface RootRouteChildren {
   ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
-  ApiV1AdminAiDiagnosticsRoute: typeof ApiV1AdminAiDiagnosticsRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
   ApiV1AdsServeRoute: typeof ApiV1AdsServeRoute
   ApiV1ApiKeysIdRoute: typeof ApiV1ApiKeysIdRoute
@@ -1960,13 +1947,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdZonesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/admin/ai-diagnostics': {
-      id: '/api/v1/admin/ai-diagnostics'
-      path: '/api/v1/admin/ai-diagnostics'
-      fullPath: '/api/v1/admin/ai-diagnostics'
-      preLoaderRoute: typeof ApiV1AdminAiDiagnosticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/ads/': {
       id: '/api/v1/ads/'
       path: '/api/v1/ads'
@@ -2320,7 +2300,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
-  ApiV1AdminAiDiagnosticsRoute: ApiV1AdminAiDiagnosticsRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,
   ApiV1AdsServeRoute: ApiV1AdsServeRoute,
   ApiV1ApiKeysIdRoute: ApiV1ApiKeysIdRoute,

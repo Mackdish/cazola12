@@ -28,6 +28,13 @@ async function tryCloudflareWorkersEnv(): Promise<R2BucketLike | undefined> {
   }
 }
 
+export async function getR2Bucket(): Promise<R2BucketLike | undefined> {
+  if (!g.__r2Bucket) {
+    g.__r2Bucket = await tryCloudflareWorkersEnv();
+  }
+  return g.__r2Bucket;
+}
+
 export function resetRuntimeBindings(): void {
   delete g.__r2Bucket;
 }
