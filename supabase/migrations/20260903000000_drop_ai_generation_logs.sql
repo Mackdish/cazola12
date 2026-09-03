@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.ai_generation_logs CASCADE;

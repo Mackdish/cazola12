@@ -39,7 +39,6 @@ const DEFAULT_LIMITS: Record<string, RateLimitConfig> = {
   },
   upload: { key: "upload", action: "upload", limit: 20, windowSeconds: 3600 },
   payout: { key: "payout", action: "payout", limit: 5, windowSeconds: 86400 },
-  ai_copilot: { key: "ai:copilot", action: "ai_copilot", limit: 20, windowSeconds: 3600 },
   admin_mutation: { key: "admin:mutation", action: "admin_mutation", limit: 100, windowSeconds: 60 },
   admin_login: { key: "admin:login", action: "admin_login", limit: 20, windowSeconds: 300 },
 };
