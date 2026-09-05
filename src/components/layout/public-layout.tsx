@@ -6,12 +6,21 @@ import {
   HelpCircle,
   Info,
   LayoutDashboard,
+  Menu,
   Megaphone,
 } from "lucide-react";
 
 import { TradeMallLogo } from "@/components/branding/trademall-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/footer";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
@@ -48,31 +57,62 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button asChild size="sm" variant="ghost">
+            <Button asChild size="sm" variant="ghost" className="hidden md:inline-flex">
               <Link to="/auth">Sign in</Link>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="hidden md:inline-flex">
               <Link to="/auth">
                 Get started
                 <ArrowRight className="ml-1.5 size-4" />
               </Link>
             </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="md:hidden"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="flex w-[min(20rem,85vw)] flex-col">
+                <SheetHeader>
+                  <SheetTitle>Navigation</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-1">
+                  {NAV_LINKS.map((link) => (
+                    <SheetClose key={link.to} asChild>
+                      <Link
+                        to={link.to}
+                        className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        activeProps={{ className: "bg-muted text-foreground" }}
+                      >
+                        <link.icon className="size-4" />
+                        {link.label}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                </nav>
+                <div className="mt-auto grid gap-2 border-t border-border pt-4">
+                  <SheetClose asChild>
+                    <Button asChild variant="outline">
+                      <Link to="/auth">Sign in</Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button asChild>
+                      <Link to="/auth">
+                        Get started
+                        <ArrowRight className="ml-1.5 size-4" />
+                      </Link>
+                    </Button>
+                  </SheetClose>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
-        </div>
-
-        {/* Mobile nav */}
-        <div className="md:hidden border-t border-border px-4 py-2 flex gap-2 overflow-x-auto">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              activeProps={{ className: "text-foreground bg-muted" }}
-            >
-              <link.icon className="size-3.5" />
-              {link.label}
-            </Link>
-          ))}
         </div>
       </header>
 
