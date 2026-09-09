@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAdvertiserProfile } from "@/lib/advertiser-service.server";
 import { generateStructured, AiProviderError } from "@/lib/ai-provider.server";
 import { checkRateLimit, getRateLimitConfig } from "@/lib/rate-limit.server";
+import { normalizeAiCreativeOutput } from "@/lib/ai-creative-normalizer";
 
 const uuid = z.string().uuid();
 const adCreativeSchema = {
@@ -80,7 +81,11 @@ ${snapshot.text}
 Generate exactly 5 distinct short headlines using different angles (benefit, problem/solution, curiosity, trust, direct conversion), exactly 5 descriptions, 1 long headline, up to 6 suitable CTAs, up to 6 concrete visual creative concepts based on actual products/services, and recommended ad formats.`;
     try {
       const result = await generateStructured<z.infer<typeof validation>>({ prompt, schema: adCreativeSchema as Record<string, unknown>, systemInstruction: "TradeMall AI must ground product claims in the supplied website content. Return concise, production-ready advertising copy and creative concepts. Obey every output limit exactly, especially exactly 5 headlines and exactly 5 descriptions." });
-      const safe = validation.parse(result.data);
+
+      // Cloudflare/LLM output is treated as untrusted. Normalize counts and character limits
+      // before the application schema runs so harmless over-generation cannot break ad creation.
+      const normalized = normalizeAiCreativeOutput(result.data);
+      const safe = validation.parse(normalized);
       return { ...safe, provider: result.provider, model: result.model, usage: result.usage ?? null };
     } catch (error) {
       if (error instanceof AiProviderError) throw new Error(error.message);
