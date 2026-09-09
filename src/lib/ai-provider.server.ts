@@ -29,6 +29,27 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function responseToText(result: unknown): string {
+  if (typeof result === "string") return result.trim();
+  if (!result || typeof result !== "object") return "";
+
+  const candidate = result as { response?: unknown; result?: unknown };
+  const response = candidate.response;
+
+  // Workers AI JSON Mode returns the structured object directly under `response`.
+  // Normal text generation returns a string under the same property.
+  if (typeof response === "string") return response.trim();
+  if (response !== undefined && response !== null) return JSON.stringify(response);
+
+  // Be tolerant of wrappers returned by other Workers AI runtimes.
+  if (candidate.result !== undefined && candidate.result !== null) {
+    if (typeof candidate.result === "string") return candidate.result.trim();
+    return JSON.stringify(candidate.result);
+  }
+
+  return "";
+}
+
 function parseJson<T>(text: string): T {
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
   try { return JSON.parse(cleaned) as T; } catch {
@@ -69,10 +90,15 @@ async function runCloudflare(input: {
     try {
       const result = await ai.run(model, request) as {
         response?: unknown;
+        result?: unknown;
         usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
       };
-      const text = typeof result?.response === "string" ? result.response.trim() : "";
-      if (!text) throw new AiProviderError("Cloudflare Workers AI returned an empty response.");
+      const text = responseToText(result);
+      if (!text) {
+        const keys = result && typeof result === "object" ? Object.keys(result) : [];
+        console.error("Workers AI returned no usable response", { model, keys, responseType: typeof result?.response });
+        throw new AiProviderError("Cloudflare Workers AI returned an empty response.");
+      }
       return {
         text,
         model,
