@@ -7,7 +7,12 @@ const DEFAULT_CLOUDFLARE_IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const TIMEOUT_MS = 90_000;
 const MAX_RETRIES = 2;
 
-type GeneratedImage = { bytes: Uint8Array; mimeType: string; model: string; provider: "cloudflare" | "gemini" };
+type GeneratedImage = {
+  bytes: Uint8Array;
+  mimeType: string;
+  model: string;
+  provider: "cloudflare" | "gemini";
+};
 
 type ImageStep = {
   type?: string;
@@ -67,7 +72,10 @@ function extractGeminiImage(payload: GeminiImageResponse): { bytes: Uint8Array; 
 }
 
 function decodeBase64Image(data: unknown): Uint8Array {
-  if (typeof data !== "string" || !data) throw new AiImageError("Cloudflare did not return a generated image.");
+  if (typeof data !== "string" || !data) {
+    throw new AiImageError("Cloudflare returned no image data. Check the Workers AI binding and model configuration.");
+  }
+
   try {
     const binary = atob(data);
     const bytes = new Uint8Array(binary.length);
@@ -78,23 +86,43 @@ function decodeBase64Image(data: unknown): Uint8Array {
   }
 }
 
+function describeCloudflareError(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error) return error;
+  try {
+    const serialized = JSON.stringify(error);
+    if (serialized && serialized !== "{}") return serialized;
+  } catch {
+    // Ignore serialization failures.
+  }
+  return "Cloudflare image generation failed. Please try again.";
+}
+
 async function generateWithCloudflare(input: { prompt: string; format: string }): Promise<GeneratedImage> {
   const ai = await getWorkersAi();
-  if (!ai) throw new AiImageError("Cloudflare Workers AI is not available. Check that the AI binding is configured on this Worker.");
+  if (!ai) {
+    throw new AiImageError(
+      "Cloudflare Workers AI is not available. Confirm the Worker has an AI binding named AI and redeploy it.",
+    );
+  }
 
   const model = readEnv("CLOUDFLARE_IMAGE_MODEL") || DEFAULT_CLOUDFLARE_IMAGE_MODEL;
   let lastError: AiImageError | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      const result = await ai.run(model, {
+      const result = (await ai.run(model, {
         prompt: input.prompt,
         seed: Math.floor(Math.random() * 2_147_483_647),
-      }) as { image?: unknown };
+      })) as { image?: unknown };
+
       const bytes = decodeBase64Image(result.image);
       return { bytes, mimeType: "image/jpeg", model, provider: "cloudflare" };
     } catch (error) {
-      lastError = error instanceof AiImageError ? error : new AiImageError("Cloudflare image generation failed. Please try again.");
+      lastError = error instanceof AiImageError
+        ? error
+        : new AiImageError(`Cloudflare image generation failed: ${describeCloudflareError(error)}`);
+
       if (attempt >= MAX_RETRIES) throw lastError;
       await new Promise((resolve) => setTimeout(resolve, 600 * 2 ** attempt + Math.floor(Math.random() * 300)));
     }
