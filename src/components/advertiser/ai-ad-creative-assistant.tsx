@@ -95,6 +95,11 @@ export function AiAdCreativeAssistant({
 
   async function createDraft() {
     if (!result) return;
+    if (!generatedImage?.assetId) {
+      toast.error("Generate an AI banner before creating the ad draft. Every ad needs a creative before submitting.");
+      return;
+    }
+
     let destinationUrl: string;
     try {
       const parsed = new URL(url.trim());
@@ -110,10 +115,10 @@ export function AiAdCreativeAssistant({
         campaignId,
         adGroupId,
         name: `${result.productFocus.slice(0, 90)} — AI Draft`,
-        format: (generatedImage ? "responsive" : currentFormat) as AdFormat,
+        format: "responsive" as AdFormat,
         destinationUrl,
-        mediaAssetId: generatedImage?.assetId ?? null,
-        adType: generatedImage ? "static_image" : "responsive_display",
+        mediaAssetId: generatedImage.assetId,
+        adType: "static_image",
         brandName: brandName?.trim() || result.productFocus.slice(0, 120),
         headlines: result.headlines.slice(0, 5),
         longHeadline: result.longHeadline,
@@ -121,11 +126,7 @@ export function AiAdCreativeAssistant({
         cta: result.ctaRecommendations[0] ?? "Learn More",
         optimization: "auto_optimize",
       });
-      toast.success(
-        generatedImage
-          ? "AI banner and ad copy applied. Ad saved as a draft."
-          : "AI creative applied. Ad saved as a draft.",
-      );
+      toast.success("AI banner and ad copy applied. Ad saved as a draft.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "We couldn't create the AI ad draft.");
     }
@@ -264,12 +265,12 @@ export function AiAdCreativeAssistant({
                 <p className="text-xs text-muted-foreground">
                   {generatedImage
                     ? "Creates a responsive image ad draft using the generated banner and AI copy."
-                    : "Creates a responsive-display ad draft with the generated copy. Generate a banner above to attach an AI image automatically."}
+                    : "Generate a banner above before creating the ad draft. Every ad needs a creative before submitting."}
                 </p>
               </div>
-              <Button onClick={() => void createDraft()} disabled={createAd.isPending || generateImage.isPending}>
+              <Button onClick={() => void createDraft()} disabled={!generatedImage || createAd.isPending || generateImage.isPending}>
                 {createAd.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <WandSparkles className="mr-1.5 size-4" />}
-                {createAd.isPending ? "Creating…" : "Create Draft Ad"}
+                {createAd.isPending ? "Creating…" : generatedImage ? "Create Draft Ad" : "Generate Banner First"}
               </Button>
             </div>
 
