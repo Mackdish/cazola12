@@ -34,10 +34,10 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
       .eq("id", data.campaignId)
       .maybeSingle();
     if (campaignError || !campaign) throw new Error("That campaign doesn't exist or you don't have access to it.");
-    if (campaign.organization_id !== data.organizationId)
-      throw new Error("That campaign doesn't belong to this organization.");
-    if (campaign.status !== "draft" && campaign.status !== "rejected")
+    if (campaign.organization_id !== data.organizationId) throw new Error("That campaign doesn't belong to this organization.");
+    if (campaign.status !== "draft" && campaign.status !== "rejected") {
       throw new Error("AI creative generation is only available while the campaign is editable.");
+    }
 
     await checkRateLimit(
       context.supabase,
@@ -60,16 +60,12 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
       "Do not create a fake website screenshot. Do not include illegible filler text. If text is rendered, keep it minimal and use only the supplied brand, headline or CTA.",
       "The result will be paired with ad copy in the TradeMall ad system, so prioritize the product/service visual over dense text.",
       `Requested ad format: ${data.format}`,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    ].filter(Boolean).join("\n\n");
 
     try {
       const generated = await generateAdImage({ prompt, format: data.format });
       const extension = generated.mimeType === "image/jpeg" ? "jpg" : "png";
-      const file = new File([generated.bytes], `ai-${crypto.randomUUID()}.${extension}`, {
-        type: generated.mimeType,
-      });
+      const file = new File([generated.bytes], `ai-${crypto.randomUUID()}.${extension}`, { type: generated.mimeType });
       const asset = await uploadCreativeToR2(context, {
         organizationId: data.organizationId,
         advertiserId: advertiser.id,
@@ -84,7 +80,7 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
         width: asset.width,
         height: asset.height,
         mimeType: asset.mime_type,
-        provider: "gemini",
+        provider: generated.provider,
         model: generated.model,
       };
     } catch (error) {
