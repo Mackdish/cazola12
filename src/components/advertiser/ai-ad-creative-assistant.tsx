@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, Sparkles, WandSparkles } from "lucide-react";
+import { Copy, ImagePlus, Loader2, Sparkles, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAiGenerateAdCreative } from "@/hooks/use-ai-ad-creative";
+import { useAiGenerateAdImage } from "@/hooks/use-ai-image";
 import { useCreateAd } from "@/hooks/use-advertiser";
 import type { AdFormat } from "@/lib/advertiser-domain";
 
@@ -26,10 +27,13 @@ export function AiAdCreativeAssistant({
   format?: string;
 }) {
   const generate = useAiGenerateAdCreative();
+  const generateImage = useAiGenerateAdImage();
   const createAd = useCreateAd();
   const [url, setUrl] = useState(websiteUrl);
   const [goal, setGoal] = useState("Drive clicks and conversions");
   const [result, setResult] = useState<Awaited<ReturnType<typeof generate.mutateAsync>> | null>(null);
+  const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<Awaited<ReturnType<typeof generateImage.mutateAsync>> | null>(null);
 
   const currentFormat = useMemo(() => format || "300x250", [format]);
 
@@ -47,6 +51,8 @@ export function AiAdCreativeAssistant({
         goal,
       });
       setResult(data);
+      setGeneratedImage(null);
+      setSelectedConcept(null);
       toast.success("AI ad copy and creative recommendations are ready.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "AI creative generation failed.");
@@ -54,8 +60,37 @@ export function AiAdCreativeAssistant({
   }
 
   async function copy(text: string) {
-    await navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard.");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard.");
+    } catch {
+      toast.error("Clipboard access failed. Copy the text manually.");
+    }
+  }
+
+  async function generateBanner(concept: string, index: number) {
+    if (!result) return;
+    setSelectedConcept(index);
+    try {
+      const image = await generateImage.mutateAsync({
+        organizationId,
+        campaignId,
+        productFocus: result.productFocus,
+        productHighlights: result.productHighlights,
+        concept,
+        brandName,
+        headline: result.headlines[0],
+        cta: result.ctaRecommendations[0],
+        // Generated AI images are stored as responsive creatives so their native dimensions are accepted.
+        format: "responsive",
+      });
+      setGeneratedImage(image);
+      toast.success("AI banner generated and saved to the Creative Library.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "AI banner generation failed.");
+    } finally {
+      setSelectedConcept(null);
+    }
   }
 
   async function createDraft() {
@@ -75,9 +110,10 @@ export function AiAdCreativeAssistant({
         campaignId,
         adGroupId,
         name: `${result.productFocus.slice(0, 90)} — AI Draft`,
-        format: currentFormat as AdFormat,
+        format: (generatedImage ? "responsive" : currentFormat) as AdFormat,
         destinationUrl,
-        adType: "responsive_display",
+        mediaAssetId: generatedImage?.assetId ?? null,
+        adType: generatedImage ? "static_image" : "responsive_display",
         brandName: brandName?.trim() || result.productFocus.slice(0, 120),
         headlines: result.headlines.slice(0, 5),
         longHeadline: result.longHeadline,
@@ -85,7 +121,11 @@ export function AiAdCreativeAssistant({
         cta: result.ctaRecommendations[0] ?? "Learn More",
         optimization: "auto_optimize",
       });
-      toast.success("AI creative applied. Ad saved as a draft.");
+      toast.success(
+        generatedImage
+          ? "AI banner and ad copy applied. Ad saved as a draft."
+          : "AI creative applied. Ad saved as a draft.",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "We couldn't create the AI ad draft.");
     }
@@ -100,10 +140,10 @@ export function AiAdCreativeAssistant({
               <Sparkles className="size-4 text-primary" /> AI Creative Assistant
             </CardTitle>
             <CardDescription>
-              Analyze the advertiser website and recommend product-focused ad copy and creative concepts.
+              Analyze the advertiser website, write the ad, and generate a product-focused banner.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={() => void run()} disabled={generate.isPending || createAd.isPending}>
+          <Button size="sm" onClick={() => void run()} disabled={generate.isPending || generateImage.isPending || createAd.isPending}>
             {generate.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <WandSparkles className="mr-1.5 size-4" />}
             Generate
           </Button>
@@ -181,30 +221,59 @@ export function AiAdCreativeAssistant({
                   <div key={`${concept}-${index}`} className="rounded-lg border bg-background p-3">
                     <p className="text-xs font-semibold text-primary">Concept {index + 1}</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{concept}</p>
+                    <Button
+                      size="sm"
+                      variant={generatedImage ? "outline" : "default"}
+                      className="mt-3"
+                      onClick={() => void generateBanner(concept, index)}
+                      disabled={generateImage.isPending || createAd.isPending}
+                    >
+                      {generateImage.isPending && selectedConcept === index ? (
+                        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                      ) : (
+                        <ImagePlus className="mr-1.5 size-3.5" />
+                      )}
+                      {generateImage.isPending && selectedConcept === index ? "Generating…" : "Generate banner"}
+                    </Button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-lg border bg-background p-3">
-              <p className="text-sm font-semibold">Recommended formats</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {result.recommendedFormats.map((item) => <span key={item} className="rounded-full border px-2.5 py-1 text-xs">{item}</span>)}
+            {generatedImage ? (
+              <div className="rounded-lg border border-primary/20 bg-background p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Generated AI banner</p>
+                    <p className="text-xs text-muted-foreground">Saved to the Creative Library · {generatedImage.width}×{generatedImage.height}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => void createDraft()} disabled={createAd.isPending}>
+                    {createAd.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <WandSparkles className="mr-1.5 size-4" />}
+                    {createAd.isPending ? "Creating…" : "Use in Draft Ad"}
+                  </Button>
+                </div>
+                <div className="overflow-hidden rounded-md border bg-muted">
+                  <img src={generatedImage.previewUrl} alt="AI generated ad banner preview" className="max-h-[420px] w-full object-contain" />
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
               <div>
                 <p className="text-sm font-semibold">Apply AI creative to this campaign</p>
-                <p className="text-xs text-muted-foreground">Creates a responsive-display ad draft with the generated copy. You can add the final image creative before publishing.</p>
+                <p className="text-xs text-muted-foreground">
+                  {generatedImage
+                    ? "Creates a responsive image ad draft using the generated banner and AI copy."
+                    : "Creates a responsive-display ad draft with the generated copy. Generate a banner above to attach an AI image automatically."}
+                </p>
               </div>
-              <Button onClick={() => void createDraft()} disabled={createAd.isPending}>
+              <Button onClick={() => void createDraft()} disabled={createAd.isPending || generateImage.isPending}>
                 {createAd.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <WandSparkles className="mr-1.5 size-4" />}
                 {createAd.isPending ? "Creating…" : "Create Draft Ad"}
               </Button>
             </div>
 
-            <p className="text-[11px] text-muted-foreground">Generated with {result.provider} · {result.model}. Review AI copy before publishing.</p>
+            <p className="text-[11px] text-muted-foreground">Copy generated with {result.provider} · {result.model}. Image generated with Gemini · {generatedImage?.model ?? "not generated yet"}. Review AI assets before publishing.</p>
           </div>
         ) : null}
       </CardContent>
