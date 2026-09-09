@@ -28,6 +28,17 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
     const advertiser = await getAdvertiserProfile(context, data.organizationId);
     if (!advertiser) throw new Error("Complete your advertiser profile before generating creatives.");
 
+    const { data: campaign, error: campaignError } = await context.supabase
+      .from("campaigns")
+      .select("id, organization_id, status")
+      .eq("id", data.campaignId)
+      .maybeSingle();
+    if (campaignError || !campaign) throw new Error("That campaign doesn't exist or you don't have access to it.");
+    if (campaign.organization_id !== data.organizationId)
+      throw new Error("That campaign doesn't belong to this organization.");
+    if (campaign.status !== "draft" && campaign.status !== "rejected")
+      throw new Error("AI creative generation is only available while the campaign is editable.");
+
     await checkRateLimit(
       context.supabase,
       getRateLimitConfig("ai_creative"),
