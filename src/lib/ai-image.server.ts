@@ -67,7 +67,7 @@ function extractImage(payload: GeminiImageResponse): { bytes: Uint8Array; mimeTy
     const binary = atob(image.data);
     const bytes = new Uint8Array(binary.length);
     for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    return { bytes, mimeType: image.mime_type || "image/png" };
+    return { bytes, mimeType: image.mime_type || "image/jpeg" };
   } catch {
     throw new AiImageError("Gemini returned an unreadable image. Please try again.");
   }
@@ -90,7 +90,7 @@ export async function generateAdImage(input: {
     input: input.prompt,
     response_format: {
       type: "image",
-      mime_type: "image/png",
+      mime_type: "image/jpeg",
       aspect_ratio: aspectRatioForFormat(input.format),
       image_size: "1K",
     },
