@@ -11,22 +11,22 @@ const adCreativeSchema = {
   type: "object",
   required: ["productFocus", "productHighlights", "headlines", "longHeadline", "descriptions", "ctaRecommendations", "creativeConcepts", "recommendedFormats"],
   properties: {
-    productFocus: { type: "string" },
-    productHighlights: { type: "array", items: { type: "string" } },
-    headlines: { type: "array", items: { type: "string" } },
-    longHeadline: { type: "string" },
-    descriptions: { type: "array", items: { type: "string" } },
-    ctaRecommendations: { type: "array", items: { type: "string" } },
-    creativeConcepts: { type: "array", items: { type: "string" } },
-    recommendedFormats: { type: "array", items: { type: "string" } },
+    productFocus: { type: "string", maxLength: 200 },
+    productHighlights: { type: "array", maxItems: 8, items: { type: "string", maxLength: 300 } },
+    headlines: { type: "array", minItems: 5, maxItems: 5, items: { type: "string", maxLength: 90 } },
+    longHeadline: { type: "string", maxLength: 120 },
+    descriptions: { type: "array", minItems: 5, maxItems: 5, items: { type: "string", maxLength: 150 } },
+    ctaRecommendations: { type: "array", maxItems: 6, items: { type: "string", maxLength: 40 } },
+    creativeConcepts: { type: "array", maxItems: 6, items: { type: "string", maxLength: 600 } },
+    recommendedFormats: { type: "array", maxItems: 6, items: { type: "string", maxLength: 80 } },
   },
 } as const;
 const validation = z.object({
   productFocus: z.string().trim().min(1).max(200),
   productHighlights: z.array(z.string().trim().min(1).max(300)).max(8),
-  headlines: z.array(z.string().trim().min(1).max(90)).max(5),
+  headlines: z.array(z.string().trim().min(1).max(90)).length(5),
   longHeadline: z.string().trim().min(1).max(120),
-  descriptions: z.array(z.string().trim().min(1).max(150)).max(5),
+  descriptions: z.array(z.string().trim().min(1).max(150)).length(5),
   ctaRecommendations: z.array(z.string().trim().min(1).max(40)).max(6),
   creativeConcepts: z.array(z.string().trim().min(1).max(600)).max(6),
   recommendedFormats: z.array(z.string().trim().min(1).max(80)).max(6),
@@ -56,9 +56,30 @@ export const aiGenerateAdCreative = createServerFn({ method: "POST" })
     await getAdvertiserProfile(context, data.organizationId);
     await checkRateLimit(context.supabase, getRateLimitConfig("ai_creative"), `user:${context.userId}`, context.userId, data.organizationId);
     const snapshot = await fetchProductSnapshot(data.websiteUrl);
-    const prompt = `You are TradeMall's ad creative strategist for Kenya and Africa. Analyze the supplied advertiser website and create truthful ad copy and creative directions based only on website facts. Identify the strongest product, service, offer or category to promote. Never invent prices, discounts, guarantees, features or testimonials.\n\nBrand: ${data.brandName || "Use the website brand"}\nCampaign goal: ${data.goal}\nRequested ad format: ${data.format}\n\nWebsite title: ${snapshot.title}\nWebsite description: ${snapshot.description}\nWebsite content:\n${snapshot.text}\n\nReturn exactly the requested JSON. Generate 5 distinct short headlines using different angles (benefit, problem/solution, curiosity, trust, direct conversion), 1 long headline, 5 descriptions, up to 6 suitable CTAs, up to 6 concrete visual creative concepts based on actual products/services, and recommended ad formats. Keep copy concise and suitable for display advertising.`;
+    const prompt = `You are TradeMall's ad creative strategist for Kenya and Africa. Analyze the supplied advertiser website and create truthful ad copy and creative directions based only on website facts. Identify the strongest product, service, offer or category to promote. Never invent prices, discounts, guarantees, features or testimonials.
+
+STRICT OUTPUT LIMITS — these are hard limits and must be obeyed:
+- headlines: EXACTLY 5 items. Every headline MUST be 90 characters or fewer.
+- descriptions: EXACTLY 5 items. Every description MUST be 150 characters or fewer.
+- productHighlights: maximum 8 items, each 300 characters or fewer.
+- ctaRecommendations: maximum 6 items, each 40 characters or fewer.
+- creativeConcepts: maximum 6 items, each 600 characters or fewer.
+- recommendedFormats: maximum 6 items, each 80 characters or fewer.
+- longHeadline: maximum 120 characters.
+Count characters before returning. If any item exceeds its limit, rewrite it shorter. Do not return extra array items. Return ONLY JSON, with no markdown or code fences.
+
+Brand: ${data.brandName || "Use the website brand"}
+Campaign goal: ${data.goal}
+Requested ad format: ${data.format}
+
+Website title: ${snapshot.title}
+Website description: ${snapshot.description}
+Website content:
+${snapshot.text}
+
+Generate exactly 5 distinct short headlines using different angles (benefit, problem/solution, curiosity, trust, direct conversion), exactly 5 descriptions, 1 long headline, up to 6 suitable CTAs, up to 6 concrete visual creative concepts based on actual products/services, and recommended ad formats.`;
     try {
-      const result = await generateStructured<z.infer<typeof validation>>({ prompt, schema: adCreativeSchema as Record<string, unknown>, systemInstruction: "TradeMall AI must ground product claims in the supplied website content. Return concise, production-ready advertising copy and creative concepts." });
+      const result = await generateStructured<z.infer<typeof validation>>({ prompt, schema: adCreativeSchema as Record<string, unknown>, systemInstruction: "TradeMall AI must ground product claims in the supplied website content. Return concise, production-ready advertising copy and creative concepts. Obey every output limit exactly, especially exactly 5 headlines and exactly 5 descriptions." });
       const safe = validation.parse(result.data);
       return { ...safe, provider: result.provider, model: result.model, usage: result.usage ?? null };
     } catch (error) {
