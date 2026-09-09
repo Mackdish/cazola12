@@ -3,6 +3,12 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+  analyzeCreative,
+  auditWebsite,
+  buildCampaignPlan,
+  optimizeCampaign,
+} from "@/lib/ai-service.server";
+import {
   adminArchiveAd,
   adminGetAdDetail,
   adminGetAdvertiserDetail,
@@ -197,7 +203,10 @@ export const addAd = createServerFn({ method: "POST" })
         format: formatEnum,
         destinationUrl: z.string().trim().min(4).max(2048),
         mediaAssetId: uuid.optional().nullable(),
-        adType: z.enum(["static_image", "responsive_display", "native", "html5"]).default("static_image").optional(),
+        adType: z
+          .enum(["static_image", "responsive_display", "native", "html5"])
+          .default("static_image")
+          .optional(),
         brandName: z.string().trim().max(120).optional().nullable(),
         logoMediaAssetId: uuid.optional().nullable(),
         headlines: z.array(z.string().trim().max(90)).max(5).default([]).optional(),
@@ -299,7 +308,8 @@ export const uploadCreative = createServerFn({ method: "POST" })
     return {
       organizationId,
       advertiserId,
-      campaignId: typeof campaignIdRaw === "string" && campaignIdRaw ? uuid.parse(campaignIdRaw) : null,
+      campaignId:
+        typeof campaignIdRaw === "string" && campaignIdRaw ? uuid.parse(campaignIdRaw) : null,
       file,
     };
   })
@@ -447,3 +457,45 @@ export const deleteAdminCreative = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ assetId: uuid }).parse(data))
   .handler(({ data, context }) => adminDeleteCreative(context, data.assetId));
+
+// ------------------------------------------------------------------- AI Copilot
+
+export const aiBuildCampaignPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        organizationId: uuid,
+        websiteUrl: z.string().trim().min(4).max(2048),
+        goal: z.string().trim().min(3).max(500),
+        budget: z.number().positive().max(100_000_000),
+        durationDays: z.number().int().min(1).max(365),
+      })
+      .parse(data),
+  )
+  .handler(({ data, context }) => buildCampaignPlan(context, data));
+
+export const aiAuditWebsite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({ organizationId: uuid, websiteUrl: z.string().trim().min(4).max(2048) }).parse(data),
+  )
+  .handler(({ data, context }) => auditWebsite(context, data));
+
+export const aiAnalyzeCreative = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ organizationId: uuid, assetId: uuid }).parse(data))
+  .handler(({ data, context }) => analyzeCreative(context, data));
+
+export const aiOptimizeCampaign = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z
+      .object({
+        organizationId: uuid,
+        campaignId: uuid.optional().nullable(),
+        days: z.number().int().min(1).max(90).default(30),
+      })
+      .parse(data),
+  )
+  .handler(({ data, context }) => optimizeCampaign(context, data));
