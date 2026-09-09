@@ -2,6 +2,10 @@
   "name": "pixel-perfect-frame-34",
   "compatibility_date": "2026-08-21",
   "compatibility_flags": ["nodejs_compat"],
+  "main": "dist/server/index.mjs",
+  "assets": {
+    "directory": "dist/client"
+  },
   "r2_buckets": [
     { "binding": "R2", "bucket_name": "trademall" }
   ],
