@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { AdEditDialog } from "@/components/advertiser/ad-edit-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable, type DataTableColumn } from "@/components/patterns/data-table";
-import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/states";
+import { ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { useAdvertiserAds, useAdvertiserOrg } from "@/hooks/use-advertiser";
-import { formatCurrency } from "@/lib/advertiser-domain";
+import { useAdvertiserAds, useAdvertiserOrg, useCreatives } from "@/hooks/use-advertiser";
+import { formatCurrency, type AdFormat, type MediaAsset } from "@/lib/advertiser-domain";
 
 export const Route = createFileRoute("/_authenticated/advertiser/advertisements")({
   head: () => ({
@@ -43,10 +43,19 @@ type AdRow = {
   name: string;
   campaignName: string;
   adGroupName: string;
-  format: string;
+  format: AdFormat;
   status: string;
   approvalStatus: string;
   destinationUrl: string;
+  media_asset_id: string | null;
+  brand_name: string | null;
+  logo_media_asset_id: string | null;
+  headlines: unknown;
+  long_headline: string | null;
+  descriptions: unknown;
+  cta: string | null;
+  tracking_url: string | null;
+  optimization: string | null;
   createdAt: string;
 };
 
@@ -75,6 +84,8 @@ const APPROVAL_TONE: Record<string, StatusTone> = {
 function Page() {
   const { organizationId } = useAdvertiserOrg();
   const { data, isLoading, error, refetch } = useAdvertiserAds(organizationId);
+  const { data: mediaAssetsData } = useCreatives(organizationId);
+  const mediaAssets = (mediaAssetsData ?? []) as MediaAsset[];
 
   const [search, setSearch] = useState("");
   const [formatFilter, setFormatFilter] = useState<string>("all");
@@ -84,10 +95,19 @@ function Page() {
     const raw = (data ?? []) as Array<{
       id: string;
       name: string;
-      format: string;
+      format: AdFormat;
       status: string;
       approval_status: string;
       destination_url: string;
+      media_asset_id: string | null;
+      brand_name: string | null;
+      logo_media_asset_id: string | null;
+      headlines: unknown;
+      long_headline: string | null;
+      descriptions: unknown;
+      cta: string | null;
+      tracking_url: string | null;
+      optimization: string | null;
       created_at: string;
       campaigns: { id: string; name: string; status: string } | null;
       ad_groups: { id: string; name: string } | null;
@@ -117,6 +137,15 @@ function Page() {
         status: row.status,
         approvalStatus: row.approval_status,
         destinationUrl: row.destination_url,
+        media_asset_id: row.media_asset_id,
+        brand_name: row.brand_name,
+        logo_media_asset_id: row.logo_media_asset_id,
+        headlines: row.headlines,
+        long_headline: row.long_headline,
+        descriptions: row.descriptions,
+        cta: row.cta,
+        tracking_url: row.tracking_url,
+        optimization: row.optimization,
         createdAt: row.created_at,
       }));
   }, [data, search, formatFilter, statusFilter]);
@@ -149,6 +178,30 @@ function Page() {
       ),
     },
     { id: "created", header: "Created", cell: (row) => new Date(row.createdAt).toLocaleDateString() },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: (row) => (
+        <AdEditDialog
+          ad={{
+            id: row.id,
+            name: row.name,
+            format: row.format,
+            destination_url: row.destinationUrl,
+            media_asset_id: row.media_asset_id,
+            brand_name: row.brand_name,
+            logo_media_asset_id: row.logo_media_asset_id,
+            headlines: row.headlines,
+            long_headline: row.long_headline,
+            descriptions: row.descriptions,
+            cta: row.cta,
+            tracking_url: row.tracking_url,
+            optimization: row.optimization,
+          }}
+          mediaAssets={mediaAssets}
+        />
+      ),
+    },
   ];
 
   return (
