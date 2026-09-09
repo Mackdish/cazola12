@@ -279,8 +279,10 @@ export const BROWSER_OPTIONS: Array<{ value: BrowserType; label: string }> = [
 export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
 
-/** Hour ranges per weekday. Empty object = always on. */
-export type TargetingSchedule = Partial<Record<Weekday, Array<{ start: number; end: number }>>>;
+/** Hour ranges per weekday. Empty object = always on. Optional timezone is an IANA timezone. */
+export type TargetingSchedule = Partial<Record<Weekday, Array<{ start: number; end: number }>>> & {
+  timezone?: string;
+};
 
 export type TargetingRules = {
   countries: string[];
@@ -308,9 +310,11 @@ export const EMPTY_TARGETING: TargetingRules = {
 
 export function parseSchedule(value: unknown): TargetingSchedule {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
   const out: TargetingSchedule = {};
+  if (typeof source.timezone === "string" && source.timezone.trim()) out.timezone = source.timezone.trim();
   for (const day of WEEKDAYS) {
-    const raw = (value as Record<string, unknown>)[day];
+    const raw = source[day];
     if (!Array.isArray(raw)) continue;
     const ranges = raw
       .filter(
@@ -350,24 +354,57 @@ function listMatches<T extends string>(allowed: T[], value: T | undefined | null
   return allowed.some((entry) => entry.toLowerCase() === String(value).toLowerCase());
 }
 
+function localScheduleSignals(now: Date, timezone?: string): { weekday: Weekday; hour: number } | null {
+  if (!timezone) return null;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      hour: "numeric",
+      hour12: false,
+    }).formatToParts(now);
+    const weekdayMap: Record<string, Weekday> = {
+      Sun: "sun",
+      Mon: "mon",
+      Tue: "tue",
+      Wed: "wed",
+      Thu: "thu",
+      Fri: "fri",
+      Sat: "sat",
+    };
+    const weekday = weekdayMap[parts.find((part) => part.type === "weekday")?.value ?? ""];
+    const rawHour = parts.find((part) => part.type === "hour")?.value;
+    const parsedHour = rawHour === undefined ? NaN : Number(rawHour);
+    if (!weekday || !Number.isInteger(parsedHour)) return null;
+    return { weekday, hour: parsedHour === 24 ? 0 : parsedHour };
+  } catch {
+    return null;
+  }
+}
+
 export function scheduleMatches(
   schedule: TargetingSchedule,
   weekday?: Weekday,
   hour?: number,
+  now?: Date,
 ): boolean {
-  const days = Object.keys(schedule) as Weekday[];
+  const days = Object.keys(schedule).filter((key) => key !== "timezone") as Weekday[];
   if (days.length === 0) return true;
-  if (!weekday || hour === undefined) return false;
-  const ranges = schedule[weekday];
+  let effectiveWeekday = weekday;
+  let effectiveHour = hour;
+  const local = localScheduleSignals(now ?? new Date(), schedule.timezone);
+  if (local) {
+    effectiveWeekday = local.weekday;
+    effectiveHour = local.hour;
+  }
+  if (!effectiveWeekday || effectiveHour === undefined) return false;
+  const ranges = schedule[effectiveWeekday];
   if (!ranges || ranges.length === 0) return false;
-  return ranges.some((range) => hour >= range.start && hour < range.end);
+  return ranges.some((range) => effectiveHour >= range.start && effectiveHour < range.end);
 }
 
-/**
- * Deterministic targeting evaluation. Every configured dimension must match;
- * unconfigured dimensions are treated as "any".
- */
-export function targetingMatches(rules: TargetingRules, signals: RequestSignals): boolean {
+/** Deterministic targeting evaluation. Every configured dimension must match; unconfigured dimensions are "any". */
+export function targetingMatches(rules: TargetingRules, signals: RequestSignals, now?: Date): boolean {
   return (
     listMatches(rules.countries, signals.country) &&
     listMatches(rules.counties, signals.county) &&
@@ -376,7 +413,7 @@ export function targetingMatches(rules: TargetingRules, signals: RequestSignals)
     listMatches(rules.operatingSystems, signals.os) &&
     listMatches(rules.browsers, signals.browser) &&
     listMatches(rules.websiteCategories, signals.websiteCategory) &&
-    scheduleMatches(rules.schedule, signals.weekday, signals.hour)
+    scheduleMatches(rules.schedule, signals.weekday, signals.hour, now)
   );
 }
 

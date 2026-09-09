@@ -34,6 +34,13 @@ import {
 } from "@/lib/impression-buffer.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
+const DEFAULT_AD_SERVE_TIMEOUT_MS = 350;
+const MAX_AD_SERVE_TIMEOUT_MS = 1000;
+const AD_SERVE_TIMEOUT_MS = Math.min(
+  MAX_AD_SERVE_TIMEOUT_MS,
+  Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
+);
+const AD_CANDIDATE_LIMIT = 100;
 
 type TargetingRow = {
   countries: string[];
@@ -116,6 +123,8 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
 /**
  * Candidate pool. Pre-filtered in SQL on the indexed serving columns so the
  * in-memory eligibility pass only handles dates, budget, format and targeting.
+ * The pool is intentionally bounded to protect the hot path while giving the
+ * auction enough breadth as the marketplace grows.
  */
 export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidate[]> {
   const t0 = Date.now();
@@ -132,12 +141,12 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
     .not("media_asset_id", "is", null)
     .eq("campaigns.approval_status", "approved")
     .in("campaigns.status", ["active", "approved"])
-    .limit(50);
+    .limit(AD_CANDIDATE_LIMIT);
 
   if (formats) query = query.in("format", formats);
 
   const { data, error } = await query;
-  console.debug("[ad] candidates_lookup_ms", Date.now() - t0);
+  console.debug("[ad] candidates_lookup_ms", Date.now() - t0, "limit", AD_CANDIDATE_LIMIT);
 
   if (error || !data) return [];
 
@@ -421,7 +430,7 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
     const result = await Promise.race([
       serveAdInner(input),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("serve_timeout")), 200),
+        setTimeout(() => reject(new Error("serve_timeout")), AD_SERVE_TIMEOUT_MS),
       ),
     ]);
     return result;
@@ -430,6 +439,7 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
     console.warn("[ad] serve_timeout_or_error", {
       zone: input.zoneKey,
       timeout: isTimeout,
+      timeoutMs: AD_SERVE_TIMEOUT_MS,
       error: error instanceof Error ? error.message : String(error),
     });
 
