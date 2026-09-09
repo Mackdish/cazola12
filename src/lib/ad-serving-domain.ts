@@ -151,7 +151,7 @@ export function candidateIsEligible(
   if (candidate.adStatus !== "active") return no("ad_not_active");
   if (!candidate.mediaAssetId) return no("no_creative");
   if (!formatMatches(zone.zoneFormat, candidate.adFormat)) return no("format_mismatch");
-  if (!targetingMatches(candidate.targeting, ctx.signals)) return no("targeting_mismatch");
+  if (!targetingMatches(candidate.targeting, ctx.signals, ctx.now)) return no("targeting_mismatch");
   return OK;
 }
 
