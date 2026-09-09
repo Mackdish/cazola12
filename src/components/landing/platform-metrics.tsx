@@ -1,4 +1,4 @@
-import { BarChart3, Globe2, Megaphone, TrendingUp } from "lucide-react";
+import { BarChart3, Globe2, Megaphone } from "lucide-react";
 
 import { useInView } from "@/hooks/use-in-view";
 import { useCountUp } from "@/hooks/use-count-up";
@@ -45,16 +45,10 @@ export function PlatformMetrics() {
   const active = inView && stats.isSuccess;
 
   return (
-    <div ref={ref} className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div ref={ref} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <StatCounter icon={Megaphone} label="Advertisers" value={data.advertisers} active={active} />
       <StatCounter icon={Globe2} label="Publishers" value={data.publishers} active={active} />
       <StatCounter icon={BarChart3} label="Active Websites" value={data.websites} active={active} />
-      <StatCounter
-        icon={TrendingUp}
-        label="Impressions (30d)"
-        value={data.monthlyImpressions}
-        active={active}
-      />
     </div>
   );
 }
