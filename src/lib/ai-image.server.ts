@@ -87,24 +87,49 @@ function decodeBase64Image(data: unknown): Uint8Array {
   }
 }
 
-async function extractCloudflareImage(result: unknown): Promise<Uint8Array> {
-  // FLUX.1 Schnell normally returns { image: base64 }.
+async function extractCloudflareImage(result: unknown): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  // Cloudflare's Workers AI image models can be returned directly as a Response/stream.
+  // Prefer this path before object inspection because a Response is also an object.
+  if (result instanceof Response) {
+    if (!result.ok) {
+      throw new AiImageError(`Cloudflare Workers AI image request failed (${result.status}).`, result.status);
+    }
+    const bytes = new Uint8Array(await result.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      throw new AiImageError("Cloudflare Workers AI returned an empty image response.");
+    }
+    return { bytes, mimeType: result.headers.get("content-type") || "image/png" };
+  }
+
+  // FLUX.1 Schnell may also be exposed as { image: base64 } by some runtimes.
   if (result && typeof result === "object" && "image" in result) {
     const image = (result as { image?: unknown }).image;
-    if (typeof image === "string" && image.length > 0) return decodeBase64Image(image);
-    if (image instanceof Uint8Array && image.byteLength > 0) return image;
-    if (image instanceof ArrayBuffer && image.byteLength > 0) return new Uint8Array(image);
+    if (typeof image === "string" && image.length > 0) {
+      return { bytes: decodeBase64Image(image), mimeType: "image/png" };
+    }
+    if (image instanceof Uint8Array && image.byteLength > 0) {
+      return { bytes: image, mimeType: "image/png" };
+    }
+    if (image instanceof ArrayBuffer && image.byteLength > 0) {
+      return { bytes: new Uint8Array(image), mimeType: "image/png" };
+    }
   }
 
   // Some Workers AI/runtime versions expose image models as a binary stream.
   if (result instanceof ReadableStream) {
     const bytes = new Uint8Array(await new Response(result).arrayBuffer());
-    if (bytes.byteLength > 0) return bytes;
+    if (bytes.byteLength > 0) return { bytes, mimeType: "image/png" };
   }
 
-  if (result instanceof Uint8Array && result.byteLength > 0) return result;
-  if (result instanceof ArrayBuffer && result.byteLength > 0) return new Uint8Array(result);
-  if (typeof result === "string" && result.length > 0) return decodeBase64Image(result);
+  if (result instanceof Uint8Array && result.byteLength > 0) {
+    return { bytes: result, mimeType: "image/png" };
+  }
+  if (result instanceof ArrayBuffer && result.byteLength > 0) {
+    return { bytes: new Uint8Array(result), mimeType: "image/png" };
+  }
+  if (typeof result === "string" && result.length > 0) {
+    return { bytes: decodeBase64Image(result), mimeType: "image/png" };
+  }
 
   let shape = "unknown";
   if (result && typeof result === "object") {
@@ -147,14 +172,9 @@ async function generateWithCloudflare(input: { prompt: string; format: string })
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      // FLUX.1 Schnell's current Workers AI input schema requires `prompt`.
-      const result = await ai.run(model, {
-        prompt: input.prompt,
-      });
-
-      const bytes = await extractCloudflareImage(result);
-      // FLUX returns PNG image bytes in current Workers AI responses.
-      return { bytes, mimeType: "image/png", model, provider: "cloudflare" };
+      const result = await ai.run(model, { prompt: input.prompt });
+      const image = await extractCloudflareImage(result);
+      return { ...image, model, provider: "cloudflare" };
     } catch (error) {
       lastError = error instanceof AiImageError
         ? error
