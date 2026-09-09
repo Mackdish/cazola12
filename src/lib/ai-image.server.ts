@@ -73,17 +73,53 @@ function extractGeminiImage(payload: GeminiImageResponse): { bytes: Uint8Array; 
 
 function decodeBase64Image(data: unknown): Uint8Array {
   if (typeof data !== "string" || !data) {
-    throw new AiImageError("Cloudflare returned no image data. Check the Workers AI binding and model configuration.");
+    throw new AiImageError("Cloudflare Workers AI returned an empty image response. Please try again.");
   }
 
   try {
     const binary = atob(data);
     const bytes = new Uint8Array(binary.length);
     for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    if (bytes.byteLength === 0) throw new Error("empty image");
     return bytes;
   } catch {
-    throw new AiImageError("Cloudflare returned an unreadable image. Please try again.");
+    throw new AiImageError("Cloudflare Workers AI returned an invalid image response. Please try again.");
   }
+}
+
+async function extractCloudflareImage(result: unknown): Promise<Uint8Array> {
+  // FLUX.1 Schnell normally returns { image: base64 }.
+  if (result && typeof result === "object" && "image" in result) {
+    const image = (result as { image?: unknown }).image;
+    if (typeof image === "string" && image.length > 0) return decodeBase64Image(image);
+    if (image instanceof Uint8Array && image.byteLength > 0) return image;
+    if (image instanceof ArrayBuffer && image.byteLength > 0) return new Uint8Array(image);
+  }
+
+  // Some Workers AI/runtime versions expose image models as a binary stream.
+  if (result instanceof ReadableStream) {
+    const bytes = new Uint8Array(await new Response(result).arrayBuffer());
+    if (bytes.byteLength > 0) return bytes;
+  }
+
+  if (result instanceof Uint8Array && result.byteLength > 0) return result;
+  if (result instanceof ArrayBuffer && result.byteLength > 0) return new Uint8Array(result);
+  if (typeof result === "string" && result.length > 0) return decodeBase64Image(result);
+
+  let shape = "unknown";
+  if (result && typeof result === "object") {
+    try {
+      shape = Object.keys(result as Record<string, unknown>).join(", ") || "object";
+    } catch {
+      shape = "object";
+    }
+  } else if (result === null) {
+    shape = "null";
+  } else {
+    shape = typeof result;
+  }
+
+  throw new AiImageError(`Cloudflare Workers AI returned an empty image response (response shape: ${shape}). Please try again.`);
 }
 
 function describeCloudflareError(error: unknown): string {
@@ -111,14 +147,14 @@ async function generateWithCloudflare(input: { prompt: string; format: string })
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      // FLUX.1 Schnell's Workers AI schema does not accept a `seed` property.
-      // Keep the request limited to the model's supported prompt input.
-      const result = (await ai.run(model, {
+      // FLUX.1 Schnell's current Workers AI input schema requires `prompt`.
+      const result = await ai.run(model, {
         prompt: input.prompt,
-      })) as { image?: unknown };
+      });
 
-      const bytes = decodeBase64Image(result.image);
-      return { bytes, mimeType: "image/jpeg", model, provider: "cloudflare" };
+      const bytes = await extractCloudflareImage(result);
+      // FLUX returns PNG image bytes in current Workers AI responses.
+      return { bytes, mimeType: "image/png", model, provider: "cloudflare" };
     } catch (error) {
       lastError = error instanceof AiImageError
         ? error
