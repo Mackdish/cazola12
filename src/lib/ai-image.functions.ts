@@ -66,7 +66,8 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
 
     try {
       const generated = await generateAdImage({ prompt, format: data.format });
-      const file = new File([generated.bytes], `ai-${crypto.randomUUID()}.png`, {
+      const extension = generated.mimeType === "image/jpeg" ? "jpg" : "png";
+      const file = new File([generated.bytes], `ai-${crypto.randomUUID()}.${extension}`, {
         type: generated.mimeType,
       });
       const asset = await uploadCreativeToR2(context, {
