@@ -111,9 +111,10 @@ async function generateWithCloudflare(input: { prompt: string; format: string })
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
+      // FLUX.1 Schnell's Workers AI schema does not accept a `seed` property.
+      // Keep the request limited to the model's supported prompt input.
       const result = (await ai.run(model, {
         prompt: input.prompt,
-        seed: Math.floor(Math.random() * 2_147_483_647),
       })) as { image?: unknown };
 
       const bytes = decodeBase64Image(result.image);
