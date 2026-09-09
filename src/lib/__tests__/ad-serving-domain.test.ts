@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_TARGETING } from "@/lib/advertiser-domain";
+import { EMPTY_TARGETING, parseSchedule, scheduleMatches } from "@/lib/advertiser-domain";
 import {
   candidateIsEligible,
   classifyUserAgent,
@@ -201,6 +201,28 @@ describe("selection", () => {
   it("puts cpc and cpm bids on the same scale", () => {
     expect(valuePerImpression({ bidType: "cpm", bidAmount: 10 })).toBeCloseTo(0.01);
     expect(valuePerImpression({ bidType: "cpc", bidAmount: 1 })).toBeCloseTo(0.01);
+  });
+});
+
+describe("timezone-aware schedules", () => {
+  it("preserves an IANA timezone while parsing a schedule", () => {
+    expect(parseSchedule({ timezone: "Africa/Nairobi", tue: [{ start: 14, end: 16 }] })).toEqual({
+      timezone: "Africa/Nairobi",
+      tue: [{ start: 14, end: 16 }],
+    });
+  });
+
+  it("evaluates schedule hours in the configured timezone", () => {
+    const schedule = parseSchedule({ timezone: "Africa/Nairobi", tue: [{ start: 14, end: 16 }] });
+    // 12:00 UTC is 15:00 in Nairobi.
+    expect(scheduleMatches(schedule, "tue", 12, new Date("2026-03-10T12:00:00Z"))).toBe(true);
+    expect(scheduleMatches(schedule, "tue", 18, new Date("2026-03-10T18:00:00Z"))).toBe(false);
+  });
+
+  it("keeps legacy schedules working without a timezone", () => {
+    const schedule = parseSchedule({ tue: [{ start: 12, end: 14 }] });
+    expect(scheduleMatches(schedule, "tue", 13, NOW)).toBe(true);
+    expect(scheduleMatches(schedule, "tue", 15, NOW)).toBe(false);
   });
 });
 
