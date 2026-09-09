@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useUpdateAd } from "@/hooks/use-advertiser";
+import { useUpdateAdvertiserAd } from "@/hooks/use-advertiser-edit";
 import { AD_FORMATS, normalizeDestinationUrl, type AdFormat, type MediaAsset } from "@/lib/advertiser-domain";
 import { toFriendlyError } from "@/lib/errors";
 
@@ -31,7 +31,7 @@ type Ad = {
 const asStrings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
 export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAssets: MediaAsset[]; disabled?: boolean }) {
-  const update = useUpdateAd();
+  const update = useUpdateAdvertiserAd();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(ad.name);
   const [format, setFormat] = useState<AdFormat>(ad.format);
@@ -81,9 +81,9 @@ export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAsset
         <div className="space-y-2"><Label>Destination URL</Label><Input value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} maxLength={2048} /></div>
         <div className="space-y-2"><Label>Brand name</Label><Input value={brandName} onChange={(e) => setBrandName(e.target.value)} maxLength={120} /></div>
         <div className="space-y-2"><Label>Logo</Label><Select value={logoMediaAssetId || "none"} onValueChange={(value) => setLogoMediaAssetId(value === "none" ? "" : value)}><SelectTrigger><SelectValue placeholder="No logo" /></SelectTrigger><SelectContent><SelectItem value="none">No logo</SelectItem>{mediaAssets.filter((asset) => asset.status === "ready").map((asset) => <SelectItem key={asset.id} value={asset.id}>{asset.file_name}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-3"><Label>Headlines</Label>{headlines.map((value, index) => <div key={index} className="space-y-1"><Input value={value} onChange={(e) => setHeadlines((prev) => prev.map((item, i) => i === index ? e.target.value.slice(0, 90) : item))} placeholder={`Headline ${index + 1}`} maxLength={90} /><p className="text-right text-[11px] text-muted-foreground">{value.length}/90</p></div>)}</div>
+        <div className="space-y-3"><Label>Headlines</Label>{headlines.map((value, index) => <div key={index} className="space-y-1"><Input value={value} onChange={(e) => setHeadlines((prev) => { const next = [...prev]; next[index] = e.target.value.slice(0, 90); return next; })} placeholder={`Headline ${index + 1}`} maxLength={90} /><p className="text-right text-[11px] text-muted-foreground">{value.length}/90</p></div>)}</div>
         <div className="space-y-2"><Label>Long headline</Label><Input value={longHeadline} onChange={(e) => setLongHeadline(e.target.value.slice(0, 120))} maxLength={120} /><p className="text-right text-[11px] text-muted-foreground">{longHeadline.length}/120</p></div>
-        <div className="space-y-3"><Label>Descriptions</Label>{descriptions.map((value, index) => <div key={index} className="space-y-1"><Textarea value={value} onChange={(e) => setDescriptions((prev) => prev.map((item, i) => i === index ? e.target.value.slice(0, 150) : item))} placeholder={`Description ${index + 1}`} maxLength={150} rows={2} /><p className="text-right text-[11px] text-muted-foreground">{value.length}/150</p></div>)}</div>
+        <div className="space-y-3"><Label>Descriptions</Label>{descriptions.map((value, index) => <div key={index} className="space-y-1"><Textarea value={value} onChange={(e) => setDescriptions((prev) => { const next = [...prev]; next[index] = e.target.value.slice(0, 150); return next; })} placeholder={`Description ${index + 1}`} maxLength={150} rows={2} /><p className="text-right text-[11px] text-muted-foreground">{value.length}/150</p></div>)}</div>
         <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>CTA</Label><Input value={cta} onChange={(e) => setCta(e.target.value.slice(0, 40))} maxLength={40} /></div><div className="space-y-2"><Label>Optimization</Label><Select value={optimization} onValueChange={setOptimization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="auto_optimize">Automatically optimize</SelectItem><SelectItem value="rotate_evenly">Rotate evenly</SelectItem></SelectContent></Select></div></div>
         <div className="space-y-2"><Label>Tracking URL</Label><Input value={trackingUrl} onChange={(e) => setTrackingUrl(e.target.value)} maxLength={2048} /></div>
       </div>
