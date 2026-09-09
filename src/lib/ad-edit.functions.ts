@@ -6,7 +6,6 @@ import { updateAdvertiserAd } from "@/lib/ad-edit.service.server";
 
 const uuid = z.string().uuid();
 const formatEnum = z.enum(["300x250", "336x280", "728x90", "970x250", "320x50", "320x100", "responsive"]);
-const adTypeEnum = z.enum(["static_image", "responsive_display", "native", "html5"]);
 
 export const updateAd = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
