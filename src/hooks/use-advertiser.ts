@@ -4,6 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth-context";
 import { membershipsOfType } from "@/lib/authorization";
 import {
+  aiAnalyzeCreative,
+  aiAuditWebsite,
+  aiBuildCampaignPlan,
+  aiOptimizeCampaign,
   addAd,
   addAdGroup,
   addCampaign,
@@ -394,5 +398,40 @@ export function useReviewAd() {
       invalidate();
       invalidateAdmin();
     },
+  });
+}
+
+export function useAiBuildCampaignPlan() {
+  const fn = useServerFn(aiBuildCampaignPlan);
+  return useMutation({
+    mutationFn: (input: {
+      organizationId: string;
+      websiteUrl: string;
+      goal: string;
+      budget: number;
+      durationDays: number;
+    }) => fn({ data: input }),
+  });
+}
+
+export function useAiAuditWebsite() {
+  const fn = useServerFn(aiAuditWebsite);
+  return useMutation({
+    mutationFn: (input: { organizationId: string; websiteUrl: string }) => fn({ data: input }),
+  });
+}
+
+export function useAiAnalyzeCreative() {
+  const fn = useServerFn(aiAnalyzeCreative);
+  return useMutation({
+    mutationFn: (input: { organizationId: string; assetId: string }) => fn({ data: input }),
+  });
+}
+
+export function useAiOptimizeCampaign() {
+  const fn = useServerFn(aiOptimizeCampaign);
+  return useMutation({
+    mutationFn: (input: { organizationId: string; campaignId?: string | null; days?: number }) =>
+      fn({ data: { ...input, days: input.days ?? 30 } }),
   });
 }

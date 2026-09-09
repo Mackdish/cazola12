@@ -16,6 +16,7 @@ import { DataTable, type DataTableColumn } from "@/components/patterns/data-tabl
 import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { CampaignDialog } from "@/components/advertiser/campaign-dialog";
+import { AiCopilotDialog } from "@/components/advertiser/ai-copilot-dialog";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
 import { useAdvertiserOrg, useCampaigns } from "@/hooks/use-advertiser";
 import { useBillingSettings } from "@/hooks/use-billing";
@@ -64,6 +65,7 @@ function CampaignsPage() {
   const [sortBy, setSortBy] = useState<CampaignSortKey>("created_at");
   const [direction, setDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const result = useMemo(
     () =>
@@ -114,7 +116,9 @@ function CampaignsPage() {
       header: "Budget",
       align: "right",
       cell: (row) => (
-        <span className="text-numeric">{formatCurrency(row.total_budget, billing.data?.currency ?? "USD")}</span>
+        <span className="text-numeric">
+          {formatCurrency(row.total_budget, billing.data?.currency ?? "USD")}
+        </span>
       ),
     },
     {
@@ -131,7 +135,14 @@ function CampaignsPage() {
         eyebrow="Advertiser"
         title="Campaigns"
         description="Budgets, flight dates, targeting and review status for your campaigns."
-        actions={<CampaignDialog organizationId={organizationId} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAiOpen(true)}>
+              <Sparkles className="mr-1 size-4" /> AI Copilot
+            </Button>
+            <CampaignDialog organizationId={organizationId} />
+          </div>
+        }
       />
 
       <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto_auto]">
@@ -276,6 +287,8 @@ function CampaignsPage() {
           </div>
         </div>
       )}
+
+      <AiCopilotDialog open={aiOpen} onOpenChange={setAiOpen} />
     </WorkspaceGuard>
   );
 }
