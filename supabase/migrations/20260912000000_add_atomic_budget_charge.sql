@@ -125,7 +125,7 @@ BEGIN
 
   SELECT * INTO _settings
   FROM public.platform_settings
-  WHERE id
+  ORDER BY id
   LIMIT 1;
 
   IF EXISTS (
