@@ -3,42 +3,22 @@
  *
  * Records an ad impression. Validates server-side, prevents duplicates,
  * runs fraud detection, and triggers billing.
- *
- * Query parameters:
- *   request_id  - UUID of the ad request (optional, generated if missing)
- *
- * Body:
- *   ad_id       - Ad ID (required)
- *   zone_id     - Ad zone key (required)
- *   device      - Optional device type (desktop, mobile, tablet)
- *   country     - Optional 2-letter country code
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { loadZoneContext } from "@/lib/ad-serving.server";
+import { loadZoneContext, recordImpression } from "@/lib/ad-serving.server";
 import { classifyUserAgent } from "@/lib/ad-serving-domain";
-import { recordImpression } from "@/lib/ad-serving.server";
 import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
 import { jsonResponse, validationError, rateLimitedError, serverError } from "@/lib/api-response";
 import { publicCorsHeaders, publicPreflight } from "@/lib/api-v1.server";
 
 const CORS = publicCorsHeaders("POST, OPTIONS");
 
-const JSON_HEADERS = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store",
-  ...CORS,
-} as const;
-
 const impressionBodySchema = z.object({
   ad_id: z.string().uuid(),
-  zone_id: z
-    .string()
-    .min(4)
-    .max(64)
-    .regex(/^[A-Za-z0-9_-]+$/),
+  zone_id: z.string().min(4).max(64).regex(/^[A-Za-z0-9_-]+$/),
   device: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
   country: z.string().max(2).optional().nullable(),
 });
@@ -51,6 +31,7 @@ export const Route = createFileRoute("/api/v1/events/impression")({
       POST: async ({ request }) => {
         const url = new URL(request.url);
         const requestId = url.searchParams.get("request_id");
+        const userAgent = request.headers.get("user-agent") ?? "";
 
         if (!requestId || !z.string().uuid().safeParse(requestId).success) {
           return jsonResponse(
@@ -59,7 +40,7 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           );
         }
 
-        let body: unknown = null;
+        let body: unknown;
         try {
           body = await request.json();
         } catch {
@@ -73,22 +54,21 @@ export const Route = createFileRoute("/api/v1/events/impression")({
         if (!parsed.success) {
           return validationError(parsed.error.flatten().fieldErrors);
         }
+        const data = parsed.data;
 
         const geo = extractGeoAndBotScore(request);
         const ipAddress = geo.ipAddress;
 
-        const rateLimitConfig = getRateLimitConfig("impression");
         try {
           await checkRateLimit(
             supabaseAdmin as unknown as Parameters<typeof checkRateLimit>[0],
-            rateLimitConfig,
+            getRateLimitConfig("impression"),
             ipAddress,
           );
         } catch {
           return rateLimitedError(60);
         }
 
-        // Defense-in-depth: reject events from blocked IPs
         const { redis } = await import("@/lib/redis.server");
         if (redis && ipAddress) {
           const blocked = await redis.sismember("blocked_ips", ipAddress);
@@ -103,7 +83,6 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           }
         }
 
-        // Validate zone context
         const zone = await loadZoneContext(data.zone_id);
         if (!zone) {
           return jsonResponse({ ok: false, error: "invalid_zone", message: "Zone not found" }, 404);
@@ -119,7 +98,6 @@ export const Route = createFileRoute("/api/v1/events/impression")({
           );
         }
 
-        // Validate ad exists and get campaign_id
         const { data: ad } = await supabaseAdmin
           .from("ads")
           .select("campaign_id, status, approval_status")
@@ -150,7 +128,7 @@ export const Route = createFileRoute("/api/v1/events/impression")({
 
         const outcome = await recordImpression(
           payload,
-          geo.ipAddress,
+          ipAddress,
           userAgent,
           geo.botScore,
           geo.isLikelyBot,
