@@ -49,11 +49,13 @@ async function ensureZone(ctx: Ctx, website: any, key: PlacementKey, format: str
   const db = await admin();
   const { data: existing } = await db
     .from("website_placements")
-    .select("zone_id")
+    .select("zone_id, ad_zones(id, zone_key)")
     .eq("website_id", website.id)
     .eq("placement_key", key)
     .maybeSingle();
-  if (existing?.zone_id) return existing.zone_id as string;
+  if (existing?.zone_id && existing.ad_zones?.id && existing.ad_zones?.zone_key) {
+    return { id: existing.ad_zones.id as string, zone_key: existing.ad_zones.zone_key as string };
+  }
 
   const { data: zoneKey, error: keyError } = await db.rpc("generate_zone_key");
   if (keyError || !zoneKey) throw new Error("We couldn't create the ad placement. Please try again.");
