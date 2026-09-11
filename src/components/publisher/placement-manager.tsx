@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Loader2, Monitor, Smartphone, LayoutTop, AlignCenterVertical, PanelRight, ArrowDownToLine } from "lucide-react";
+import { Check, Loader2, Monitor, Smartphone, AlignCenterVertical, PanelRight, ArrowDownToLine } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { fetchWebsitePlacements, updateWebsitePlacement } from "@/lib/publisher-
 import { toFriendlyError } from "@/lib/errors";
 
 const iconMap = {
-  top_page: LayoutTop,
+  top_page: Monitor,
   article_top: ArrowDownToLine,
   between_paragraphs: AlignCenterVertical,
   sidebar: PanelRight,
