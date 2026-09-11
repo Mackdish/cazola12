@@ -37,30 +37,31 @@ export function AdZoneDialog({
 
   async function submit() {
     if (name.trim().length < 2) {
-      toast.error("Give the ad zone a name.");
+      toast.error("Give the placement a name.");
       return;
     }
     try {
       const zone = await mutation.mutateAsync({ websiteId, name: name.trim(), format });
-      toast.success("Ad zone created.");
+      toast.success("Ad placement created.");
       setName("");
       setFormat("300x250");
       setOpen(false);
       onCreated?.(zone.id);
     } catch (error) {
-      const friendly = toFriendlyError(error, "We couldn't create that ad zone");
+      const friendly = toFriendlyError(error, "We couldn't create that placement");
       toast.error(friendly.message);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger ?? <Button size="sm">Add ad zone</Button>}</DialogTrigger>
+      <DialogTrigger asChild>{trigger ?? <Button size="sm">Add placement</Button>}</DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add an ad zone</DialogTitle>
+          <DialogTitle>Add an ad placement</DialogTitle>
           <DialogDescription>
-            Choose a placement name and a format. The embed code will be ready next.
+            Choose a simple placement name and ad format. Automatic placement options will be
+            available here as TradeMall's new placement system is enabled.
           </DialogDescription>
         </DialogHeader>
 
@@ -69,7 +70,7 @@ export function AdZoneDialog({
             <Label htmlFor="zone-name">Placement name</Label>
             <Input
               id="zone-name"
-              placeholder="Homepage top-right"
+              placeholder="Homepage top banner"
               value={name}
               disabled={mutation.isPending}
               onChange={(event) => setName(event.target.value)}
@@ -77,7 +78,7 @@ export function AdZoneDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Format</Label>
+            <Label>Ad format</Label>
             <div className="grid gap-2 sm:grid-cols-2">
               {AD_FORMATS.map((entry) => (
                 <button
@@ -117,7 +118,7 @@ export function AdZoneDialog({
             Cancel
           </Button>
           <Button onClick={() => void submit()} disabled={mutation.isPending}>
-            {mutation.isPending ? "Creating…" : "Create ad zone"}
+            {mutation.isPending ? "Creating…" : "Create placement"}
           </Button>
         </DialogFooter>
       </DialogContent>
