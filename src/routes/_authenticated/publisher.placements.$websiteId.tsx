@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { PlacementManager } from "@/components/publisher/placement-manager";
+import { PublisherSdkInstallCard } from "@/components/publisher/publisher-sdk-install-card";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
@@ -25,6 +26,7 @@ function WebsitePlacementsPage() {
         <div className="space-y-6">
           <PageHeader eyebrow="Publisher · Placements" title={website.name} description={`Choose where TradeMall ads should appear on ${website.domain}.`} actions={<Button asChild variant="ghost" size="sm"><Link to="/publisher/websites/$websiteId" params={{ websiteId }}>Website settings</Link></Button>} />
           <PlacementManager websiteId={website.id} ready={Boolean(ready)} />
+          <PublisherSdkInstallCard />
         </div>
       )}
     </WorkspaceGuard>
