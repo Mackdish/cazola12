@@ -2,9 +2,9 @@
  * Serving-path billing. Server-only, deliberately tiny.
  *
  * One RPC per billable event. The database function does the whole charge in a
- * single transaction with the wallet row locked, so duplicate beacons, spent
- * budgets, paused campaigns and empty wallets are all rejected there rather
- * than being guessed at here.
+ * single transaction with the campaign and wallet rows locked, so duplicate
+ * beacons, spent budgets, paused campaigns and empty wallets are rejected in
+ * PostgreSQL rather than being guessed at here.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -26,6 +26,26 @@ export type ChargeInput = {
   adZoneId: string;
 };
 
+async function pauseCampaignForBillingFailure(
+  client: SupabaseClient<Database>,
+  campaignId: string,
+  reason: "billing_error" | "budget_exhausted" | "daily_budget_exhausted" | "insufficient_funds",
+) {
+  const { error } = await client
+    .from("campaigns")
+    .update({ status: "paused", pause_reason: reason })
+    .eq("id", campaignId)
+    .in("status", ["active", "approved"]);
+
+  if (error) {
+    console.error("failed to pause campaign after billing failure", {
+      campaignId,
+      reason,
+      error: error.message,
+    });
+  }
+}
+
 export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const client = supabaseAdmin as unknown as SupabaseClient<Database>;
@@ -41,7 +61,17 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
   });
 
   if (error) {
-    console.error("charge_campaign_event failed", error.message);
+    // Fail closed: never keep serving an ad whose billable event could not be
+    // committed. The pause is best-effort because the original transaction has
+    // already rolled back on RPC failure.
+    console.error("charge_campaign_event failed", {
+      campaignId: input.campaignId,
+      requestId: input.requestId,
+      eventType: input.eventType,
+      message: error.message,
+      code: error.code,
+    });
+    await pauseCampaignForBillingFailure(client, input.campaignId, "billing_error");
     return { ok: false, reason: "error", amount: 0, publisherAmount: 0, platformAmount: 0 };
   }
 
@@ -61,12 +91,12 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
     platformAmount: amount(result.platform_amount),
   };
 
-  if (!chargeResult.ok && (chargeResult.reason === "insufficient_funds" || chargeResult.reason === "budget_exhausted")) {
-    await client
-      .from("campaigns")
-      .update({ status: "paused", pause_reason: chargeResult.reason })
-      .eq("id", input.campaignId)
-      .eq("status", "active");
+  if (!chargeResult.ok && (
+    chargeResult.reason === "insufficient_funds" ||
+    chargeResult.reason === "budget_exhausted" ||
+    chargeResult.reason === "daily_budget_exhausted"
+  )) {
+    await pauseCampaignForBillingFailure(client, input.campaignId, chargeResult.reason);
   }
 
   return chargeResult;
