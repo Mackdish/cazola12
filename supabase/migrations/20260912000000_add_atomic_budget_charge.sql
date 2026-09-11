@@ -169,14 +169,8 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'budget_exhausted', 'amount', 0, 'publisher_amount', 0, 'platform_amount', 0);
   END IF;
 
-  -- Daily budget is consumed before any other financial row is written. If a
-  -- concurrent request already consumed the remaining balance, this returns
-  -- false and the campaign is paused without creating a billable event.
-  _budget_ok := public.charge_campaign_budget(_campaign_id, _event_cost);
-  IF NOT _budget_ok THEN
-    RETURN jsonb_build_object('ok', false, 'reason', 'daily_budget_exhausted', 'amount', 0, 'publisher_amount', 0, 'platform_amount', 0);
-  END IF;
-
+  -- Lock the advertiser wallet before consuming daily budget. If the wallet
+  -- cannot fund the event, this transaction returns without mutating budget.
   SELECT * INTO _wallet
   FROM public.wallets
   WHERE organization_id = _campaign.organization_id
@@ -188,6 +182,13 @@ BEGIN
 
   IF COALESCE(_wallet.balance_amount, 0) < _event_cost THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'insufficient_funds', 'amount', 0, 'publisher_amount', 0, 'platform_amount', 0);
+  END IF;
+
+  -- Atomic daily budget reservation. The campaign row is already locked by
+  -- charge_campaign_event and remains locked through the whole transaction.
+  _budget_ok := public.charge_campaign_budget(_campaign_id, _event_cost);
+  IF NOT _budget_ok THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'daily_budget_exhausted', 'amount', 0, 'publisher_amount', 0, 'platform_amount', 0);
   END IF;
 
   _revenue_share := COALESCE(_settings.publisher_revenue_share, 0.7);
