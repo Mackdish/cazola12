@@ -19,9 +19,9 @@ export const Route = createFileRoute("/_authenticated/publisher/")({
   head: () => ({
     meta: [
       { title: "Publisher overview — TradeMall" },
-      { name: "description", content: "Monitor website verification, placements, performance and accrued revenue." },
+      { name: "description", content: "Monitor website verification, ad zone performance and accrued revenue." },
       { property: "og:title", content: "Publisher overview — TradeMall" },
-      { property: "og:description", content: "Monitor website verification, placements, performance and accrued revenue." },
+      { property: "og:description", content: "Monitor website verification, ad zone performance and accrued revenue." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -43,7 +43,6 @@ function PublisherOverview() {
   const currency = billing.data?.currency ?? "USD";
   const isLoading = loadingWebsites || loadingZones;
   const error = websitesError || zonesError;
-
   const verifiedWebsites = useMemo(() => (websites ?? []).filter((website) => website.verification_status === "verified"), [websites]);
   const activeZones = useMemo(() => (zones ?? []).filter((zone) => zone.status === "active"), [zones]);
   const summary = analytics.data?.summary;
@@ -57,37 +56,33 @@ function PublisherOverview() {
       <PageHeader
         eyebrow="Publisher"
         title="Dashboard"
-        description="Monitor your website performance, placements, and earnings."
-        actions={<div className="flex gap-2"><Button asChild size="sm" variant="outline"><Link to="/publisher/placements">Manage placements</Link></Button><Button asChild size="sm"><Link to="/publisher/websites">Manage websites</Link></Button></div>}
+        description="Monitor your website performance, ad zone revenue, and earnings."
+        actions={<div className="flex gap-2"><Button asChild size="sm" variant="outline"><Link to="/publisher/placements">Manage placements</Link></Button><Button asChild size="sm" variant="outline"><Link to="/publisher/websites">Manage websites</Link></Button></div>}
       />
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Impressions (30d)" value={summary?.impressions?.toLocaleString() ?? "—"} hint={`${summary?.clicks?.toLocaleString() ?? 0} clicks`} icon={<Eye className="size-4" />} />
         <MetricCard label="CTR" value={summary?.ctr ? `${(summary.ctr * 100).toFixed(2)}%` : "—"} hint="Click-through rate" icon={<MousePointerClick className="size-4" />} />
         <MetricCard label="Earnings (30d)" value={summary?.earnings ? formatCurrency(summary.earnings, currency) : "—"} hint={summary?.rpm ? `RPM ${formatCurrency(summary.rpm, currency)}` : "Revenue per 1k impressions"} icon={<Coins className="size-4" />} />
         <MetricCard label="Available balance" value={formatCurrency(balance, currency)} hint="Ready for payout" icon={<Wallet className="size-4" />} />
       </div>
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Websites" value={String(websites?.length ?? 0)} hint={`${verifiedWebsites.length} verified`} icon={<Globe className="size-4" />} />
         <MetricCard label="Ad zones" value={String(zones?.length ?? 0)} hint={`${activeZones.length} active`} icon={<Image className="size-4" />} />
         <MetricCard label="RPM" value={summary?.rpm ? formatCurrency(summary.rpm, currency) : "—"} hint="Revenue per 1k impressions" icon={<TrendingUp className="size-4" />} />
         <MetricCard label="Fill rate" value={summary?.ctr ? `${(summary.ctr * 100).toFixed(1)}%` : "—"} hint="Estimated fill rate based on click-through activity" icon={<Activity className="size-4" />} />
       </div>
-
       {websites?.length === 0 ? (
-        <EmptyState icon={<Globe className="size-5" />} title="No websites added yet" description="Add a website to start the verification process and choose ad placements." action={<Button asChild size="sm"><Link to="/publisher/websites">Add your first website</Link></Button>} />
+        <EmptyState icon={<Globe className="size-5" />} title="No websites added yet" description="Add a website to start the verification process and create ad zones." action={<Button asChild size="sm"><Link to="/publisher/websites">Add your first website</Link></Button>} />
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between"><p className="text-sm font-medium">Your websites</p><Button asChild size="sm" variant="ghost"><Link to="/publisher/websites">View all</Link></Button></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {(websites ?? []).slice(0, 6).map((website) => (
-              <Card key={website.id} className="shadow-none p-4">
-                <Link to="/publisher/websites/$websiteId" params={{ websiteId: website.id }} className="block">
-                  <p className="font-medium">{website.name}</p><p className="text-xs text-muted-foreground">{website.domain}</p><p className="mt-2 text-xs text-muted-foreground">{categoryLabel(website.category)}</p>
-                </Link>
-                <Button asChild size="sm" variant="outline" className="mt-4 w-full"><Link to="/publisher/placements">Configure placements</Link></Button>
-              </Card>
+              <Link key={website.id} to="/publisher/websites/$websiteId" params={{ websiteId: website.id }} className="rounded-lg border border-border p-4 transition-colors hover:bg-muted/40">
+                <p className="font-medium">{website.name}</p>
+                <p className="text-xs text-muted-foreground">{website.domain}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{categoryLabel(website.category)}</p>
+              </Link>
             ))}
           </div>
         </div>
