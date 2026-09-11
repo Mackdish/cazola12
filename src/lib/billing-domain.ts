@@ -21,6 +21,7 @@ export type ChargeReason =
   | "campaign_inactive"
   | "unknown_campaign"
   | "budget_exhausted"
+  | "daily_budget_exhausted"
   | "insufficient_funds"
   | "no_wallet"
   | "invalid_request"
@@ -268,6 +269,7 @@ export function chargeReasonLabel(reason: ChargeReason): string {
     campaign_inactive: "Campaign is not approved and active",
     unknown_campaign: "Campaign no longer exists",
     budget_exhausted: "Campaign budget is exhausted",
+    daily_budget_exhausted: "Campaign daily budget is exhausted",
     insufficient_funds: "Advertiser wallet balance is too low",
     no_wallet: "Advertiser has no wallet",
     invalid_request: "Invalid billing request",
