@@ -6,6 +6,7 @@ const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
 const DEFAULT_CLOUDFLARE_IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const TIMEOUT_MS = 90_000;
 const MAX_RETRIES = 2;
+const CLOUDFLARE_MAX_PROMPT_CHARS = 2048;
 
 type GeneratedImage = {
   bytes: Uint8Array;
@@ -88,8 +89,6 @@ function decodeBase64Image(data: unknown): Uint8Array {
 }
 
 async function extractCloudflareImage(result: unknown): Promise<{ bytes: Uint8Array; mimeType: string }> {
-  // Cloudflare's Workers AI image models can be returned directly as a Response/stream.
-  // Prefer this path before object inspection because a Response is also an object.
   if (result instanceof Response) {
     if (!result.ok) {
       throw new AiImageError(`Cloudflare Workers AI image request failed (${result.status}).`, result.status);
@@ -101,7 +100,6 @@ async function extractCloudflareImage(result: unknown): Promise<{ bytes: Uint8Ar
     return { bytes, mimeType: result.headers.get("content-type") || "image/png" };
   }
 
-  // FLUX.1 Schnell may also be exposed as { image: base64 } by some runtimes.
   if (result && typeof result === "object" && "image" in result) {
     const image = (result as { image?: unknown }).image;
     if (typeof image === "string" && image.length > 0) {
@@ -115,7 +113,6 @@ async function extractCloudflareImage(result: unknown): Promise<{ bytes: Uint8Ar
     }
   }
 
-  // Some Workers AI/runtime versions expose image models as a binary stream.
   if (result instanceof ReadableStream) {
     const bytes = new Uint8Array(await new Response(result).arrayBuffer());
     if (bytes.byteLength > 0) return { bytes, mimeType: "image/png" };
@@ -159,6 +156,14 @@ function describeCloudflareError(error: unknown): string {
   return "Cloudflare image generation failed. Please try again.";
 }
 
+function fitCloudflarePrompt(prompt: string): string {
+  if (prompt.length <= CLOUDFLARE_MAX_PROMPT_CHARS) return prompt;
+
+  // Keep the beginning because it contains the safety, language and text-rendering
+  // constraints. Dynamic product details are deliberately bounded by the caller.
+  return `${prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS - 48)}\n\n[Prompt truncated to Cloudflare's 2048-character limit.]`;
+}
+
 async function generateWithCloudflare(input: { prompt: string; format: string }): Promise<GeneratedImage> {
   const ai = await getWorkersAi();
   if (!ai) {
@@ -168,11 +173,12 @@ async function generateWithCloudflare(input: { prompt: string; format: string })
   }
 
   const model = readEnv("CLOUDFLARE_IMAGE_MODEL") || DEFAULT_CLOUDFLARE_IMAGE_MODEL;
+  const prompt = fitCloudflarePrompt(input.prompt);
   let lastError: AiImageError | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      const result = await ai.run(model, { prompt: input.prompt });
+      const result = await ai.run(model, { prompt });
       const image = await extractCloudflareImage(result);
       return { ...image, model, provider: "cloudflare" };
     } catch (error) {
