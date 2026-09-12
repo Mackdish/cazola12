@@ -60,7 +60,7 @@ export const aiGenerateAdCreative = createServerFn({ method: "POST" })
     const prompt = `You are TradeMall's ad creative strategist for Kenya and Africa. Analyze the supplied advertiser website and create truthful ad copy and creative directions based only on website facts. Identify the strongest product, service, offer or category to promote. Never invent prices, discounts, guarantees, features or testimonials.
 
 STRICT OUTPUT LIMITS — these are hard limits and must be obeyed:
-- productFocus: REQUIRED. It MUST contain the clearest specific product, service, offer or category found on the website. NEVER return an empty string.
+- productFocus: REQUIRED. It MUST contain the clearest specific product, service, offer or category found on the website. NEVER return an empty string. If the page does not expose a specific product, use the clearest meaningful category or service from the page title, description or content.
 - headlines: EXACTLY 5 items. Every headline MUST be 90 characters or fewer.
 - descriptions: EXACTLY 5 items. Every description MUST be 150 characters or fewer.
 - productHighlights: maximum 8 items, each 300 characters or fewer.
@@ -89,18 +89,20 @@ Generate exactly 5 distinct short headlines using different angles (benefit, pro
 
       // Some model responses can still omit productFocus even when the structured schema
       // contains the field. Never pass an empty productFocus to the image-generation API.
-      // Prefer verified page metadata, then the first meaningful page-content sentence.
+      // Prefer verified page metadata, then the first meaningful page-content sentence,
+      // then the campaign goal as a final non-empty semantic fallback.
       const fallbackProductFocus = [
         snapshot.title,
         snapshot.description,
         snapshot.text.split(/[.!?]\s+/).find((part) => part.trim().length >= 3) ?? "",
+        data.goal,
       ]
         .map((value) => value.trim())
-        .find(Boolean) ?? "";
+        .find(Boolean) ?? "the advertised product or service";
 
       const safe = validation.parse({
         ...normalized,
-        productFocus: normalized.productFocus || fallbackProductFocus.slice(0, 200),
+        productFocus: (normalized.productFocus || fallbackProductFocus).slice(0, 200),
       });
       return { ...safe, provider: result.provider, model: result.model, usage: result.usage ?? null };
     } catch (error) {
