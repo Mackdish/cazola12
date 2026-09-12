@@ -12,7 +12,7 @@ const uuid = z.string().uuid();
 const inputSchema = z.object({
   organizationId: uuid,
   campaignId: uuid,
-  productFocus: z.string().trim().min(1).max(200),
+  productFocus: z.string().trim().max(200).optional().default(""),
   productHighlights: z.array(z.string().trim().min(1).max(300)).max(8),
   concept: z.string().trim().min(1).max(600),
   brandName: z.string().trim().max(120).optional().default(""),
@@ -48,27 +48,27 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
     );
 
     const brand = data.brandName.trim() || advertiser.business_name?.trim() || "";
-    const headline = data.headline.trim();
-    const cta = data.cta.trim();
+    const productFocus =
+      data.productFocus.trim() ||
+      data.productHighlights[0]?.trim() ||
+      data.concept.trim().slice(0, 200) ||
+      brand ||
+      "the advertised product or service";
     const highlights = data.productHighlights.slice(0, 3).join("; ");
 
-    // Keep this prompt deliberately compact. The Cloudflare FLUX endpoint has a
-    // 2048-character limit, and product facts must remain in the prompt rather
-    // than being truncated away by the generic transport safeguard.
+    // Keep the prompt compact and make the image stage visual-only. Exact ad copy is
+    // already controlled by TradeMall and should not be rendered by the image model,
+    // because image models can distort arbitrary text into gibberish.
     const prompt = [
       "Create a premium commercial advertising image for the EXACT product/service below.",
-      `PRODUCT: ${data.productFocus}`,
+      `PRODUCT: ${productFocus}`,
       `KEY FACTS: ${highlights || "Use only the product named above."}`,
       `VISUAL DIRECTION: ${data.concept}`,
       `FORMAT: ${data.format}`,
       "PRODUCT ACCURACY IS THE TOP PRIORITY. Show the named product/service, not a generic alternative or unrelated product. Do not substitute cars, phones, laptops, storage devices, food, people, buildings, or other objects unless they are explicitly part of the product or visual direction.",
       "Use realistic commercial photography or a polished product-focused advertising composition. Match the exact product category, appearance, use case and context described above.",
       "Do not invent product features, prices, discounts, reviews, guarantees, brands, logos or claims.",
-      "TEXT RULE: use English only. Never generate gibberish, pseudo-words, random letters, lorem ipsum, or text in another language.",
-      brand ? `BRAND TEXT: ${brand}` : "Do not invent a brand name or logo.",
-      headline ? `HEADLINE TEXT: ${headline}` : "Do not add a headline.",
-      cta ? `CTA TEXT: ${cta}` : "Do not add a CTA.",
-      "Only show the supplied brand/headline/CTA text if it can be rendered accurately. Otherwise leave text out. Do not add any other writing.",
+      "NO TEXT: do not render any text, letters, words, numbers, logos, watermarks, labels, badges, signs, captions or typography anywhere in the image. Leave clean negative space suitable for TradeMall to overlay verified ad copy separately.",
       "Clean layout, strong focal point, professional lighting, realistic materials, high-quality commercial advertising aesthetic.",
     ].join("\n");
 
