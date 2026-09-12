@@ -48,25 +48,29 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
     );
 
     const brand = data.brandName.trim() || advertiser.business_name?.trim() || "";
+    const headline = data.headline.trim();
+    const cta = data.cta.trim();
+    const highlights = data.productHighlights.slice(0, 3).join("; ");
+
+    // Keep this prompt deliberately compact. The Cloudflare FLUX endpoint has a
+    // 2048-character limit, and product facts must remain in the prompt rather
+    // than being truncated away by the generic transport safeguard.
     const prompt = [
-      "Create a polished, production-ready digital advertising banner for TradeMall, targeting customers in Kenya and Africa.",
-      "LANGUAGE AND TEXT ACCURACY ARE CRITICAL: use English only for all generated advertising text. Never use Swahili, another language, pseudo-language, random characters, fake words, lorem ipsum, or decorative gibberish.",
-      "TEXT MUST BE VERBATIM: if a brand, headline, or CTA is supplied below, copy it character-for-character. Do not translate it, paraphrase it, shorten it, spell it differently, or invent variations.",
-      "ALLOWED VISIBLE TEXT ONLY: the supplied brand name, the supplied headline, and the supplied CTA. Do not add prices, percentages, discounts, badges, labels, slogans, feature claims, testimonials, website addresses, phone numbers, watermarks, awards, or other text.",
-      "If you cannot render the supplied text with high confidence, OMIT THE TEXT rather than generating incorrect or non-English text. Never substitute invented text.",
-      `Brand name (use exactly as written, only if non-empty): ${brand || "NONE — do not invent a brand name or logo"}`,
-      `Exact headline (use exactly as written, only if non-empty): ${data.headline.trim() || "NONE"}`,
-      `Exact CTA (use exactly as written, only if non-empty): ${data.cta.trim() || "NONE"}`,
-      `Product/service to promote: ${data.productFocus}`,
-      `Verified product highlights: ${data.productHighlights.join("; ") || "Use the product focus only."}`,
-      `Creative direction: ${data.concept}`,
-      "Use only the supplied product facts. Do not invent prices, discounts, guarantees, testimonials, logos, awards or product features.",
-      "Create a premium commercial composition with clear visual hierarchy, realistic product presentation, strong contrast, generous negative space and a clear focal point.",
-      "Do not create a fake website screenshot or app interface. Do not place text inside product packaging, device screens, signs, books, storefronts or other background objects. Do not add fake logos or brand marks.",
-      "Keep any permitted banner text large, simple, highly legible and separated from complex imagery. Do not add any other writing anywhere in the image.",
-      "The result will be paired with ad copy in the TradeMall ad system, so prioritize an accurate product/service visual over dense text.",
-      `Requested ad format: ${data.format}`,
-    ].filter(Boolean).join("\n\n");
+      "Create a premium commercial advertising image for the EXACT product/service below.",
+      `PRODUCT: ${data.productFocus}`,
+      `KEY FACTS: ${highlights || "Use only the product named above."}`,
+      `VISUAL DIRECTION: ${data.concept}`,
+      `FORMAT: ${data.format}`,
+      "PRODUCT ACCURACY IS THE TOP PRIORITY. Show the named product/service, not a generic alternative or unrelated product. Do not substitute cars, phones, laptops, storage devices, food, people, buildings, or other objects unless they are explicitly part of the product or visual direction.",
+      "Use realistic commercial photography or a polished product-focused advertising composition. Match the exact product category, appearance, use case and context described above.",
+      "Do not invent product features, prices, discounts, reviews, guarantees, brands, logos or claims.",
+      "TEXT RULE: use English only. Never generate gibberish, pseudo-words, random letters, lorem ipsum, or text in another language.",
+      brand ? `BRAND TEXT: ${brand}` : "Do not invent a brand name or logo.",
+      headline ? `HEADLINE TEXT: ${headline}` : "Do not add a headline.",
+      cta ? `CTA TEXT: ${cta}` : "Do not add a CTA.",
+      "Only show the supplied brand/headline/CTA text if it can be rendered accurately. Otherwise leave text out. Do not add any other writing.",
+      "Clean layout, strong focal point, professional lighting, realistic materials, high-quality commercial advertising aesthetic.",
+    ].join("\n");
 
     try {
       const generated = await generateAdImage({ prompt, format: data.format });
