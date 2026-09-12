@@ -6,7 +6,9 @@ const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
 const DEFAULT_CLOUDFLARE_IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
 const TIMEOUT_MS = 90_000;
 const MAX_RETRIES = 2;
-const CLOUDFLARE_MAX_PROMPT_CHARS = 2048;
+// Cloudflare validates the prompt at the API boundary. Keep a generous margin below
+// the documented 2048-character limit because non-ASCII input can occupy multiple bytes.
+const CLOUDFLARE_MAX_PROMPT_BYTES = 1800;
 
 type GeneratedImage = {
   bytes: Uint8Array;
@@ -157,11 +159,14 @@ function describeCloudflareError(error: unknown): string {
 }
 
 function fitCloudflarePrompt(prompt: string): string {
-  if (prompt.length <= CLOUDFLARE_MAX_PROMPT_CHARS) return prompt;
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(prompt);
+  if (bytes.byteLength <= CLOUDFLARE_MAX_PROMPT_BYTES) return prompt;
 
-  // Keep the beginning because it contains the safety, language and text-rendering
-  // constraints. Dynamic product details are deliberately bounded by the caller.
-  return `${prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS - 48)}\n\n[Prompt truncated to Cloudflare's 2048-character limit.]`;
+  // Truncate by UTF-8 bytes, not JavaScript characters. This prevents API-side
+  // length checks from rejecting prompts containing emojis or other Unicode text.
+  const truncated = new TextDecoder().decode(bytes.slice(0, CLOUDFLARE_MAX_PROMPT_BYTES));
+  return truncated.slice(0, Math.max(0, truncated.length - 40)).trimEnd() + "\nEnglish text only; use supplied facts.";
 }
 
 async function generateWithCloudflare(input: { prompt: string; format: string }): Promise<GeneratedImage> {
