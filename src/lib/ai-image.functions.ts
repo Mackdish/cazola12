@@ -47,18 +47,24 @@ export const aiGenerateAdImage = createServerFn({ method: "POST" })
       data.organizationId,
     );
 
+    const brand = data.brandName.trim() || advertiser.business_name?.trim() || "";
     const prompt = [
-      "Create a polished, production-ready digital advertising visual for TradeMall, targeting customers in Kenya and Africa.",
-      `Brand: ${data.brandName || advertiser.business_name || "Advertiser"}`,
+      "Create a polished, production-ready digital advertising banner for TradeMall, targeting customers in Kenya and Africa.",
+      "LANGUAGE AND TEXT ACCURACY ARE CRITICAL: use English only for all generated advertising text. Never use Swahili, another language, pseudo-language, random characters, fake words, lorem ipsum, or decorative gibberish.",
+      "TEXT MUST BE VERBATIM: if a brand, headline, or CTA is supplied below, copy it character-for-character. Do not translate it, paraphrase it, shorten it, spell it differently, or invent variations.",
+      "ALLOWED VISIBLE TEXT ONLY: the supplied brand name, the supplied headline, and the supplied CTA. Do not add prices, percentages, discounts, badges, labels, slogans, feature claims, testimonials, website addresses, phone numbers, watermarks, awards, or other text.",
+      "If you cannot render the supplied text with high confidence, OMIT THE TEXT rather than generating incorrect or non-English text. Never substitute invented text.",
+      `Brand name (use exactly as written, only if non-empty): ${brand || "NONE — do not invent a brand name or logo"}`,
+      `Exact headline (use exactly as written, only if non-empty): ${data.headline.trim() || "NONE"}`,
+      `Exact CTA (use exactly as written, only if non-empty): ${data.cta.trim() || "NONE"}`,
       `Product/service to promote: ${data.productFocus}`,
       `Verified product highlights: ${data.productHighlights.join("; ") || "Use the product focus only."}`,
       `Creative direction: ${data.concept}`,
-      data.headline ? `Suggested headline to support visually: ${data.headline}` : "",
-      data.cta ? `Suggested CTA: ${data.cta}` : "",
       "Use only the supplied product facts. Do not invent prices, discounts, guarantees, testimonials, logos, awards or product features.",
       "Create a premium commercial composition with clear visual hierarchy, realistic product presentation, strong contrast, generous negative space and a clear focal point.",
-      "Do not create a fake website screenshot. Do not include illegible filler text. If text is rendered, keep it minimal and use only the supplied brand, headline or CTA.",
-      "The result will be paired with ad copy in the TradeMall ad system, so prioritize the product/service visual over dense text.",
+      "Do not create a fake website screenshot or app interface. Do not place text inside product packaging, device screens, signs, books, storefronts or other background objects. Do not add fake logos or brand marks.",
+      "Keep any permitted banner text large, simple, highly legible and separated from complex imagery. Do not add any other writing anywhere in the image.",
+      "The result will be paired with ad copy in the TradeMall ad system, so prioritize an accurate product/service visual over dense text.",
       `Requested ad format: ${data.format}`,
     ].filter(Boolean).join("\n\n");
 
