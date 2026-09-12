@@ -60,6 +60,7 @@ export const aiGenerateAdCreative = createServerFn({ method: "POST" })
     const prompt = `You are TradeMall's ad creative strategist for Kenya and Africa. Analyze the supplied advertiser website and create truthful ad copy and creative directions based only on website facts. Identify the strongest product, service, offer or category to promote. Never invent prices, discounts, guarantees, features or testimonials.
 
 STRICT OUTPUT LIMITS — these are hard limits and must be obeyed:
+- productFocus: REQUIRED. It MUST contain the clearest specific product, service, offer or category found on the website. NEVER return an empty string.
 - headlines: EXACTLY 5 items. Every headline MUST be 90 characters or fewer.
 - descriptions: EXACTLY 5 items. Every description MUST be 150 characters or fewer.
 - productHighlights: maximum 8 items, each 300 characters or fewer.
@@ -80,12 +81,27 @@ ${snapshot.text}
 
 Generate exactly 5 distinct short headlines using different angles (benefit, problem/solution, curiosity, trust, direct conversion), exactly 5 descriptions, 1 long headline, up to 6 suitable CTAs, up to 6 concrete visual creative concepts based on actual products/services, and recommended ad formats.`;
     try {
-      const result = await generateStructured<z.infer<typeof validation>>({ prompt, schema: adCreativeSchema as Record<string, unknown>, systemInstruction: "TradeMall AI must ground product claims in the supplied website content. Return concise, production-ready advertising copy and creative concepts. Obey every output limit exactly, especially exactly 5 headlines and exactly 5 descriptions." });
+      const result = await generateStructured<z.infer<typeof validation>>({ prompt, schema: adCreativeSchema as Record<string, unknown>, systemInstruction: "TradeMall AI must ground product claims in the supplied website content. Return concise, production-ready advertising copy and creative concepts. Obey every output limit exactly, especially exactly 5 headlines and exactly 5 descriptions. productFocus is mandatory and must never be empty." });
 
       // Cloudflare/LLM output is treated as untrusted. Normalize counts and character limits
       // before the application schema runs so harmless over-generation cannot break ad creation.
       const normalized = normalizeAiCreativeOutput(result.data);
-      const safe = validation.parse(normalized);
+
+      // Some model responses can still omit productFocus even when the structured schema
+      // contains the field. Never pass an empty productFocus to the image-generation API.
+      // Prefer verified page metadata, then the first meaningful page-content sentence.
+      const fallbackProductFocus = [
+        snapshot.title,
+        snapshot.description,
+        snapshot.text.split(/[.!?]\s+/).find((part) => part.trim().length >= 3) ?? "",
+      ]
+        .map((value) => value.trim())
+        .find(Boolean) ?? "";
+
+      const safe = validation.parse({
+        ...normalized,
+        productFocus: normalized.productFocus || fallbackProductFocus.slice(0, 200),
+      });
       return { ...safe, provider: result.provider, model: result.model, usage: result.usage ?? null };
     } catch (error) {
       if (error instanceof AiProviderError) throw new Error(error.message);
