@@ -13,36 +13,13 @@ import { AD_FORMATS, normalizeDestinationUrl, type AdFormat, type MediaAsset } f
 import { toFriendlyError } from "@/lib/errors";
 
 type Ad = {
-  id: string;
-  name: string;
-  format: AdFormat;
-  destination_url: string;
-  media_asset_id: string | null;
-  brand_name: string | null;
-  logo_media_asset_id: string | null;
-  headlines: unknown;
-  long_headline: string | null;
-  descriptions: unknown;
-  cta: string | null;
-  tracking_url: string | null;
-  optimization: string | null;
+  id: string; name: string; format: AdFormat; destination_url: string; media_asset_id: string | null;
+  brand_name: string | null; logo_media_asset_id: string | null; headlines: unknown; long_headline: string | null;
+  descriptions: unknown; cta: string | null; tracking_url: string | null; optimization: string | null;
 };
-
 const asStrings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
-export function AdEditDialog({
-  ad,
-  mediaAssets,
-  disabled,
-  autoOpen,
-  selectedCreativeId,
-}: {
-  ad: Ad;
-  mediaAssets: MediaAsset[];
-  disabled?: boolean;
-  autoOpen?: boolean;
-  selectedCreativeId?: string | null;
-}) {
+export function AdEditDialog({ ad, mediaAssets, disabled, autoOpen, selectedCreativeId }: { ad: Ad; mediaAssets: MediaAsset[]; disabled?: boolean; autoOpen?: boolean; selectedCreativeId?: string | null }) {
   const update = useUpdateAdvertiserAd();
   const [open, setOpen] = useState(Boolean(autoOpen));
   const [name, setName] = useState(ad.name);
@@ -59,10 +36,13 @@ export function AdEditDialog({
   const [optimization, setOptimization] = useState(ad.optimization ?? "auto_optimize");
 
   useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
+
+  useEffect(() => {
     if (!open) return;
     setName(ad.name); setFormat(ad.format); setDestinationUrl(ad.destination_url);
-    setMediaAssetId(selectedCreativeId || ad.media_asset_id || "");
-    setBrandName(ad.brand_name ?? ""); setLogoMediaAssetId(ad.logo_media_asset_id ?? "");
+    setMediaAssetId(selectedCreativeId || ad.media_asset_id || ""); setBrandName(ad.brand_name ?? ""); setLogoMediaAssetId(ad.logo_media_asset_id ?? "");
     setHeadlines([...asStrings(ad.headlines), "", "", "", "", ""].slice(0, 5)); setLongHeadline(ad.long_headline ?? "");
     setDescriptions([...asStrings(ad.descriptions), "", "", "", "", ""].slice(0, 5)); setCta(ad.cta ?? "");
     setTrackingUrl(ad.tracking_url ?? ""); setOptimization(ad.optimization ?? "auto_optimize");
@@ -79,14 +59,12 @@ export function AdEditDialog({
     if (!cleanDescriptions.length) return toast.error("Add at least one description.");
     try {
       await update.mutateAsync({ adId: ad.id, name: name.trim(), format, destinationUrl: url, mediaAssetId, brandName: brandName.trim() || null, logoMediaAssetId: logoMediaAssetId || null, headlines: cleanHeadlines, longHeadline: longHeadline.trim() || null, descriptions: cleanDescriptions, cta: cta.trim() || null, trackingUrl: trackingUrl.trim() || null, optimization });
-      toast.success("Ad changes saved. The ad is ready for review again.");
-      setOpen(false);
+      toast.success("Ad changes saved. The ad is ready for review again."); setOpen(false);
     } catch (error) { toast.error(toFriendlyError(error, "We couldn't save the ad").message); }
   }
 
   function openCreativeLibrary() {
-    const params = new URLSearchParams({ selectForAd: ad.id });
-    window.location.href = `/advertiser/creatives?${params.toString()}`;
+    window.location.href = `/advertiser/creatives?selectForAd=${encodeURIComponent(ad.id)}`;
   }
 
   return <Dialog open={open} onOpenChange={setOpen}>
