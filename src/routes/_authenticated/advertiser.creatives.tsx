@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Image, Search, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Image, Search, Trash2, Upload, Check, ArrowLeft } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,6 +41,9 @@ function CreativeCard({
   asset,
   previewUrl,
   onDelete,
+  selectable,
+  selected,
+  onSelect,
 }: {
   asset: {
     id: string;
@@ -57,12 +59,15 @@ function CreativeCard({
   };
   previewUrl: string | null;
   onDelete?: (id: string) => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const isImage = asset.mime_type.startsWith("image/");
   const sizeKb = Math.round((asset.file_size ?? 0) / 1024);
 
   return (
-    <div className="flex flex-col rounded-lg border border-border overflow-hidden">
+    <div className={`relative flex flex-col overflow-hidden rounded-lg border ${selected ? "border-primary ring-2 ring-primary/20" : "border-border"}`}>
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
         {isImage && previewUrl ? (
           <img
@@ -85,11 +90,17 @@ function CreativeCard({
           ) : null}
           <span>{sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`}</span>
         </div>
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between gap-2 pt-2">
           <StatusBadge tone={mediaStatusTone(asset.status)}>
             {asset.status}
           </StatusBadge>
           <div className="flex items-center gap-2">
+            {selectable && asset.status === "ready" ? (
+              <Button size="sm" onClick={() => onSelect?.(asset.id)}>
+                <Check className="mr-1.5 size-3.5" />
+                {selected ? "Selected" : "Use creative"}
+              </Button>
+            ) : null}
             {onDelete ? (
               <Button
                 variant="ghost"
@@ -129,6 +140,13 @@ function Page() {
   const deleteCreative = useDeleteCreative();
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [selectForAd, setSelectForAd] = useState<string | null>(null);
+  const [selectedCreative, setSelectedCreative] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSelectForAd(params.get("selectForAd"));
+  }, []);
 
   async function handleDelete(assetId: string) {
     if (!window.confirm("Delete this creative? This can't be undone.")) return;
@@ -149,6 +167,12 @@ function Page() {
       }
       toast.error(message);
     }
+  }
+
+  function selectCreative(assetId: string) {
+    if (!selectForAd) return;
+    setSelectedCreative(assetId);
+    window.location.href = `/advertiser/advertisements?editAd=${encodeURIComponent(selectForAd)}&creative=${encodeURIComponent(assetId)}`;
   }
 
   function UploadButton({ label }: { label: string }) {
@@ -202,6 +226,18 @@ function Page() {
         actions={<UploadButton label="Upload" />}
       />
 
+      {selectForAd ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div>
+            <p className="text-sm font-semibold">Select a creative for your advertisement</p>
+            <p className="text-xs text-muted-foreground">Choose a ready creative below. You will return to the advertisement editor automatically.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { window.location.href = "/advertiser/advertisements"; }}>
+            <ArrowLeft className="mr-1.5 size-3.5" />Back to advertisements
+          </Button>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <LoadingState rows={4} label="Loading creatives" />
       ) : error ? (
@@ -238,7 +274,15 @@ function Page() {
                   ? asset.storage_path
                   : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl;
               return (
-                <CreativeCard key={asset.id} asset={asset} previewUrl={publicUrl} onDelete={handleDelete} />
+                <CreativeCard
+                  key={asset.id}
+                  asset={asset}
+                  previewUrl={publicUrl}
+                  onDelete={selectForAd ? undefined : handleDelete}
+                  selectable={Boolean(selectForAd)}
+                  selected={selectedCreative === asset.id}
+                  onSelect={selectCreative}
+                />
               );
             })}
           </div>
