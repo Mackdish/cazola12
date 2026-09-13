@@ -11,50 +11,29 @@ import { ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
 import { useAdvertiserAds, useAdvertiserOrg, useCreatives } from "@/hooks/use-advertiser";
-import { formatCurrency, type AdFormat, type MediaAsset } from "@/lib/advertiser-domain";
+import { type AdFormat, type MediaAsset } from "@/lib/advertiser-domain";
 
 export const Route = createFileRoute("/_authenticated/advertiser/advertisements")({
-  head: () => ({
-    meta: [
-      { title: "Advertisements — Advertiser — TradeMall" },
-      { name: "description", content: "Individual ads, their zones and bidding configuration." },
-      { property: "og:title", content: "Advertisements — Advertiser — TradeMall" },
-      { property: "og:description", content: "Individual ads, their zones and bidding configuration." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "Advertisements — Advertiser — TradeMall" },
+    { name: "description", content: "Individual ads, their zones and bidding configuration." },
+    { property: "og:title", content: "Advertisements — Advertiser — TradeMall" },
+    { property: "og:description", content: "Individual ads, their zones and bidding configuration." },
+    { name: "robots", content: "noindex" },
+  ] }),
   component: Page,
 });
 
 type AdRow = {
-  id: string;
-  name: string;
-  campaignName: string;
-  adGroupName: string;
-  format: AdFormat;
-  status: string;
-  approvalStatus: string;
-  destinationUrl: string;
-  media_asset_id: string | null;
-  brand_name: string | null;
-  logo_media_asset_id: string | null;
-  headlines: unknown;
-  long_headline: string | null;
-  descriptions: unknown;
-  cta: string | null;
-  tracking_url: string | null;
-  optimization: string | null;
-  createdAt: string;
+  id: string; name: string; campaignName: string; adGroupName: string; format: AdFormat; status: string; approvalStatus: string;
+  destinationUrl: string; media_asset_id: string | null; brand_name: string | null; logo_media_asset_id: string | null;
+  headlines: unknown; long_headline: string | null; descriptions: unknown; cta: string | null; tracking_url: string | null;
+  optimization: string | null; createdAt: string;
 };
 
 const FORMAT_LABELS: Record<string, string> = {
-  "300x250": "Medium Rectangle",
-  "336x280": "Large Rectangle",
-  "728x90": "Leaderboard",
-  "970x250": "Billboard",
-  "320x50": "Mobile Banner",
-  "320x100": "Large Mobile Banner",
-  responsive: "Responsive",
+  "300x250": "Medium Rectangle", "336x280": "Large Rectangle", "728x90": "Leaderboard", "970x250": "Billboard",
+  "320x50": "Mobile Banner", "320x100": "Large Mobile Banner", responsive: "Responsive",
 };
 const STATUS_TONE: Record<string, StatusTone> = { active: "active", pending: "pending", suspended: "suspended" };
 const APPROVAL_TONE: Record<string, StatusTone> = { approved: "active", pending: "pending", rejected: "suspended" };
@@ -83,9 +62,8 @@ function Page() {
     const raw = (data ?? []) as Array<{
       id: string; name: string; format: AdFormat; status: string; approval_status: string; destination_url: string;
       media_asset_id: string | null; brand_name: string | null; logo_media_asset_id: string | null; headlines: unknown;
-      long_headline: string | null; descriptions: unknown; cta: string | null; tracking_url: string | null;
-      optimization: string | null; created_at: string; campaigns: { id: string; name: string; status: string } | null;
-      ad_groups: { id: string; name: string } | null;
+      long_headline: string | null; descriptions: unknown; cta: string | null; tracking_url: string | null; optimization: string | null;
+      created_at: string; campaigns: { id: string; name: string; status: string } | null; ad_groups: { id: string; name: string } | null;
     }>;
     return raw.filter((row) => {
       const term = search.toLowerCase();
@@ -114,9 +92,7 @@ function Page() {
     { id: "approval", header: "Approval", cell: (row) => <StatusBadge tone={APPROVAL_TONE[row.approvalStatus] ?? "neutral"}>{row.approvalStatus}</StatusBadge> },
     { id: "created", header: "Created", cell: (row) => new Date(row.createdAt).toLocaleDateString() },
     {
-      id: "actions",
-      header: "Actions",
-      cell: (row) => (
+      id: "actions", header: "Actions", cell: (row) => (
         <AdEditDialog
           ad={{ id: row.id, name: row.name, format: row.format, destination_url: row.destinationUrl, media_asset_id: row.media_asset_id,
             brand_name: row.brand_name, logo_media_asset_id: row.logo_media_asset_id, headlines: row.headlines,
@@ -138,7 +114,7 @@ function Page() {
       ) : (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px] max-w-sm"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Search ads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" /></div>
+            <div className="relative min-w-[200px] max-w-sm flex-1"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Search ads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" /></div>
             <Select value={formatFilter} onValueChange={setFormatFilter}><SelectTrigger className="w-[180px]"><SelectValue placeholder="All formats" /></SelectTrigger><SelectContent><SelectItem value="all">All formats</SelectItem>{Object.entries(FORMAT_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="suspended">Suspended</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select>
           </div>
