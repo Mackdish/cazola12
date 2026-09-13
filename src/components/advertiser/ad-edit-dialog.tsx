@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Edit3, Loader2, Save } from "lucide-react";
+import { Edit3, ExternalLink, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,21 @@ type Ad = {
 
 const asStrings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
-export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAssets: MediaAsset[]; disabled?: boolean }) {
+export function AdEditDialog({
+  ad,
+  mediaAssets,
+  disabled,
+  autoOpen,
+  selectedCreativeId,
+}: {
+  ad: Ad;
+  mediaAssets: MediaAsset[];
+  disabled?: boolean;
+  autoOpen?: boolean;
+  selectedCreativeId?: string | null;
+}) {
   const update = useUpdateAdvertiserAd();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(autoOpen));
   const [name, setName] = useState(ad.name);
   const [format, setFormat] = useState<AdFormat>(ad.format);
   const [destinationUrl, setDestinationUrl] = useState(ad.destination_url);
@@ -48,9 +60,13 @@ export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAsset
 
   useEffect(() => {
     if (!open) return;
-    setName(ad.name); setFormat(ad.format); setDestinationUrl(ad.destination_url); setMediaAssetId(ad.media_asset_id ?? ""); setBrandName(ad.brand_name ?? ""); setLogoMediaAssetId(ad.logo_media_asset_id ?? "");
-    setHeadlines([...asStrings(ad.headlines), "", "", "", "", ""].slice(0, 5)); setLongHeadline(ad.long_headline ?? ""); setDescriptions([...asStrings(ad.descriptions), "", "", "", "", ""].slice(0, 5)); setCta(ad.cta ?? ""); setTrackingUrl(ad.tracking_url ?? ""); setOptimization(ad.optimization ?? "auto_optimize");
-  }, [open, ad]);
+    setName(ad.name); setFormat(ad.format); setDestinationUrl(ad.destination_url);
+    setMediaAssetId(selectedCreativeId || ad.media_asset_id || "");
+    setBrandName(ad.brand_name ?? ""); setLogoMediaAssetId(ad.logo_media_asset_id ?? "");
+    setHeadlines([...asStrings(ad.headlines), "", "", "", "", ""].slice(0, 5)); setLongHeadline(ad.long_headline ?? "");
+    setDescriptions([...asStrings(ad.descriptions), "", "", "", "", ""].slice(0, 5)); setCta(ad.cta ?? "");
+    setTrackingUrl(ad.tracking_url ?? ""); setOptimization(ad.optimization ?? "auto_optimize");
+  }, [open, ad, selectedCreativeId]);
 
   async function save() {
     const url = normalizeDestinationUrl(destinationUrl);
@@ -68,6 +84,11 @@ export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAsset
     } catch (error) { toast.error(toFriendlyError(error, "We couldn't save the ad").message); }
   }
 
+  function openCreativeLibrary() {
+    const params = new URLSearchParams({ selectForAd: ad.id });
+    window.location.href = `/advertiser/creatives?${params.toString()}`;
+  }
+
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger asChild><Button size="sm" variant="outline" disabled={disabled}><Edit3 className="mr-1.5 size-3.5" />Edit</Button></DialogTrigger>
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -76,7 +97,7 @@ export function AdEditDialog({ ad, mediaAssets, disabled }: { ad: Ad; mediaAsset
         <div className="space-y-2"><Label>Ad name</Label><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} /></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2"><Label>Format</Label><Select value={format} onValueChange={(value) => setFormat(value as AdFormat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{AD_FORMATS.map((entry) => <SelectItem key={entry.format} value={entry.format}>{entry.label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-2"><Label>Creative</Label><Select value={mediaAssetId} onValueChange={setMediaAssetId}><SelectTrigger><SelectValue placeholder="Select creative" /></SelectTrigger><SelectContent>{mediaAssets.filter((asset) => asset.status === "ready").map((asset) => <SelectItem key={asset.id} value={asset.id}>{asset.file_name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-2"><Label>Creative</Label><div className="rounded-md border bg-muted/20 p-2"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-xs text-muted-foreground">Selected creative</p><p className="truncate text-sm font-medium">{mediaAssets.find((asset) => asset.id === mediaAssetId)?.file_name ?? (mediaAssetId ? "Selected creative" : "No creative selected")}</p></div><Button type="button" size="sm" variant="outline" onClick={openCreativeLibrary}><ExternalLink className="mr-1.5 size-3.5" />Choose from Creatives</Button></div></div></div>
         </div>
         <div className="space-y-2"><Label>Destination URL</Label><Input value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} maxLength={2048} /></div>
         <div className="space-y-2"><Label>Brand name</Label><Input value={brandName} onChange={(e) => setBrandName(e.target.value)} maxLength={120} /></div>
