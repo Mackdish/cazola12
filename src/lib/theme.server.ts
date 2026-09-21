@@ -22,7 +22,7 @@ export const getTheme = createServerFn({ method: "GET" }).handler(() => {
   if (!cookie) return "dark";
   const value = getCookieValue(cookie, THEME_COOKIE_NAME);
   if (value === "light" || value === "dark" || value === "system") return value;
-  return "system";
+  return "dark";
 });
 
 export function setThemeCookie(theme: string): void {
@@ -30,10 +30,10 @@ export function setThemeCookie(theme: string): void {
 }
 
 export function getThemeCookie(): string {
-  if (typeof document === "undefined") return "system";
+  if (typeof document === "undefined") return "dark";
   const cookie = document.cookie;
-  if (!cookie) return "system";
+  if (!cookie) return "dark";
   const value = getCookieValue(cookie, THEME_COOKIE_NAME);
   if (value === "light" || value === "dark" || value === "system") return value;
-  return "system";
+  return "dark";
 }
