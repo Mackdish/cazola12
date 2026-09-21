@@ -127,7 +127,7 @@ export const Route = createRootRouteWithContext<RootRouteContext>()({
         children: JSON.stringify([organizationStructuredData, websiteStructuredData]),
       },
       {
-        dangerouslySetInnerHTML: `(() => { try { var cookies = document.cookie.split('; '); var theme = 'system'; for (var i = 0; i < cookies.length; i++) { if (cookies[i].indexOf('theme=') === 0) { try { theme = decodeURIComponent(cookies[i].slice(6)); } catch (e) { theme = cookies[i].slice(6); } break; } } if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } } catch (e) {} })();`,
+        dangerouslySetInnerHTML: `(() => { try { var cookies = document.cookie.split('; '); var theme = 'dark'; for (var i = 0; i < cookies.length; i++) { if (cookies[i].indexOf('theme=') === 0) { try { theme = decodeURIComponent(cookies[i].slice(6)); } catch (e) { theme = cookies[i].slice(6); } break; } } if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } } catch (e) {} })();`,
       },
     ],
   }),
@@ -174,7 +174,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider initialTheme={(theme as "light" | "dark" | "system") || "system"}>
+        <ThemeProvider initialTheme={(theme as "light" | "dark" | "system") || "dark"}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <Toaster />
