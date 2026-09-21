@@ -19,7 +19,7 @@ function getCookieValue(cookieHeader: string, name: string): string | null {
 export const getTheme = createServerFn({ method: "GET" }).handler(() => {
   const request = getRequest();
   const cookie = request.headers.get("cookie");
-  if (!cookie) return "system";
+  if (!cookie) return "dark";
   const value = getCookieValue(cookie, THEME_COOKIE_NAME);
   if (value === "light" || value === "dark" || value === "system") return value;
   return "system";
