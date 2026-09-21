@@ -13,13 +13,13 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (!context) {
-    return { theme: "system", resolvedTheme: "light", setTheme: () => {} };
+    return { theme: "dark", resolvedTheme: "dark", setTheme: () => {} };
   }
   return context;
 }
 
 function getSystemTheme(): "light" | "dark" {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -35,9 +35,9 @@ export function ThemeProvider({
   children: ReactNode;
   initialTheme?: Theme;
 }) {
-  const [theme, setThemeState] = useState<Theme>(() => initialTheme ?? "system");
+  const [theme, setThemeState] = useState<Theme>(() => initialTheme ?? "dark");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
-    resolveTheme(initialTheme ?? "system")
+    resolveTheme(initialTheme ?? "dark")
   );
 
   useEffect(() => {
