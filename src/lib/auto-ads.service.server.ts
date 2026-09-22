@@ -27,6 +27,105 @@ export async function getAutoAdsConfig(websiteId: string): Promise<AutoAdsConfig
   });
 }
 
+async function syncAutoAdsPlacements(websiteId: string, organizationId: string, enabled: boolean, config: { responsiveAdsEnabled?: boolean | null; bannerAdsEnabled?: boolean | null; mobileAdsEnabled?: boolean | null }) {
+  const placementKeys = enabled
+    ? [
+        ...(config.responsiveAdsEnabled !== false ? ["top_page", "article_top", "bottom_article"] : []),
+        ...(config.mobileAdsEnabled !== false ? ["mobile_sticky"] : []),
+      ]
+    : [];
+
+  const { data: website, error: websiteError } = await supabaseAdmin
+    .from("websites")
+    .select("id, publisher_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (websiteError || !website) throw new Error("Website not found");
+
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("website_placements")
+    .select("id, placement_key, zone_id, enabled, ad_zones(id, zone_key, status, format)")
+    .eq("website_id", websiteId);
+  if (existingError) throw new Error(existingError.message);
+
+  const existingByKey = new Map((existing ?? []).map((row: any) => [row.placement_key, row]));
+
+  const definitions: Record<string, { label: string; format: string }> = {
+    top_page: { label: "Top of page", format: "responsive" },
+    article_top: { label: "Top of article", format: "responsive" },
+    bottom_article: { label: "Bottom of article", format: "responsive" },
+    mobile_sticky: { label: "Mobile sticky", format: "320x50" },
+  };
+
+  for (const key of ["top_page", "article_top", "bottom_article", "mobile_sticky"]) {
+    const shouldEnable = placementKeys.includes(key);
+    const current: any = existingByKey.get(key);
+
+    let zoneId = current?.zone_id ?? null;
+    let zoneKey = current?.ad_zones?.zone_key ?? null;
+
+    if (shouldEnable && !zoneId) {
+      const { data: generatedZoneKey, error: keyError } = await supabaseAdmin.rpc("generate_zone_key");
+      if (keyError || !generatedZoneKey) throw new Error("We couldn't create the automatic ad placement.");
+      const definition = definitions[key];
+      const responsive = definition.format === "responsive";
+      const { data: zone, error: zoneError } = await supabaseAdmin
+        .from("ad_zones")
+        .insert({
+          website_id: websiteId,
+          publisher_id: website.publisher_id,
+          organization_id: organizationId,
+          name: definition.label,
+          zone_key: generatedZoneKey,
+          format: definition.format,
+          width: responsive ? null : 320,
+          height: responsive ? null : 50,
+          responsive,
+          status: "active",
+        })
+        .select("id, zone_key")
+        .single();
+      if (zoneError || !zone) throw new Error("We couldn't create the automatic ad placement.");
+      zoneId = zone.id;
+      zoneKey = zone.zone_key;
+    }
+
+    if (zoneId) {
+      await supabaseAdmin
+        .from("ad_zones")
+        .update({ status: shouldEnable ? "active" : "suspended" })
+        .eq("id", zoneId);
+    }
+
+    const { error: upsertError } = await supabaseAdmin
+      .from("website_placements")
+      .upsert({
+        website_id: websiteId,
+        organization_id: organizationId,
+        zone_id: zoneId,
+        placement_key: key,
+        label: definitions[key].label,
+        enabled: shouldEnable,
+      }, { onConflict: "website_id,placement_key" });
+    if (upsertError) throw new Error(upsertError.message);
+  }
+
+  const { invalidateZoneContextCache, cacheBumpVersion, cacheDelete } = await import("@/lib/cache.server");
+  const keys = (existing ?? [])
+    .map((row: any) => row.ad_zones?.zone_key)
+    .filter(Boolean);
+  if (zoneKeyForInvalidation(placementKeys, existingByKey)) keys.push(...zoneKeyForInvalidation(placementKeys, existingByKey));
+  await Promise.all([
+    cacheBumpVersion("website", websiteId),
+    cacheDelete(`website:${websiteId}:detail`),
+    invalidateZoneContextCache([...new Set(keys)]),
+  ]);
+}
+
+function zoneKeyForInvalidation(keys: string[], rows: Map<string, any>): string[] {
+  return keys.map((key) => rows.get(key)?.ad_zones?.zone_key).filter(Boolean);
+}
+
 export async function createAutoAdsConfig(
   websiteId: string,
   organizationId: string,
