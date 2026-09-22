@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Globe, CheckCircle2, XCircle, AlertTriangle, Download, Copy, RefreshCw, Shield, TrendingUp, Gauge } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -656,7 +656,7 @@ function AutoAdsTab({ websiteId, domain }: { websiteId: string; domain: string }
   const [excludedSelectors, setExcludedSelectors] = useState("");
   const [minSpacing, setMinSpacing] = useState(300);
 
-  useState(() => {
+  useEffect(() => {
     if (config) {
       setEnabled(config.status === "enabled");
       setAdLoad(config.ad_load);
@@ -664,7 +664,7 @@ function AutoAdsTab({ websiteId, domain }: { websiteId: string; domain: string }
       setExcludedSelectors((config.excluded_selectors as string[])?.join("\n") ?? "");
       setMinSpacing(config.min_spacing ?? 300);
     }
-  });
+  }, [config]);
 
   async function handleSave() {
     try {
