@@ -199,7 +199,30 @@ export async function updateAutoAdsConfig(
     throw new Error("Website not found");
   }
 
-  return createAutoAdsConfig(websiteId, website.organization_id);
+  const { data: created, error: createError } = await supabaseAdmin
+    .from("auto_ads_config")
+    .insert({
+      website_id: websiteId,
+      organization_id: website.organization_id,
+      status: input.status ?? "disabled",
+      ad_load: input.adLoad ?? "balanced",
+      enabled_formats: input.enabledFormats ?? [],
+      excluded_pages: input.excludedPages ?? [],
+      excluded_selectors: input.excludedSelectors ?? [],
+      min_spacing: input.minSpacing ?? 300,
+      anchor_ads_enabled: input.anchorAdsEnabled ?? true,
+      overlay_ads_enabled: input.overlayAdsEnabled ?? true,
+      mobile_ads_enabled: input.mobileAdsEnabled ?? true,
+      banner_ads_enabled: input.bannerAdsEnabled ?? true,
+      responsive_ads_enabled: input.responsiveAdsEnabled ?? true,
+    })
+    .select("*")
+    .single();
+  if (createError || !created) throw new Error(createError?.message ?? "We couldn't create Auto Ads settings.");
+  await cacheBumpVersion("website", websiteId);
+  await cacheDelete(`website:${websiteId}:auto_ads`);
+  await syncAutoAdsPlacements(websiteId, website.organization_id, created.status === "enabled", created);
+  return created;
 }
 
 export function generateAutoAdsScript(websiteId: string): string {
