@@ -32,6 +32,9 @@ async function checkDnsTxt(domain: string, token: string): Promise<VerificationO
     try {
       const response = await safeFetch(
         `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=TXT`,
+        {
+          headers: { accept: "application/dns-json" },
+        },
       );
       if (!response.ok) continue;
       const payload = (await response.json()) as { Answer?: Array<{ data?: string }> };
