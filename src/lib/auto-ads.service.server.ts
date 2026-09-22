@@ -148,6 +148,7 @@ export async function createAutoAdsConfig(
   if (error) throw new Error(error.message);
   await cacheBumpVersion("website", websiteId);
   await cacheDelete(`website:${websiteId}:auto_ads`);
+  await syncAutoAdsPlacements(websiteId, organizationId, false, data);
   return data;
 }
 
@@ -176,8 +177,15 @@ export async function updateAutoAdsConfig(
 
   if (error) throw new Error(error.message);
   if (data) {
+    const { data: website } = await supabaseAdmin
+      .from("websites")
+      .select("organization_id")
+      .eq("id", websiteId)
+      .maybeSingle();
+    if (!website?.organization_id) throw new Error("Website not found");
     await cacheBumpVersion("website", websiteId);
     await cacheDelete(`website:${websiteId}:auto_ads`);
+    await syncAutoAdsPlacements(websiteId, website.organization_id, data.status === "enabled", data);
     return data;
   }
 
@@ -199,8 +207,7 @@ export function generateAutoAdsScript(websiteId: string): string {
 (function() {
   var script = document.createElement('script');
   script.async = true;
-  script.src = 'https://ads.trademall.co.ke/auto.js';
-  script.dataset.websiteId = '${websiteId}';
+  script.src = 'https://ads.trademall.co.ke/ad/loader.js';
   document.head.appendChild(script);
 })();
 `.trim();
