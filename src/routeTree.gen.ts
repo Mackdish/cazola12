@@ -46,6 +46,7 @@ import { Route as AuthenticatedAdminAdvertisersRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAdminApiRouteImport } from './routes/_authenticated/admin.api'
 import { Route as AuthenticatedAdminApiDocsRouteImport } from './routes/_authenticated/admin.api-docs'
+import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin.blog'
 import { Route as AuthenticatedAdminCampaignsRouteImport } from './routes/_authenticated/admin.campaigns'
 import { Route as AuthenticatedAdminCreativesRouteImport } from './routes/_authenticated/admin.creatives'
 import { Route as AuthenticatedAdminFraudRouteImport } from './routes/_authenticated/admin.fraud'
@@ -336,6 +337,11 @@ const AuthenticatedAdminPayoutsRoute =
     path: '/payouts',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminPoliciesRoute =
   AuthenticatedAdminPoliciesRouteImport.update({
     id: '/policies',
@@ -762,6 +768,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/advertiser/': typeof AuthenticatedAdvertiserIndexRoute
   '/publisher/': typeof AuthenticatedPublisherIndexRoute
   '/admin/policies/content': typeof AuthenticatedAdminPoliciesContentRoute
@@ -2121,6 +2129,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminApiRoute: typeof AuthenticatedAdminApiRoute
   AuthenticatedAdminApiDocsRoute: typeof AuthenticatedAdminApiDocsRoute
+  AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
   AuthenticatedAdminCampaignsRoute: typeof AuthenticatedAdminCampaignsRoute
   AuthenticatedAdminCreativesRoute: typeof AuthenticatedAdminCreativesRoute
   AuthenticatedAdminFraudRoute: typeof AuthenticatedAdminFraudRoute
@@ -2146,6 +2155,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminApiRoute: AuthenticatedAdminApiRoute,
   AuthenticatedAdminApiDocsRoute: AuthenticatedAdminApiDocsRoute,
+  AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
   AuthenticatedAdminCampaignsRoute: AuthenticatedAdminCampaignsRoute,
   AuthenticatedAdminCreativesRoute: AuthenticatedAdminCreativesRoute,
   AuthenticatedAdminFraudRoute: AuthenticatedAdminFraudRoute,
