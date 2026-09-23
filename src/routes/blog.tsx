@@ -64,14 +64,13 @@ function BlogPage() {
                       <CalendarDays className="size-3.5" />
                       {formatDate(post.publishedAt)}
                     </div>
-                    <Link
-                      to="/blog/$slug"
-                      params={{ slug: post.slug }}
+                    <a
+                      href={`/blog/${post.slug}`}
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                     >
                       Read guide
                       <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                    </Link>
+                    </a>
                   </div>
                 </div>
               </article>
