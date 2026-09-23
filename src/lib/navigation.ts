@@ -85,6 +85,7 @@ export const WORKSPACE_NAV: Record<Workspace, NavSection[]> = {
       title: "Platform",
       items: [
         { label: "Settings", to: "/admin/settings", icon: Settings },
+        { label: "Blog", to: "/admin/blog", icon: FileText },
         { label: "Fraud Center", to: "/admin/fraud", icon: ShieldAlert },
         { label: "API Docs", to: "/admin/api-docs", icon: Files },
       ],
