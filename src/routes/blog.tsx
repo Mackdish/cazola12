@@ -2,7 +2,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, CalendarDays, Clock, BookOpen } from "lucide-react";
 
 import { PublicLayout } from "@/components/layout/public-layout";
-import { blogPosts } from "@/lib/blog";
+import { blogPosts, databaseBlogPostToBlogPost } from "@/lib/blog";
+import { usePublishedBlogPosts } from "@/hooks/use-blog";
 import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog")({
@@ -17,6 +18,12 @@ export const Route = createFileRoute("/blog")({
 });
 
 function BlogPage() {
+  const published = usePublishedBlogPosts();
+  const posts = [
+    ...(published.data ?? []).map(databaseBlogPostToBlogPost),
+    ...blogPosts.filter((staticPost) => !(published.data ?? []).some((post) => post.slug === staticPost.slug)),
+  ].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
   return (
     <PublicLayout>
       <section className="relative overflow-hidden border-b border-border">
@@ -41,7 +48,7 @@ function BlogPage() {
       <section className="bg-background">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {blogPosts.map((post) => (
+            {posts.map((post) => (
               <article
                 key={post.slug}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
