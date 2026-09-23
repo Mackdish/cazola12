@@ -45,9 +45,24 @@ export const fetchBlogPostBySlug = createServerFn({ method: "GET" })
     return post ?? null;
   });
 
+async function assertBlogAdmin(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
+  const { data: role, error } = await db
+    .from("platform_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !role || !["admin", "super_admin"].includes(role.role)) {
+    throw new Error("Forbidden: administrator access is required.");
+  }
+}
+
 export const fetchAllBlogPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertBlogAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data, error } = await db
@@ -62,7 +77,8 @@ export const fetchAllBlogPosts = createServerFn({ method: "GET" })
 export const adminCreateBlogPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => blogInput.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertBlogAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data: post, error } = await db
@@ -90,9 +106,11 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
   .validator((data: unknown) =>
     blogInput.partial().extend({ blogPostId: uuid }).parse(data),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertBlogAdmin(context.userId);
     const { blogPostId, readTime, isPublished, ...rest } = data;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
 
     const patch: Record<string, unknown> = {
       ...rest,
@@ -117,7 +135,8 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
 export const adminDeleteBlogPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ blogPostId: uuid }).parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertBlogAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { error } = await db.from("blog_posts").delete().eq("id", data.blogPostId);
