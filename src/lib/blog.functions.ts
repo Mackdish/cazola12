@@ -18,7 +18,8 @@ const uuid = z.string().uuid();
 
 export const fetchPublishedBlogPosts = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
+  const db = supabaseAdmin as any;
+  const { data, error } = await db
     .from("blog_posts")
     .select("*")
     .eq("is_published", true)
@@ -115,7 +116,7 @@ export const adminDeleteBlogPost = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ blogPostId: uuid }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("blog_posts").delete().eq("id", data.blogPostId);
+    const { error } = await db.from("blog_posts").delete().eq("id", data.blogPostId);
     if (error) throw new Error("We couldn't delete the blog post.");
     return { ok: true };
   });
