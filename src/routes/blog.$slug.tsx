@@ -2,14 +2,17 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, Clock } from "lucide-react";
 
 import { PublicLayout } from "@/components/layout/public-layout";
-import { blogPosts } from "@/lib/blog";
+import { blogPosts, databaseBlogPostToBlogPost } from "@/lib/blog";
+import { fetchBlogPostBySlug } from "@/lib/blog.functions";
 import { pageMetadata } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/$slug")({
-  loader: ({ params }) => {
-    const post = blogPosts.find((item) => item.slug === params.slug);
-    if (!post) throw notFound();
-    return post;
+  loader: async ({ params }) => {
+    const databasePost = await fetchBlogPostBySlug({ data: { slug: params.slug } });
+    if (databasePost) return databaseBlogPostToBlogPost(databasePost);
+    const staticPost = blogPosts.find((item) => item.slug === params.slug);
+    if (!staticPost) throw notFound();
+    return staticPost;
   },
   head: ({ loaderData }) => {
     const post = loaderData;
