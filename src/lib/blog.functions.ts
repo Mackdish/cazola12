@@ -33,7 +33,8 @@ export const fetchBlogPostBySlug = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ slug: z.string().trim().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: post, error } = await supabaseAdmin
+    const db = supabaseAdmin as any;
+    const { data: post, error } = await db
       .from("blog_posts")
       .select("*")
       .eq("slug", data.slug)
@@ -48,7 +49,8 @@ export const fetchAllBlogPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    const db = supabaseAdmin as any;
+    const { data, error } = await db
       .from("blog_posts")
       .select("*")
       .order("created_at", { ascending: false });
@@ -62,7 +64,8 @@ export const adminCreateBlogPost = createServerFn({ method: "POST" })
   .validator((data: unknown) => blogInput.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: post, error } = await supabaseAdmin
+    const db = supabaseAdmin as any;
+    const { data: post, error } = await db
       .from("blog_posts")
       .insert({
         slug: data.slug,
@@ -100,7 +103,7 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
     if (isPublished === true) patch.published_at = new Date().toISOString();
     if (isPublished === false) patch.published_at = null;
 
-    const { data: post, error } = await supabaseAdmin
+    const { data: post, error } = await db
       .from("blog_posts")
       .update(patch)
       .eq("id", blogPostId)
@@ -116,6 +119,7 @@ export const adminDeleteBlogPost = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ blogPostId: uuid }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
     const { error } = await db.from("blog_posts").delete().eq("id", data.blogPostId);
     if (error) throw new Error("We couldn't delete the blog post.");
     return { ok: true };
