@@ -152,11 +152,11 @@ function AdminBlogPage() {
   }
 
   const columns: DataTableColumn<BlogRow>[] = [
-    { key: "title", header: "Title", cell: (row) => <div><div className="font-medium">{row.title}</div><div className="text-xs text-muted-foreground">/blog/{row.slug}</div></div> },
-    { key: "category", header: "Category" },
-    { key: "author", header: "Author" },
-    { key: "status", header: "Status", cell: (row) => <StatusBadge tone={statusTone(row.is_published ? "active" : "draft")}>{row.is_published ? "Published" : "Draft"}</StatusBadge> },
-    { key: "actions", header: "Actions", cell: (row) => (
+    { id: "title", header: "Title", cell: (row) => <div><div className="font-medium">{row.title}</div><div className="text-xs text-muted-foreground">/blog/{row.slug}</div></div> },
+    { id: "category", header: "Category" },
+    { id: "author", header: "Author" },
+    { id: "status", header: "Status", cell: (row) => <StatusBadge tone={statusTone(row.is_published ? "active" : "draft")}>{row.is_published ? "Published" : "Draft"}</StatusBadge> },
+    { id: "actions", header: "Actions", cell: (row) => (
       <div className="flex items-center gap-1">
         {row.is_published && <Button size="icon" variant="ghost" title="View" asChild><a href={`/blog/${row.slug}`} target="_blank" rel="noreferrer"><Eye className="size-4" /></a></Button>}
         <Button size="icon" variant="ghost" title="Edit" onClick={() => edit(row)}><Pencil className="size-4" /></Button>
@@ -179,7 +179,7 @@ function AdminBlogPage() {
       />
 
       <div className="mt-6">
-        {rows.length ? <DataTable columns={columns} data={rows} /> : <EmptyState title="No blog posts yet" description="Create your first article to start publishing content." />}
+        {rows.length ? <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} caption="TradeMall blog posts" /> : <EmptyState title="No blog posts yet" description="Create your first article to start publishing content." />}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
