@@ -387,3 +387,68 @@ export const blogPosts: BlogPost[] = [
     ]
   }
 ];
+
+
+export type DatabaseBlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  author: string;
+  read_time: string;
+  content: string;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export function databaseBlogPostToBlogPost(post: DatabaseBlogPost): BlogPost {
+  const sections: BlogSection[] = [];
+  const lines = post.content.split(/\r?\n/);
+  let heading = "Article";
+  let paragraphs: string[] = [];
+  let bullets: string[] = [];
+
+  const flush = () => {
+    if (paragraphs.length || bullets.length) {
+      sections.push({
+        heading,
+        paragraphs,
+        ...(bullets.length ? { bullets } : {}),
+      });
+    }
+    paragraphs = [];
+    bullets = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith("## ")) {
+      flush();
+      heading = line.slice(3).trim() || "Article";
+      continue;
+    }
+    if (line.startsWith("- ")) {
+      bullets.push(line.slice(2).trim());
+      continue;
+    }
+    paragraphs.push(line);
+  }
+  flush();
+
+  if (!sections.length) sections.push({ heading: "Article", paragraphs: [post.content] });
+
+  return {
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    category: post.category,
+    publishedAt: post.published_at ?? post.created_at,
+    readTime: post.read_time,
+    author: post.author,
+    sections,
+  };
+}
