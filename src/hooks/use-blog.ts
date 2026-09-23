@@ -23,7 +23,7 @@ export function useAdminCreateBlogPost() {
   const fn = useServerFn(adminCreateBlogPost);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
+    mutationFn: (data: { slug: string; title: string; excerpt: string; category: string; author: string; readTime: string; content: string; isPublished: boolean }) => fn({ data }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["blog"] });
     },
