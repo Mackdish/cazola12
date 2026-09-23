@@ -2,6 +2,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   Globe,
   HelpCircle,
   Info,
@@ -29,6 +30,7 @@ const NAV_LINKS = [
   { to: "/advertisers", label: "Advertisers", icon: Megaphone },
   { to: "/publishers", label: "Publishers", icon: Globe },
   { to: "/pricing", label: "Pricing", icon: BarChart3 },
+  { to: "/blog", label: "Blog", icon: BookOpen },
   { to: "/help", label: "Help", icon: HelpCircle },
 ];
 
