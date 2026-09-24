@@ -28,9 +28,11 @@ export async function getAutoAdsConfig(websiteId: string): Promise<AutoAdsConfig
 }
 
 async function syncAutoAdsPlacements(websiteId: string, organizationId: string, enabled: boolean, config: { responsiveAdsEnabled?: boolean | null; bannerAdsEnabled?: boolean | null; mobileAdsEnabled?: boolean | null }) {
+  const desktopPlacementsEnabled =
+    config.bannerAdsEnabled !== false && config.responsiveAdsEnabled !== false;
   const placementKeys = enabled
     ? [
-        ...(config.responsiveAdsEnabled !== false ? ["top_page", "article_top", "bottom_article"] : []),
+        ...(desktopPlacementsEnabled ? ["top_page", "article_top", "bottom_article"] : []),
         ...(config.mobileAdsEnabled !== false ? ["mobile_sticky"] : []),
       ]
     : [];
@@ -168,9 +170,26 @@ export async function updateAutoAdsConfig(
     responsiveAdsEnabled?: boolean | undefined;
   },
 ): Promise<AutoAdsConfig> {
+  // The dashboard uses camelCase while Supabase columns are snake_case.
+  // Passing the UI object directly makes PostgREST reject fields such as
+  // "adLoad", "enabledFormats" and "mobileAdsEnabled", which prevents Auto Ads
+  // from saving and therefore prevents placement zones from being synchronized.
+  const patch: Database["public"]["Tables"]["auto_ads_config"]["Update"] = {};
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.adLoad !== undefined) patch.ad_load = input.adLoad;
+  if (input.enabledFormats !== undefined) patch.enabled_formats = input.enabledFormats;
+  if (input.excludedPages !== undefined) patch.excluded_pages = input.excludedPages;
+  if (input.excludedSelectors !== undefined) patch.excluded_selectors = input.excludedSelectors;
+  if (input.minSpacing !== undefined) patch.min_spacing = Math.max(0, Math.trunc(input.minSpacing));
+  if (input.anchorAdsEnabled !== undefined) patch.anchor_ads_enabled = input.anchorAdsEnabled;
+  if (input.overlayAdsEnabled !== undefined) patch.overlay_ads_enabled = input.overlayAdsEnabled;
+  if (input.mobileAdsEnabled !== undefined) patch.mobile_ads_enabled = input.mobileAdsEnabled;
+  if (input.bannerAdsEnabled !== undefined) patch.banner_ads_enabled = input.bannerAdsEnabled;
+  if (input.responsiveAdsEnabled !== undefined) patch.responsive_ads_enabled = input.responsiveAdsEnabled;
+
   const { data, error } = await supabaseAdmin
     .from("auto_ads_config")
-    .update(input as Database["public"]["Tables"]["auto_ads_config"]["Update"])
+    .update(patch)
     .eq("website_id", websiteId)
     .select("*")
     .maybeSingle();
