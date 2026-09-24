@@ -116,7 +116,7 @@ export async function cachedServePathGet<T extends JsonValue>(
   ttlSeconds: number,
   supplier: () => Promise<T>,
 ): Promise<T> {
-  const cacheKey = `zone_context:${key}`;
+  const cacheKey = `zone_context:v2:${key}`;
   if (!redis) return supplier();
 
   try {
@@ -144,7 +144,7 @@ export async function cachedServePathGet<T extends JsonValue>(
 export async function invalidateZoneContextCache(zoneKeys: string[]): Promise<void> {
   if (!redis || zoneKeys.length === 0) return;
   try {
-    await Promise.all(zoneKeys.map((key) => cacheDelete(`zone_context:${key}`)));
+    await Promise.all(zoneKeys.map((key) => cacheDelete(`zone_context:v2:${key}`)));
   } catch (err) {
     console.error("[cache] zone_context invalidation failed", err);
   }
