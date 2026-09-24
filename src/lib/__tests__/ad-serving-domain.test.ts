@@ -26,6 +26,7 @@ const zone: ZoneContext = {
   websiteApproval: "approved",
   websiteVerification: "verified",
   websiteCategory: "technology",
+  websiteDomain: "example.com",
   publisherId: "pub-1",
   publisherStatus: "active",
   publisherApproval: "approved",
