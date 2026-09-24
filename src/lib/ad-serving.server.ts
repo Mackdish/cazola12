@@ -34,8 +34,8 @@ import {
 } from "@/lib/impression-buffer.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
-const DEFAULT_AD_SERVE_TIMEOUT_MS = 1000;
-const MAX_AD_SERVE_TIMEOUT_MS = 1000;
+const DEFAULT_AD_SERVE_TIMEOUT_MS = 2500;
+const MAX_AD_SERVE_TIMEOUT_MS = 3000;
 const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
   Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
@@ -358,7 +358,15 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   }
 
   // Consume the frequency-cap slot only after we have a renderable winner.
-  await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
+  // Failure to update the cap must not turn a valid ad request into a no-fill.
+  try {
+    await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
+  } catch (error) {
+    console.warn("[ad] frequency_cap_record_failed", {
+      campaignId: winner.campaignId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   const token = issueServedToken({
     rid: input.requestId,
