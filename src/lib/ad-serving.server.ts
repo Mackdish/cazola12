@@ -300,7 +300,7 @@ export type AdResponse =
   | {
       ok: true;
       requestId: string;
-      token: string;
+      token?: string;
       fillType?: "house_ad";
       ad: {
         format: string;
