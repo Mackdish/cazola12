@@ -97,6 +97,7 @@ export type IneligibleReason =
   | "campaign_not_started"
   | "campaign_ended"
   | "budget_exhausted"
+  | "insufficient_funds"
   | "bid_amount_zero"
   | "ad_not_approved"
   | "ad_not_active"
