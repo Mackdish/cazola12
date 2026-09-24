@@ -95,15 +95,23 @@ export const Route = createFileRoute("/api/public/ad")({
         }
 
         const origin = url.origin;
+        const isHouseAd = result.fillType === "house_ad";
         const body = {
           ok: true as const,
           requestId: result.requestId,
+          ...(result.fillType ? { fillType: result.fillType } : {}),
           ad: {
             ...result.ad,
-            clickUrl: `${origin}/api/public/click?t=${encodeURIComponent(result.token)}`,
+            clickUrl: isHouseAd
+              ? result.ad.clickUrl
+              : `${origin}/api/public/click?t=${encodeURIComponent(result.token ?? "")}`,
           },
-          impressionUrl: `${origin}/api/public/impression`,
-          token: result.token,
+          ...(isHouseAd
+            ? {}
+            : {
+                impressionUrl: `${origin}/api/public/impression`,
+                token: result.token,
+              }),
         };
 
         return new Response(JSON.stringify(body), { status: 200, headers: JSON_HEADERS });
