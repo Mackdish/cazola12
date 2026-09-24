@@ -118,7 +118,8 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
       ...(isPublished !== undefined ? { is_published: isPublished } : {}),
     };
 
-    if (isPublished === true) patch.published_at = new Date().toISOString();
+    // Let the database trigger set published_at only on the draft -> published transition.
+    // This preserves the original publication date when an already-published post is edited.
     if (isPublished === false) patch.published_at = null;
 
     const { data: post, error } = await db
