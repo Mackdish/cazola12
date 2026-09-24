@@ -70,11 +70,18 @@ export const Route = createFileRoute("/api/public/ad")({
         const result = await serveAd({
           zoneKey: parsedZone.data,
           userAgent: request.headers.get("user-agent"),
-          country:
-            normalizeCountry(request.headers.get("cf-ipcountry")) ??
-            normalizeCountry(url.searchParams.get("country")),
-          county: geoSchema.safeParse(url.searchParams.get("county") ?? undefined).data ?? null,
-          city: geoSchema.safeParse(url.searchParams.get("city") ?? undefined).data ?? null,
+          country: normalizeCountry(request.headers.get("cf-ipcountry")),
+          // Cloudflare supplies these at the edge. Do not trust publisher-supplied
+          // query parameters for geo targeting; otherwise a visitor could spoof
+          // their location and receive campaigns targeted to another area.
+          county:
+            geoSchema.safeParse(
+              request.headers.get("cf-region") ??
+                request.headers.get("cf-region-code") ??
+                undefined,
+            ).data ?? null,
+          city:
+            geoSchema.safeParse(request.headers.get("cf-ipcity") ?? undefined).data ?? null,
           requestId,
           ipAddress,
         });
