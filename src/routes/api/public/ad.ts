@@ -84,6 +84,7 @@ export const Route = createFileRoute("/api/public/ad")({
             geoSchema.safeParse(request.headers.get("cf-ipcity") ?? undefined).data ?? null,
           requestId,
           ipAddress,
+          origin: request.headers.get("origin"),
         });
 
         if (!result.ok) {
