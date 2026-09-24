@@ -19,10 +19,19 @@ export async function checkFrequencyCap(
   if (!cap || !sessionId || !redis) return { capped: false, count: 0 };
 
   const key = keyFor(sessionId, campaignId);
-  const raw = await redis.get(key);
-  const count = Number(raw ?? 0);
-
-  return { capped: count >= cap.impressions, count };
+  try {
+    const raw = await redis.get(key);
+    const count = Number(raw ?? 0);
+    return { capped: count >= cap.impressions, count };
+  } catch (error) {
+    // Frequency-cap infrastructure is advisory. A Redis outage must not turn
+    // a valid ad request into a no-fill response.
+    console.warn("[frequency-cap] read failed; failing open", {
+      campaignId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { capped: false, count: 0 };
+  }
 }
 
 /**
