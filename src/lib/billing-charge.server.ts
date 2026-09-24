@@ -85,6 +85,9 @@ export async function fundedOrganizationIds(organizationIds: string[]): Promise<
     .from("wallets")
     .select("organization_id, balance_amount")
     .in("organization_id", organizationIds)
+    // Campaign billing is currently denominated in KES. Do not treat a funded
+    // wallet in another currency as spendable inventory.
+    .eq("currency", "KES")
     .gt("balance_amount", 0);
 
   // On a read failure, fall back to serving: delivery is more important than
