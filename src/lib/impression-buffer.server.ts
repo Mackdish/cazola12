@@ -168,60 +168,91 @@ export async function flushImpressionBatch(): Promise<{
   try {
     await ensureConsumerGroup();
 
-    const result = await redis.xreadgroup(
+    // Read this consumer's pending entries first. A previous implementation
+    // only read ">", so an event whose billing step failed became permanently
+    // pending and was never retried.
+    let result = await redis.xreadgroup(
       IMPRESSION_CONSUMER_GROUP,
       IMPRESSION_CONSUMER_NAME,
       IMPRESSION_STREAM_KEY,
-      ">",
+      "0",
       { count: IMPRESSION_BATCH_SIZE },
     );
+
+    if (!result || result.length === 0) {
+      result = await redis.xreadgroup(
+        IMPRESSION_CONSUMER_GROUP,
+        IMPRESSION_CONSUMER_NAME,
+        IMPRESSION_STREAM_KEY,
+        ">",
+        { count: IMPRESSION_BATCH_SIZE },
+      );
+    }
 
     if (!result || result.length === 0) {
       return { flushed: 0, failed: 0, durationMs: Date.now() - t0 };
     }
 
-    const events: ImpressionEvent[] = [];
-    const ids: string[] = [];
+    const events: Array<{ id: string; event: ImpressionEvent }> = [];
+    const malformedIds: string[] = [];
 
     for (const [streamKey, entries] of result as any[]) {
       for (const [id, fields] of entries) {
-        ids.push(id as string);
         try {
           const raw = (fields as any).data;
-          if (typeof raw === "string") {
-            events.push(JSON.parse(raw) as ImpressionEvent);
-          }
+          if (typeof raw !== "string") throw new Error("missing_data");
+          events.push({ id: id as string, event: JSON.parse(raw) as ImpressionEvent });
         } catch {
+          // Poison messages can never be processed; acknowledge them so they
+          // do not block the consumer forever.
+          malformedIds.push(id as string);
           failed++;
         }
       }
     }
 
+    if (malformedIds.length > 0) {
+      try {
+        await redis.xack(IMPRESSION_STREAM_KEY, IMPRESSION_CONSUMER_GROUP, malformedIds);
+      } catch (err) {
+        console.error("[impression-buffer] malformed-message xack failed", err);
+      }
+    }
+
     if (events.length > 0) {
-      const insertError = await bulkInsertImpressions(events);
+      const insertError = await bulkInsertImpressions(events.map((entry) => entry.event));
       if (insertError) {
         console.error("[impression-buffer] bulk insert failed", insertError);
-        failed = events.length;
+        failed += events.length;
       } else {
-        flushed = events.length;
-        for (const event of events) {
+        const ackIds: string[] = [];
+        for (const entry of events) {
           try {
-            await processImpressionEvent(event);
+            const processed = await processImpressionEvent(entry.event);
+            if (processed) {
+              ackIds.push(entry.id);
+              flushed++;
+            } else {
+              // Keep the message pending so transient billing failures are
+              // retried on the next flush.
+              failed++;
+            }
           } catch (err) {
+            failed++;
             console.error("[impression-buffer] post-insert processing failed", {
-              requestId: event.request_id,
+              requestId: entry.event.request_id,
               err,
             });
           }
         }
-      }
-    }
 
-    if (flushed > 0 && ids.length > 0) {
-      try {
-        await redis.xack(IMPRESSION_STREAM_KEY, IMPRESSION_CONSUMER_GROUP, ids);
-      } catch (err) {
-        console.error("[impression-buffer] xack failed", err);
+        if (ackIds.length > 0) {
+          try {
+            await redis.xack(IMPRESSION_STREAM_KEY, IMPRESSION_CONSUMER_GROUP, ackIds);
+          } catch (err) {
+            console.error("[impression-buffer] xack failed", err);
+          }
+        }
       }
     }
   } catch (err) {
@@ -268,7 +299,7 @@ async function bulkInsertImpressions(events: ImpressionEvent[]): Promise<any> {
   return error;
 }
 
-async function processImpressionEvent(event: ImpressionEvent): Promise<void> {
+async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> {
   if (event.ip_address) {
     try {
       const evaluation = await evaluateImpressionFraud(supabaseAdmin as never, {
@@ -296,7 +327,7 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<void> {
   }
 
   if (!event.is_likely_bot) {
-    await chargeAdEvent({
+    const charge = await chargeAdEvent({
       eventType: "impression",
       requestId: event.request_id,
       campaignId: event.campaign_id,
@@ -305,13 +336,22 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<void> {
       websiteId: event.website_id,
       adZoneId: event.ad_zone_id,
     });
-  } else if (typeof event.bot_score === "number" && event.bot_score >= 11 && event.bot_score <= 30) {
+
+    // Only transient RPC errors should keep the stream message pending.
+    // Permanent business outcomes (duplicate, no funds, exhausted budget, etc.)
+    // are already resolved and must not be retried forever.
+    return charge.ok || charge.reason !== "error";
+  }
+
+  if (typeof event.bot_score === "number" && event.bot_score >= 11 && event.bot_score <= 30) {
     console.info("[ad] bot_score_tier_11_30", {
       requestId: event.request_id,
       campaignId: event.campaign_id,
       botScore: event.bot_score,
     });
   }
+
+  return true;
 }
 
 // ---------------------------------------------------------------------------
