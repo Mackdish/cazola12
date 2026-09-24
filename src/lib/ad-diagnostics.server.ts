@@ -20,6 +20,7 @@ import {
   type IneligibleReason,
 } from "@/lib/ad-serving-domain";
 import { loadCandidates, loadZoneContext } from "@/lib/ad-serving.server";
+import { fundedOrganizationIds } from "@/lib/billing-charge.server";
 
 type Ctx = { supabase: SupabaseClient<Database>; userId: string };
 
@@ -126,8 +127,14 @@ export async function diagnoseZone(
 
   const gate = zoneIsServeable(zone);
   const candidates = await loadCandidates(zone);
+  const funded = await fundedOrganizationIds([
+    ...new Set(candidates.map((candidate) => candidate.organizationId).filter((id): id is string => Boolean(id))),
+  ]);
+  const serveableCandidates = candidates.filter(
+    (candidate) => !candidate.organizationId || funded.has(candidate.organizationId),
+  );
   const winnerId = gate.eligible
-    ? (selectAd(candidates, zone, { now, signals }).winner?.adId ?? null)
+    ? (selectAd(serveableCandidates, zone, { now, signals }).winner?.adId ?? null)
     : null;
 
   return {
@@ -152,12 +159,16 @@ export async function diagnoseZone(
     candidates: candidates
       .map((candidate) => {
         const verdict = candidateIsEligible(candidate, zone, { now, signals });
+        const fundedCandidate = !candidate.organizationId || funded.has(candidate.organizationId);
+        const finalVerdict = verdict.eligible && !fundedCandidate
+          ? ("insufficient_funds" as const)
+          : verdict;
         return {
           adId: candidate.adId,
           adName: candidate.adName,
           adFormat: candidate.adFormat,
-          verdict: verdict.eligible ? ("eligible" as const) : verdict.reason,
-          score: verdict.eligible ? Number(scoreCandidate(candidate, zone).toFixed(6)) : null,
+          verdict: finalVerdict.eligible ? ("eligible" as const) : finalVerdict.reason,
+          score: finalVerdict.eligible ? Number(scoreCandidate(candidate, zone).toFixed(6)) : null,
           winner: candidate.adId === winnerId,
         };
       })
