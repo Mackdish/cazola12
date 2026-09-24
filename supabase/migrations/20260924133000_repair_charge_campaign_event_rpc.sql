@@ -171,6 +171,9 @@ BEGIN
   SELECT * INTO _wallet
   FROM public.wallets
   WHERE organization_id = _campaign.organization_id
+    AND currency = 'KES'
+  ORDER BY id
+  LIMIT 1
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -249,6 +252,7 @@ BEGIN
       lifetime_spent = lifetime_spent + _event_cost,
       updated_at = _now
   WHERE organization_id = _campaign.organization_id
+    AND currency = 'KES'
   RETURNING * INTO _wallet;
 
   -- Insert wallet transaction for audit trail
