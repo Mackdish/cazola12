@@ -59,6 +59,10 @@ async function syncAutoAdsPlacements(websiteId: string, organizationId: string, 
     mobile_sticky: { label: "Mobile sticky", format: "320x50" },
   };
 
+  const invalidationKeys = new Set<string>(
+    (existing ?? []).map((row: any) => row.ad_zones?.zone_key).filter(Boolean),
+  );
+
   for (const key of ["top_page", "article_top", "bottom_article", "mobile_sticky"]) {
     const shouldEnable = placementKeys.includes(key);
     const current: any = existingByKey.get(key);
@@ -90,6 +94,7 @@ async function syncAutoAdsPlacements(websiteId: string, organizationId: string, 
       if (zoneError || !zone) throw new Error("We couldn't create the automatic ad placement.");
       zoneId = zone.id;
       zoneKey = zone.zone_key;
+      invalidationKeys.add(zoneKey);
     }
 
     if (zoneId) {
@@ -113,19 +118,11 @@ async function syncAutoAdsPlacements(websiteId: string, organizationId: string, 
   }
 
   const { invalidateZoneContextCache, cacheBumpVersion, cacheDelete } = await import("@/lib/cache.server");
-  const keys = (existing ?? [])
-    .map((row: any) => row.ad_zones?.zone_key)
-    .filter(Boolean);
-  if (zoneKeyForInvalidation(placementKeys, existingByKey)) keys.push(...zoneKeyForInvalidation(placementKeys, existingByKey));
   await Promise.all([
     cacheBumpVersion("website", websiteId),
     cacheDelete(`website:${websiteId}:detail`),
-    invalidateZoneContextCache([...new Set(keys)]),
+    invalidateZoneContextCache([...invalidationKeys]),
   ]);
-}
-
-function zoneKeyForInvalidation(keys: string[], rows: Map<string, any>): string[] {
-  return keys.map((key) => rows.get(key)?.ad_zones?.zone_key).filter(Boolean);
 }
 
 export async function createAutoAdsConfig(
