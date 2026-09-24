@@ -195,16 +195,25 @@ export type SelectionResult = {
  * Picks the highest scoring eligible candidate. Ties break on ad id so the same
  * request always yields the same ad — swap this function for an auction later.
  */
+export function rankCandidates(
+  candidates: ServingCandidate[],
+  zone: ZoneContext,
+  ctx: ServingContext,
+  assumedCtr = 0.01,
+): Array<{ candidate: ServingCandidate; score: number }> {
+  return candidates
+    .filter((candidate) => candidateIsEligible(candidate, zone, ctx).eligible)
+    .map((candidate) => ({ candidate, score: scoreCandidate(candidate, zone, assumedCtr) }))
+    .sort((a, b) => b.score - a.score || a.candidate.adId.localeCompare(b.candidate.adId));
+}
+
 export function selectAd(
   candidates: ServingCandidate[],
   zone: ZoneContext,
   ctx: ServingContext,
   assumedCtr = 0.01,
 ): SelectionResult {
-  const scored = candidates
-    .filter((candidate) => candidateIsEligible(candidate, zone, ctx).eligible)
-    .map((candidate) => ({ candidate, score: scoreCandidate(candidate, zone, assumedCtr) }))
-    .sort((a, b) => b.score - a.score || a.candidate.adId.localeCompare(b.candidate.adId));
+  const scored = rankCandidates(candidates, zone, ctx, assumedCtr);
 
   return {
     winner: scored[0]?.candidate ?? null,
