@@ -291,6 +291,8 @@ export type AdRequestInput = {
   ipAddress: string;
   /** Browser origin of the publisher page, when the public endpoint supplies it. */
   origin?: string | null;
+  /** Optional API-v1 ownership assertion for legacy callers. */
+  expectedWebsiteId?: string | null;
 };
 
 /** Exactly what the browser is allowed to see. No campaign or bid data. */
@@ -322,6 +324,15 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   }
   if (!zoneIsServeable(zone).eligible) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
+    return { ok: false, reason: "zone_unavailable" };
+  }
+
+  if (input.expectedWebsiteId && input.expectedWebsiteId !== zone.websiteId) {
+    console.warn("[ad] website_zone_mismatch", {
+      zone: input.zoneKey,
+      expectedWebsiteId: input.expectedWebsiteId,
+      actualWebsiteId: zone.websiteId,
+    });
     return { ok: false, reason: "zone_unavailable" };
   }
 
