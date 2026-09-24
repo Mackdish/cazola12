@@ -12,17 +12,12 @@ export const Route = createFileRoute("/ad/loader.js")({
     handlers: {
       GET: async ({ request }) => {
         const requestUrl = new URL(request.url);
-        const configuredOrigin = process.env["AD_SERVER_ORIGIN"] ?? process.env["PUBLIC_SITE_ORIGIN"] ?? process.env["SITE_URL"];
-        const allowedOrigin =
-          configuredOrigin && /^https?:\/\//.test(configuredOrigin)
-            ? configuredOrigin.replace(/\/+$/, "")
-            : requestUrl.origin;
-
+        // The loader is served by the ad server itself. The SDK must call back
+        // to this same origin; PUBLIC_SITE_ORIGIN/SITE_URL may point at the
+        // main TradeMall application and would silently break publisher fills.
         const origin = requestUrl.origin;
-        // The loader is hosted by the ad server, so its API origin must be the same
-        // ad-server origin. Using PUBLIC_SITE_ORIGIN here can point the SDK at the
-        // publisher/app domain, where the public ad endpoints may not be deployed.
-        const apiOrigin = allowedOrigin.replace(/\/+$/, "");
+        const allowedOrigin = origin;
+        const apiOrigin = origin;
         const body = AD_SDK_SOURCE
           .replace("__ORIGIN__", origin)
           .replace("__API_ORIGIN__", apiOrigin);
