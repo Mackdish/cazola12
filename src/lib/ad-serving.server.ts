@@ -42,8 +42,8 @@ const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
   Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
 );
-const AD_CANDIDATE_BATCH_SIZE = 500;
-const AD_CANDIDATE_MAX = 1500;
+const AD_CANDIDATE_BATCH_SIZE = 100;
+const AD_CANDIDATE_MAX = 300;
 
 type TargetingRow = {
   countries: string[];
@@ -403,7 +403,13 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   // Redis request for every candidate before we know which ad can win.
   const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
   let winner: ServingCandidate | null = null;
-  for (const entry of rankedCandidates) {
+  // Frequency-cap checks are network round trips. Bound the number checked on
+  // the hot path so a large auction cannot consume the entire serve timeout.
+  // The ranked pool is already filtered by eligibility; 100 candidates gives
+  // the auction ample fallback inventory while keeping latency predictable.
+  const frequencyCheckLimit = Math.min(100, rankedCandidates.length);
+  for (let i = 0; i < frequencyCheckLimit; i += 1) {
+    const entry = rankedCandidates[i];
     const cap = await checkFrequencyCap(sessionId, entry.candidate.campaignId, entry.candidate.frequencyCap);
     if (!cap.capped) {
       winner = entry.candidate;
