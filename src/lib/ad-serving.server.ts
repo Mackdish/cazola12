@@ -34,7 +34,7 @@ import {
 } from "@/lib/impression-buffer.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
-const DEFAULT_AD_SERVE_TIMEOUT_MS = 900;
+const DEFAULT_AD_SERVE_TIMEOUT_MS = 1000;
 const MAX_AD_SERVE_TIMEOUT_MS = 1000;
 const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
@@ -351,13 +351,14 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     return { ok: false, reason: "no_ad" };
   }
 
-  await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
-
   const creative = await creativeUrl(winner.mediaAssetId);
   if (!creative) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
+
+  // Consume the frequency-cap slot only after we have a renderable winner.
+  await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
 
   const token = issueServedToken({
     rid: input.requestId,
