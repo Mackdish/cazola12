@@ -162,7 +162,7 @@ BEGIN
         'reason', 'daily_budget_exhausted',
         'amount', 0,
         'publisher_amount', 0,
-        'platform_amount': 0
+        'platform_amount', 0
       );
     END IF;
   END IF;
