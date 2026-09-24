@@ -148,8 +148,12 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
       .not("media_asset_id", "is", null)
       .eq("campaigns.approval_status", "approved")
       .in("campaigns.status", ["active", "approved"])
-      .order("priority", { foreignTable: "campaigns", ascending: false })
+      // Keep pagination deterministic without relying on PostgREST foreign-table
+      // ordering. Auction priority is applied by rankCandidates() after the
+      // rows are loaded, so ordering campaigns here adds no serving value and
+      // can make the hot-path query fail on some PostgREST versions.
       .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
       .range(offset, offset + AD_CANDIDATE_BATCH_SIZE - 1);
 
     if (formats) query = query.in("format", formats);
