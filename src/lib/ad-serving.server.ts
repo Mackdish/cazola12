@@ -28,6 +28,7 @@ import {
   recordFraudEvent,
 } from "@/lib/fraud-detection.server";
 import { cachedServePathGet } from "@/lib/cache.server";
+import { redis } from "@/lib/redis.server";
 import {
   bufferImpression,
   type ImpressionEvent,
