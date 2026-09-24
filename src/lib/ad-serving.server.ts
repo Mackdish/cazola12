@@ -12,6 +12,7 @@ import {
   classifyUserAgent,
   deriveSessionId,
   isSafeDestination,
+  rankCandidates,
   selectAd,
   weekdayOf,
   zoneIsServeable,
@@ -332,20 +333,23 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   }
 
   const { checkFrequencyCap, recordFrequencyCap } = await import("@/lib/frequency-cap.server");
-  const frequencyCapResults = await Promise.all(
-    fundedCandidates.map((c) =>
-      checkFrequencyCap(sessionId, c.campaignId, c.frequencyCap),
-    ),
-  );
-  const frequencyCapEligible = fundedCandidates.filter(
-    (c, index) => !frequencyCapResults[index].capped,
-  );
-  if (frequencyCapEligible.length === 0) {
+
+  // Rank first, then check caps in auction order. This avoids issuing one
+  // Redis request for every candidate before we know which ad can win.
+  const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
+  let winner: ServingCandidate | null = null;
+  for (const entry of rankedCandidates) {
+    const cap = await checkFrequencyCap(sessionId, entry.candidate.campaignId, entry.candidate.frequencyCap);
+    if (!cap.capped) {
+      winner = entry.candidate;
+      break;
+    }
+  }
+
+  if (!winner || !winner.mediaAssetId) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
-
-  const { winner } = selectAd(frequencyCapEligible, zone, { now, signals });
   if (!winner || !winner.mediaAssetId) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
