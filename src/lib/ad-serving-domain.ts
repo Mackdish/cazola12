@@ -48,6 +48,7 @@ export type ZoneContext = {
   websiteApproval: Enums["approval_status"];
   websiteVerification: Enums["verification_status"];
   websiteCategory: Enums["website_category"];
+  websiteDomain: string;
   publisherId: string;
   publisherStatus: Enums["entity_status"];
   publisherApproval: Enums["approval_status"];
