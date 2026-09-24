@@ -361,8 +361,14 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
 export async function getStreamBacklog(): Promise<number> {
   if (!redis) return 0;
   try {
-    const len = await redis.xlen(IMPRESSION_STREAM_KEY);
-    return typeof len === "number" ? len : 0;
+    // XLEN counts acknowledged history too. XPENDING is the actual work queue.
+    const pending = await redis.xpending(IMPRESSION_STREAM_KEY, IMPRESSION_CONSUMER_GROUP);
+    if (typeof pending === "number") return pending;
+    if (pending && typeof pending === "object" && "pending" in pending) {
+      const count = Number((pending as { pending?: unknown }).pending);
+      return Number.isFinite(count) ? count : 0;
+    }
+    return 0;
   } catch {
     return 0;
   }
