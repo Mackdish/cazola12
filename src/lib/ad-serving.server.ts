@@ -34,7 +34,7 @@ import {
 } from "@/lib/impression-buffer.server";
 
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
-const DEFAULT_AD_SERVE_TIMEOUT_MS = 350;
+const DEFAULT_AD_SERVE_TIMEOUT_MS = 900;
 const MAX_AD_SERVE_TIMEOUT_MS = 1000;
 const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
@@ -331,7 +331,7 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     return { ok: false, reason: "no_ad" };
   }
 
-  const { checkFrequencyCap } = await import("@/lib/frequency-cap.server");
+  const { checkFrequencyCap, recordFrequencyCap } = await import("@/lib/frequency-cap.server");
   const frequencyCapResults = await Promise.all(
     fundedCandidates.map((c) =>
       checkFrequencyCap(sessionId, c.campaignId, c.frequencyCap),
@@ -350,6 +350,8 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
+
+  await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
 
   const creative = await creativeUrl(winner.mediaAssetId);
   if (!creative) {
