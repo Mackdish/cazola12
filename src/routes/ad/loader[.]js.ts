@@ -12,13 +12,16 @@ export const Route = createFileRoute("/ad/loader.js")({
     handlers: {
       GET: async ({ request }) => {
         const requestUrl = new URL(request.url);
-        const configuredOrigin = process.env["PUBLIC_SITE_ORIGIN"] ?? process.env["SITE_URL"];
+        const configuredOrigin = process.env["AD_SERVER_ORIGIN"] ?? process.env["PUBLIC_SITE_ORIGIN"] ?? process.env["SITE_URL"];
         const allowedOrigin =
           configuredOrigin && /^https?:\/\//.test(configuredOrigin)
             ? configuredOrigin.replace(/\/+$/, "")
             : requestUrl.origin;
 
         const origin = requestUrl.origin;
+        // The loader is hosted by the ad server, so its API origin must be the same
+        // ad-server origin. Using PUBLIC_SITE_ORIGIN here can point the SDK at the
+        // publisher/app domain, where the public ad endpoints may not be deployed.
         const apiOrigin = allowedOrigin.replace(/\/+$/, "");
         const body = AD_SDK_SOURCE
           .replace("__ORIGIN__", origin)
