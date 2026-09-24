@@ -13,7 +13,6 @@ import {
   deriveSessionId,
   isSafeDestination,
   rankCandidates,
-  selectAd,
   weekdayOf,
   zoneIsServeable,
   type IneligibleReason,
