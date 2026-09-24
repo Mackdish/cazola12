@@ -40,7 +40,7 @@ const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
   Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
 );
-const AD_CANDIDATE_LIMIT = 100;
+const AD_CANDIDATE_LIMIT = 500;
 
 type TargetingRow = {
   countries: string[];
