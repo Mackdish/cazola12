@@ -41,7 +41,8 @@ const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
   Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
 );
-const AD_CANDIDATE_LIMIT = 500;
+const AD_CANDIDATE_BATCH_SIZE = 500;
+const AD_CANDIDATE_MAX = 1500;
 
 type TargetingRow = {
   countries: string[];
@@ -132,26 +133,49 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
   const formats =
     zone.zoneFormat === "responsive" ? null : ([zone.zoneFormat, "responsive"] as const);
 
-  let query = supabaseAdmin
-    .from("ads")
-    .select(
-      `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule, frequency_cap))`,
-    )
-    .eq("status", "active")
-    .eq("approval_status", "approved")
-    .not("media_asset_id", "is", null)
-    .eq("campaigns.approval_status", "approved")
-    .in("campaigns.status", ["active", "approved"])
-    .limit(AD_CANDIDATE_LIMIT);
+  const rows: any[] = [];
+  let offset = 0;
+  let lastBatchSize = 0;
 
-  if (formats) query = query.in("format", formats);
+  while (offset < AD_CANDIDATE_MAX) {
+    let query = supabaseAdmin
+      .from("ads")
+      .select(
+        `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule, frequency_cap))`,
+      )
+      .eq("status", "active")
+      .eq("approval_status", "approved")
+      .not("media_asset_id", "is", null)
+      .eq("campaigns.approval_status", "approved")
+      .in("campaigns.status", ["active", "approved"])
+      .order("priority", { foreignTable: "campaigns", ascending: false })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + AD_CANDIDATE_BATCH_SIZE - 1);
 
-  const { data, error } = await query;
-  console.debug("[ad] candidates_lookup_ms", Date.now() - t0, "limit", AD_CANDIDATE_LIMIT);
+    if (formats) query = query.in("format", formats);
 
-  if (error || !data) return [];
+    const { data, error } = await query;
+    if (error || !data) {
+      console.warn("[ad] candidates_lookup_failed", error?.message ?? "no data");
+      return [];
+    }
 
-  return data.map((row) => {
+    rows.push(...data);
+    lastBatchSize = data.length;
+    if (lastBatchSize < AD_CANDIDATE_BATCH_SIZE) break;
+    offset += AD_CANDIDATE_BATCH_SIZE;
+  }
+
+  console.debug(
+    "[ad] candidates_lookup_ms",
+    Date.now() - t0,
+    "candidates",
+    rows.length,
+    "max",
+    AD_CANDIDATE_MAX,
+  );
+
+  return rows.map((row) => {
     const campaign = row.campaigns as unknown as {
       id: string;
       organization_id: string;
@@ -346,11 +370,7 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     }
   }
 
-  if (!winner || !winner.mediaAssetId) {
-    console.debug("[ad] serve_total_ms", Date.now() - t0);
-    return { ok: false, reason: "no_ad" };
-  }
-  if (!winner || !winner.mediaAssetId) {
+  if (!winner?.mediaAssetId) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
