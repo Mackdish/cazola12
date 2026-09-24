@@ -20,6 +20,7 @@ import {
   type ZoneContext,
 } from "@/lib/ad-serving-domain";
 import { CREATIVE_BUCKET } from "@/lib/media-service.server";
+import { normalizeDomain } from "@/lib/publisher-domain";
 import { issueServedToken, type ServedTokenPayload } from "@/lib/ad-token.server";
 import { checkRateLimit, extractIpAddress, getRateLimitConfig } from "@/lib/rate-limit.server";
 import {
@@ -87,7 +88,7 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
     const { data, error } = await supabaseAdmin
       .from("ad_zones")
       .select(
-        `id, status, format, website_id, publisher_id, websites!inner(status, approval_status, verification_status, category), publishers!inner(status, approval_status)`,
+        `id, status, format, website_id, publisher_id, websites!inner(status, approval_status, verification_status, category, domain), publishers!inner(status, approval_status)`,
       )
       .eq("zone_key", zoneKey)
       .maybeSingle();
@@ -100,6 +101,7 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
       approval_status: ZoneContext["websiteApproval"];
       verification_status: ZoneContext["websiteVerification"];
       category: ZoneContext["websiteCategory"];
+      domain: string;
     };
     const publisher = data.publishers as unknown as {
       status: ZoneContext["publisherStatus"];
@@ -115,6 +117,7 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
       websiteApproval: website.approval_status,
       websiteVerification: website.verification_status,
       websiteCategory: website.category,
+      websiteDomain: website.domain,
       publisherId: data.publisher_id,
       publisherStatus: publisher.status,
       publisherApproval: publisher.approval_status,
@@ -286,6 +289,8 @@ export type AdRequestInput = {
   city: string | null;
   requestId: string;
   ipAddress: string;
+  /** Browser origin of the publisher page, when the public endpoint supplies it. */
+  origin?: string | null;
 };
 
 /** Exactly what the browser is allowed to see. No campaign or bid data. */
@@ -318,6 +323,27 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   if (!zoneIsServeable(zone).eligible) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "zone_unavailable" };
+  }
+
+  // Bind browser-side public serving to the registered publisher domain.
+  // The placement discovery endpoint already performs this check; the manual
+  // zone endpoint must enforce it too so a copied zone key cannot be embedded
+  // on an unrelated site.
+  if (input.origin) {
+    try {
+      const originHost = normalizeDomain(new URL(input.origin).hostname);
+      const registeredHost = normalizeDomain(zone.websiteDomain);
+      if (!originHost || !registeredHost || originHost !== registeredHost) {
+        console.warn("[ad] origin_mismatch", {
+          zone: input.zoneKey,
+          originHost,
+          registeredHost,
+        });
+        return { ok: false, reason: "zone_unavailable" };
+      }
+    } catch {
+      return { ok: false, reason: "zone_unavailable" };
+    }
   }
 
   const now = new Date();
