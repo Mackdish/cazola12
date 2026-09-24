@@ -101,6 +101,8 @@ export const Route = createFileRoute("/api/v1/ads/serve")({
           city: null,
           requestId,
           ipAddress,
+          expectedWebsiteId: websiteId.data,
+          origin: request.headers.get("origin"),
         });
 
         if (!result.ok) {
