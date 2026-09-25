@@ -407,6 +407,7 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   // incorrectly return no-fill when the highest-ranked campaigns are capped
   // but a valid uncapped fallback exists later in the auction. The outer serve
   // timeout still bounds worst-case latency, and Redis failures fail open.
+  const frequencyCheckLimit = rankedCandidates.length;
   for (let i = 0; i < frequencyCheckLimit; i += 1) {
     const entry = rankedCandidates[i];
     const cap = await checkFrequencyCap(sessionId, entry.candidate.campaignId, entry.candidate.frequencyCap);
