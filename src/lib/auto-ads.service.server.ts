@@ -70,7 +70,11 @@ async function syncAutoAdsPlacements(websiteId: string, organizationId: string, 
     let zoneId = current?.zone_id ?? null;
     let zoneKey = current?.ad_zones?.zone_key ?? null;
 
-    if (shouldEnable && !zoneId) {
+    // A placement can outlive its zone (for example after a manual DB cleanup
+    // or a failed migration). Never leave Auto Ads pointing at a missing zone.
+    // If the referenced zone is gone, recreate it before enabling the placement.
+    const zoneMissing = Boolean(zoneId) && !current?.ad_zones?.id;
+    if (shouldEnable && (!zoneId || zoneMissing)) {
       const { data: generatedZoneKey, error: keyError } = await supabaseAdmin.rpc("generate_zone_key");
       if (keyError || !generatedZoneKey) throw new Error("We couldn't create the automatic ad placement.");
       const definition = definitions[key];
