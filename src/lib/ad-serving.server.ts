@@ -397,17 +397,16 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     return { ok: false, reason: "no_ad" };
   }
 
-  const { checkFrequencyCap, recordFrequencyCap } = await import("@/lib/frequency-cap.server");
+  const { checkFrequencyCap } = await import("@/lib/frequency-cap.server");
 
   // Rank first, then check caps in auction order. This avoids issuing one
   // Redis request for every candidate before we know which ad can win.
   const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
   let winner: ServingCandidate | null = null;
-  // Frequency-cap checks are network round trips. Bound the number checked on
-  // the hot path so a large auction cannot consume the entire serve timeout.
-  // The ranked pool is already filtered by eligibility; 100 candidates gives
-  // the auction ample fallback inventory while keeping latency predictable.
-  const frequencyCheckLimit = Math.min(100, rankedCandidates.length);
+  // Check the full ranked pool. Limiting this to the first N candidates can
+  // incorrectly return no-fill when the highest-ranked campaigns are capped
+  // but a valid uncapped fallback exists later in the auction. The outer serve
+  // timeout still bounds worst-case latency, and Redis failures fail open.
   for (let i = 0; i < frequencyCheckLimit; i += 1) {
     const entry = rankedCandidates[i];
     const cap = await checkFrequencyCap(sessionId, entry.candidate.campaignId, entry.candidate.frequencyCap);
@@ -428,16 +427,6 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     return { ok: false, reason: "no_ad" };
   }
 
-  // Consume the frequency-cap slot only after we have a renderable winner.
-  // Failure to update the cap must not turn a valid ad request into a no-fill.
-  try {
-    await recordFrequencyCap(sessionId, winner.campaignId, winner.frequencyCap);
-  } catch (error) {
-    console.warn("[ad] frequency_cap_record_failed", {
-      campaignId: winner.campaignId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
 
   const token = issueServedToken({
     rid: input.requestId,
@@ -559,6 +548,40 @@ export async function recordImpression(
 ): Promise<"recorded" | "duplicate" | "failed"> {
   const useBuffer = process.env["USE_BUFFERED_IMPRESSIONS"] === "true";
 
+  // Frequency caps represent delivered impressions, not ad responses.
+  // Increment the cap only after the impression has been accepted, otherwise
+  // a rendered-but-never-viewed ad can consume the visitor's entire cap.
+  const recordDeliveredFrequencyCap = async () => {
+    if (!payload.campaignId) return;
+    const { recordFrequencyCap } = await import("@/lib/frequency-cap.server");
+    const sessionId = deriveSessionId({
+      ipAddress: ipAddress ?? null,
+      userAgent: userAgent ?? null,
+      device: payload.device,
+      os: payload.os,
+      browser: payload.browser,
+    });
+    // The token intentionally does not expose the advertiser's cap settings.
+    // Read the campaign targeting row here so the serving path remains the
+    // source of truth for cap configuration while the cap is consumed only by
+    // a real impression.
+    const { data: targeting } = await supabaseAdmin
+      .from("campaign_targeting")
+      .select("frequency_cap")
+      .eq("campaign_id", payload.campaignId)
+      .maybeSingle();
+    const cap = targeting?.frequency_cap as { impressions: number; periodHours: number } | null;
+    if (!cap) return;
+    try {
+      await recordFrequencyCap(sessionId, payload.campaignId, cap);
+    } catch (error) {
+      console.warn("[ad] frequency_cap_record_failed", {
+        campaignId: payload.campaignId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
   if (useBuffer) {
     const event: ImpressionEvent = {
       request_id: payload.rid,
@@ -581,6 +604,7 @@ export async function recordImpression(
 
     const buffered = await bufferImpression(event);
     if (buffered) {
+      await recordDeliveredFrequencyCap();
       return "recorded";
     }
 
@@ -604,6 +628,8 @@ export async function recordImpression(
     is_likely_bot: isLikelyBot ?? false,
   });
   if (error) return error.code === "23505" ? "duplicate" : "failed";
+
+  await recordDeliveredFrequencyCap();
 
   let fraudEvaluation: { status: string } | null = null;
   if (ipAddress) {
