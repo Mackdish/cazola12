@@ -131,7 +131,7 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
  * The pool is intentionally bounded to protect the hot path while giving the
  * auction enough breadth as the marketplace grows.
  */
-export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidate[]> {
+async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandidate[]> {
   const t0 = Date.now();
   const formats =
     zone.zoneFormat === "responsive" ? null : ([zone.zoneFormat, "responsive"] as const);
@@ -233,6 +233,45 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
       frequencyCap: targeting?.frequency_cap ?? null,
     } satisfies ServingCandidate;
   });
+}
+
+// Candidate inventory is identical for zones with the same format. Reuse a
+// short-lived in-process snapshot and coalesce concurrent cold misses so each
+// request does not repeat the same 2–3 Supabase queries. Billing remains
+// authoritative and rejects stale/paused/exhausted campaigns at charge time.
+const CANDIDATE_CACHE_TTL_MS = 3_000;
+const CANDIDATE_CACHE_MAX_ENTRIES = 12;
+type CandidateCacheEntry = {
+  expiresAt: number;
+  promise: Promise<ServingCandidate[]>;
+};
+const CANDIDATE_CACHE = new Map<string, CandidateCacheEntry>();
+
+export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidate[]> {
+  const key = zone.zoneFormat;
+  const now = Date.now();
+  const cached = CANDIDATE_CACHE.get(key);
+  if (cached && cached.expiresAt > now) return cached.promise;
+  if (cached) CANDIDATE_CACHE.delete(key);
+
+  // Keep this small, bounded cache fresh without allowing unbounded growth.
+  for (const [cacheKey, entry] of CANDIDATE_CACHE) {
+    if (entry.expiresAt <= now) CANDIDATE_CACHE.delete(cacheKey);
+  }
+  while (CANDIDATE_CACHE.size >= CANDIDATE_CACHE_MAX_ENTRIES) {
+    const oldestKey = CANDIDATE_CACHE.keys().next().value;
+    if (oldestKey === undefined) break;
+    CANDIDATE_CACHE.delete(oldestKey);
+  }
+
+  const promise = loadCandidatesUncached(zone);
+  CANDIDATE_CACHE.set(key, { expiresAt: now + CANDIDATE_CACHE_TTL_MS, promise });
+  try {
+    return await promise;
+  } catch (error) {
+    CANDIDATE_CACHE.delete(key);
+    throw error;
+  }
 }
 
 async function creativeUrl(
@@ -399,20 +438,23 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
 
   const { checkFrequencyCap } = await import("@/lib/frequency-cap.server");
 
-  // Rank first, then check caps in auction order. This avoids issuing one
-  // Redis request for every candidate before we know which ad can win.
+  // Check ranked candidates in small parallel batches. This preserves auction
+  // order (the first uncapped candidate still wins) while avoiding a serial
+  // Redis round trip for every capped candidate. A bounded batch prevents a
+  // large candidate pool from creating a burst of Redis requests.
   const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
   let winner: ServingCandidate | null = null;
-  // Check the full ranked pool. Limiting this to the first N candidates can
-  // incorrectly return no-fill when the highest-ranked campaigns are capped
-  // but a valid uncapped fallback exists later in the auction. The outer serve
-  // timeout still bounds worst-case latency, and Redis failures fail open.
-  const frequencyCheckLimit = rankedCandidates.length;
-  for (let i = 0; i < frequencyCheckLimit; i += 1) {
-    const entry = rankedCandidates[i];
-    const cap = await checkFrequencyCap(sessionId, entry.candidate.campaignId, entry.candidate.frequencyCap);
-    if (!cap.capped) {
-      winner = entry.candidate;
+  const frequencyCheckBatchSize = 8;
+  for (let i = 0; i < rankedCandidates.length; i += frequencyCheckBatchSize) {
+    const batch = rankedCandidates.slice(i, i + frequencyCheckBatchSize);
+    const capResults = await Promise.all(
+      batch.map(({ candidate }) =>
+        checkFrequencyCap(sessionId, candidate.campaignId, candidate.frequencyCap),
+      ),
+    );
+    const winnerIndex = capResults.findIndex((cap) => !cap.capped);
+    if (winnerIndex !== -1) {
+      winner = batch[winnerIndex].candidate;
       break;
     }
   }
