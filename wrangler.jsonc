@@ -1,21 +1,33 @@
 {
-  "name": "pixel-perfect-frame-34",
-  "compatibility_date": "2026-08-21",
-  "compatibility_flags": ["nodejs_compat"],
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nairobi-biz-growth",
   "main": "dist/server/index.mjs",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
   "assets": {
-    "directory": "dist/client"
+    "directory": "dist/client",
+    "binding": "ASSETS"
   },
   "ai": {
     "binding": "AI"
   },
   "r2_buckets": [
-    { "binding": "R2", "bucket_name": "trademall" }
+    {
+      "binding": "R2",
+      "bucket_name": "trademall"
+    }
   ],
   "vars": {
     "R2_PUBLIC_URL": "https://pub-af1dd31544db4b12a899e7e5a284dba8.r2.dev"
   },
   "triggers": {
-    "crons": ["* * * * *"]
+    "crons": [
+      "* * * * *"
+    ]
   }
 }
