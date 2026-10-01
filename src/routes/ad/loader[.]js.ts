@@ -13,9 +13,8 @@ export const Route = createFileRoute("/ad/loader.js")({
     handlers: {
       GET: async ({ request }) => {
         const requestUrl = new URL(request.url);
-        // The loader is served by the ad server itself. The SDK must call back
-        // to this same origin; PUBLIC_SITE_ORIGIN/SITE_URL may point at the
-        // main TradeMall application and would silently break publisher fills.
+        // The loader and all public ad APIs live on the main TradeMall origin.
+        // Keep the generated SDK callbacks on that canonical origin.
         const origin = resolveAdServerOrigin(requestUrl.href);
         const allowedOrigin = requestUrl.origin;
         const apiOrigin = origin;
