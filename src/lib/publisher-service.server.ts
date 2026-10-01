@@ -821,17 +821,14 @@ export async function adminGetWebsiteDetail(ctx: Ctx, websiteId: string) {
 }
 
 /**
- * Origin the embed snippet points at. Configured ad domain wins; the request
- * origin is only a fallback so previews stay usable.
+ * Canonical public origin for every TradeMall publisher embed and ad API call.
+ *
+ * The ad-serving engine is part of the main TradeMall application. There is
+ * no separate ads.trademall.co.ke origin; keeping this value canonical also
+ * prevents stale deployment variables from sending publishers to an old host.
  */
+export const TRADEMALL_PUBLIC_ORIGIN = "https://trademall.co.ke";
+
 export function resolveAdServerOrigin(_requestUrl?: string): string {
-  // Production ad traffic must use the dedicated ad origin. Do not fall back
-  // to PUBLIC_SITE_ORIGIN/SITE_URL because those normally point to the main
-  // TradeMall application and would make publisher SDK requests hit the wrong
-  // origin.
-  const configured = process.env["AD_SERVER_ORIGIN"];
-  if (configured && /^https?:\/\//.test(configured)) {
-    return configured.replace(/\/+$/, "");
-  }
-  return "https://trademall.co.ke";
+  return TRADEMALL_PUBLIC_ORIGIN;
 }
