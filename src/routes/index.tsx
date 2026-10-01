@@ -534,6 +534,49 @@ function Landing() {
         </div>
       </section>
 
+      {/* Partnership */}
+      <section className="relative overflow-hidden border-y border-border bg-card/50">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-transparent to-mkt-blue/5" aria-hidden />
+        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-20">
+          <Reveal className="text-center">
+            <p className="text-eyebrow">Our Partner</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Powering seamless payments
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+              TradeMall partners with PayzaAPI to support a reliable, locally focused payment experience for our growing African digital ecosystem.
+            </p>
+          </Reveal>
+
+          <Reveal delay={100} className="mt-10">
+            <a
+              href="https://payzaapi.co.ke"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="group mx-auto flex max-w-xl flex-col items-center gap-5 rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg sm:flex-row sm:text-left"
+              aria-label="Visit PayzaAPI website"
+            >
+              <div className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-border bg-black p-2 sm:size-28">
+                <img
+                  src="/payzaapi-logo.webp"
+                  alt="PayzaAPI logo"
+                  className="size-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center justify-center gap-2 sm:justify-start">
+                  <h3 className="text-xl font-semibold text-foreground">PayzaAPI</h3>
+                  <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-1" />
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Payment technology partner</p>
+                <p className="mt-3 text-sm font-medium text-primary">payzaapi.co.ke</p>
+              </div>
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="relative overflow-hidden bg-mkt-navy py-20 sm:py-28">
         <div className="absolute inset-0 -z-10 bg-mkt-grid opacity-30" aria-hidden />
