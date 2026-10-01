@@ -296,16 +296,23 @@ async function creativeUrl(
 
   let url: string;
   if (asset.storage_provider === "supabase") {
-    const publicUrl = supabaseAdmin.storage.from(CREATIVE_BUCKET).getPublicUrl(asset.storage_path)
-      .data.publicUrl;
-    if (publicUrl) {
-      url = publicUrl;
-    } else {
-      const signed = await supabaseAdmin.storage
-        .from(CREATIVE_BUCKET)
-        .createSignedUrl(asset.storage_path, CREATIVE_URL_TTL_SECONDS);
-      if (signed.error || !signed.data?.signedUrl) return null;
+    // Creatives are uploaded through signed storage URLs and the bucket may be
+    // private. getPublicUrl() only constructs a URL; it does not prove that the
+    // object is publicly readable. Prefer a signed URL so a private bucket
+    // cannot silently produce an image URL that the publisher browser cannot
+    // load. Keep a public-URL fallback for installations that intentionally use
+    // a public bucket.
+    const signed = await supabaseAdmin.storage
+      .from(CREATIVE_BUCKET)
+      .createSignedUrl(asset.storage_path, CREATIVE_URL_TTL_SECONDS);
+    if (signed.data?.signedUrl) {
       url = signed.data.signedUrl;
+    } else {
+      const publicUrl = supabaseAdmin.storage
+        .from(CREATIVE_BUCKET)
+        .getPublicUrl(asset.storage_path).data.publicUrl;
+      if (!publicUrl) return null;
+      url = publicUrl;
     }
   } else {
     url = asset.storage_path;
