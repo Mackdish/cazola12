@@ -9,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { normalizeCountry } from "@/lib/ad-serving-domain";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { resolveAdServerOrigin } from "@/lib/publisher-service.server";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -114,7 +115,9 @@ export const Route = createFileRoute("/api/public/ad")({
           });
         }
 
-        const origin = url.origin;
+        // Tracking URLs must use the canonical TradeMall ad origin, not the host
+        // used to reach this route (which may be a custom domain or alias).
+        const origin = resolveAdServerOrigin(url.href);
         const isHouseAd = result.fillType === "house_ad";
         const body = {
           ok: true as const,
