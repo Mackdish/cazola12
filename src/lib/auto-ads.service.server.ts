@@ -250,7 +250,7 @@ export function generateAutoAdsScript(websiteId: string): string {
 (function() {
   var script = document.createElement('script');
   script.async = true;
-  script.src = 'https://ads.trademall.co.ke/ad/loader.js';
+  script.src = 'https://trademall.co.ke/ad/loader.js';
   document.head.appendChild(script);
 })();
 `.trim();
