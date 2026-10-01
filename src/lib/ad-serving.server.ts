@@ -445,38 +445,53 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
 
   const { checkFrequencyCap } = await import("@/lib/frequency-cap.server");
 
-  // Check ranked candidates in small parallel batches. This preserves auction
-  // order (the first uncapped candidate still wins) while avoiding a serial
-  // Redis round trip for every capped candidate. A bounded batch prevents a
-  // large candidate pool from creating a burst of Redis requests.
+  // Check ranked candidates in small parallel batches. Frequency caps are
+  // side-effect free, so we can safely skip capped candidates and continue
+  // looking for the first candidate whose creative is actually deliverable.
+  // Previously, a top-ranked ad with a missing/unready/private creative caused
+  // an immediate no-fill even when a lower-ranked valid ad was available.
   const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
   let winner: ServingCandidate | null = null;
+  let creative: { url: string; width: number | null; height: number | null } | null = null;
   const frequencyCheckBatchSize = 8;
-  for (let i = 0; i < rankedCandidates.length; i += frequencyCheckBatchSize) {
+  const maxCreativeFallbacks = 12;
+
+  for (let i = 0; i < rankedCandidates.length && !winner; i += frequencyCheckBatchSize) {
     const batch = rankedCandidates.slice(i, i + frequencyCheckBatchSize);
     const capResults = await Promise.all(
       batch.map(({ candidate }) =>
         checkFrequencyCap(sessionId, candidate.campaignId, candidate.frequencyCap),
       ),
     );
-    const winnerIndex = capResults.findIndex((cap) => !cap.capped);
-    if (winnerIndex !== -1) {
-      winner = batch[winnerIndex].candidate;
+
+    for (let j = 0; j < batch.length; j += 1) {
+      if (capResults[j]?.capped) continue;
+
+      const candidate = batch[j].candidate;
+      if (!candidate.mediaAssetId) continue;
+
+      const candidateCreative = await creativeUrl(candidate.mediaAssetId);
+      if (!candidateCreative) {
+        console.warn("[ad] candidate_creative_unavailable", {
+          adId: candidate.adId,
+          campaignId: candidate.campaignId,
+        });
+        continue;
+      }
+
+      winner = candidate;
+      creative = candidateCreative;
       break;
     }
+
+    // Avoid turning a single bad creative into a storage/DB fan-out under load.
+    if (i + frequencyCheckBatchSize >= maxCreativeFallbacks) break;
   }
 
-  if (!winner?.mediaAssetId) {
+  if (!winner || !creative) {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
-
-  const creative = await creativeUrl(winner.mediaAssetId);
-  if (!creative) {
-    console.debug("[ad] serve_total_ms", Date.now() - t0);
-    return { ok: false, reason: "no_ad" };
-  }
-
 
   const token = issueServedToken({
     rid: input.requestId,
