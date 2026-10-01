@@ -147,12 +147,17 @@ export async function requireAdvertiser(ctx: Ctx, organizationId: string) {
 async function assertWalletCanFundCampaign(ctx: Ctx, organizationId: string, campaign: {
   daily_budget: number | null;
 }) {
+  // Ad serving and billing are KES-denominated. Scope the activation check to
+  // the same wallet used by fundedOrganizationIds() so multiple currency
+  // wallets cannot make activation fail with an ambiguous maybeSingle() or,
+  // worse, validate against the wrong balance.
   const { data, error } = await ctx.supabase
     .from("wallets")
     .select("balance_amount")
     .eq("organization_id", organizationId)
+    .eq("currency", "KES")
     .maybeSingle();
-  if (error) fail("We couldn't verify your wallet balance.");
+  if (error) fail("We couldn't verify your KES wallet balance.");
   const balance = Number(data?.balance_amount ?? 0);
   const dailyBudget = Number(campaign.daily_budget ?? 0);
   const required = dailyBudget > 0 ? dailyBudget : 0.01;
