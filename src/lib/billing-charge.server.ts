@@ -131,11 +131,13 @@ export async function fundedOrganizationIds(organizationIds: string[]): Promise<
     .gt("balance_amount", 0);
 
   if (error) {
-    // Do not cache a read failure. The charge RPC remains the authoritative
-    // financial gate and can reject the event if the wallet is actually empty.
-    console.warn("[billing] funded-wallet lookup failed", error.message);
-    for (const organizationId of missing) funded.add(organizationId);
-    return funded;
+    // A wallet-read failure must never turn into an eligible advertiser.
+    // Failing open here can select an unfundable campaign and produce an
+    // impression that the billing RPC later rejects. That creates silent
+    // delivery gaps and misleading campaign metrics. Fail closed instead;
+    // serveAd() will use the normal house-ad/error fallback.
+    console.error("[billing] funded-wallet lookup failed", error.message);
+    throw new Error("funded_wallet_lookup_failed");
   }
 
   const fundedIds = new Set((data ?? []).map((row) => row.organization_id));
