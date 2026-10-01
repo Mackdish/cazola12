@@ -337,6 +337,34 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
       adZoneId: event.ad_zone_id,
     });
 
+    if (charge.ok) {
+      try {
+        const { data: targeting } = await supabaseAdmin
+          .from("campaign_targeting")
+          .select("frequency_cap")
+          .eq("campaign_id", event.campaign_id)
+          .maybeSingle();
+        const cap = targeting?.frequency_cap as { impressions: number; periodHours: number } | null;
+        if (cap) {
+          const { recordFrequencyCap } = await import("@/lib/frequency-cap.server");
+          const { deriveSessionId } = await import("@/lib/ad-serving-domain");
+          const sessionId = deriveSessionId({
+            ipAddress: event.ip_address ?? null,
+            userAgent: event.user_agent ?? null,
+            device: event.device as never,
+            os: event.operating_system as never,
+            browser: event.browser as never,
+          });
+          await recordFrequencyCap(sessionId, event.campaign_id, cap);
+        }
+      } catch (error) {
+        console.warn("[impression-buffer] frequency-cap record failed", {
+          campaignId: event.campaign_id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     // Only transient RPC errors should keep the stream message pending.
     // Permanent business outcomes (duplicate, no funds, exhausted budget, etc.)
     // are already resolved and must not be retried forever.
