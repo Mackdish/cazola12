@@ -780,7 +780,54 @@ export async function recordClick(
   if (!ad || ad.status !== "active" || ad.approval_status !== "approved") return null;
   if (!isSafeDestination(ad.destination_url)) return null;
 
-  const impressionId = impression?.id ?? null;
+  let impressionId = impression?.id ?? null;
+
+  // With buffered impressions enabled, the impression beacon can arrive before
+  // the flush worker has materialized the impression row. A click can happen
+  // in that short window and must not be rejected just because the async
+  // impression write has not caught up yet. Materialize the same signed event
+  // synchronously; the stream flush uses request_id idempotency and will ignore
+  // the duplicate row while still completing its billing/fraud processing.
+  if (!impressionId) {
+    const { data: ensured, error: ensureError } = await supabaseAdmin
+      .from("impressions")
+      .insert({
+        request_id: payload.rid,
+        ad_id: payload.adId,
+        campaign_id: payload.campaignId,
+        publisher_id: payload.publisherId,
+        website_id: payload.websiteId,
+        ad_zone_id: payload.zoneId,
+        device_type: payload.device as never,
+        browser: payload.browser as never,
+        operating_system: payload.os as never,
+        country: country ?? payload.country,
+        ip_address: ipAddress,
+        region: region ?? null,
+        bot_score: botScore ?? null,
+        is_likely_bot: isLikelyBot ?? false,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (ensured?.id) {
+      impressionId = ensured.id;
+    } else if (ensureError?.code !== "23505") {
+      console.warn("[ad] click_impression_materialization_failed", {
+        requestId: payload.rid,
+        error: ensureError?.message ?? "unknown",
+      });
+      return null;
+    } else {
+      const { data: existing } = await supabaseAdmin
+        .from("impressions")
+        .select("id")
+        .eq("request_id", payload.rid)
+        .maybeSingle();
+      impressionId = existing?.id ?? null;
+    }
+  }
+
   if (!impressionId) return null;
 
   const { error: clickError } = await supabaseAdmin.from("clicks").insert({
