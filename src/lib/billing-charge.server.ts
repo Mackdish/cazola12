@@ -76,22 +76,75 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
  * Organizations whose wallet can still fund a charge. Used to drop unfundable
  * campaigns before selection so we don't serve an impression we can't bill.
  */
+const FUNDED_ORG_CACHE_TTL_MS = 2_000;
+const FUNDED_ORG_CACHE_MAX_ENTRIES = 2_000;
+const FUNDED_ORG_CACHE = new Map<string, { funded: boolean; expiresAt: number }>();
+
+function pruneFundedOrgCache(now: number) {
+  for (const [organizationId, entry] of FUNDED_ORG_CACHE) {
+    if (entry.expiresAt <= now) FUNDED_ORG_CACHE.delete(organizationId);
+  }
+  while (FUNDED_ORG_CACHE.size > FUNDED_ORG_CACHE_MAX_ENTRIES) {
+    const oldest = FUNDED_ORG_CACHE.keys().next().value;
+    if (oldest === undefined) break;
+    FUNDED_ORG_CACHE.delete(oldest);
+  }
+}
+
+/**
+ * Organizations whose wallet can still fund a charge. Used to drop unfundable
+ * campaigns before selection so we don't serve an impression we can't bill.
+ *
+ * The result is cached for only 2 seconds. This removes a repeated wallet query
+ * from the hot path while keeping payment/refund changes visible quickly.
+ * The billing RPC remains authoritative and can still reject a stale result.
+ */
 export async function fundedOrganizationIds(organizationIds: string[]): Promise<Set<string>> {
-  if (organizationIds.length === 0) return new Set();
+  const ids = [...new Set(organizationIds.filter(Boolean))];
+  if (ids.length === 0) return new Set();
+
+  const now = Date.now();
+  pruneFundedOrgCache(now);
+
+  const funded = new Set<string>();
+  const missing: string[] = [];
+
+  for (const organizationId of ids) {
+    const cached = FUNDED_ORG_CACHE.get(organizationId);
+    if (cached && cached.expiresAt > now) {
+      if (cached.funded) funded.add(organizationId);
+    } else {
+      missing.push(organizationId);
+    }
+  }
+
+  if (missing.length === 0) return funded;
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const client = supabaseAdmin as unknown as SupabaseClient<Database>;
 
   const { data, error } = await client
     .from("wallets")
     .select("organization_id, balance_amount")
-    .in("organization_id", organizationIds)
-    // Campaign billing is currently denominated in KES. Do not treat a funded
-    // wallet in another currency as spendable inventory.
+    .in("organization_id", missing)
     .eq("currency", "KES")
     .gt("balance_amount", 0);
 
-  // On a read failure, fall back to serving: delivery is more important than
-  // perfect pacing, and the charge itself still enforces the balance.
-  if (error) return new Set(organizationIds);
-  return new Set((data ?? []).map((row) => row.organization_id));
+  if (error) {
+    // Do not cache a read failure. The charge RPC remains the authoritative
+    // financial gate and can reject the event if the wallet is actually empty.
+    console.warn("[billing] funded-wallet lookup failed", error.message);
+    for (const organizationId of missing) funded.add(organizationId);
+    return funded;
+  }
+
+  const fundedIds = new Set((data ?? []).map((row) => row.organization_id));
+  const expiresAt = now + FUNDED_ORG_CACHE_TTL_MS;
+  for (const organizationId of missing) {
+    const isFunded = fundedIds.has(organizationId);
+    FUNDED_ORG_CACHE.set(organizationId, { funded: isFunded, expiresAt });
+    if (isFunded) funded.add(organizationId);
+  }
+
+  return funded;
 }
