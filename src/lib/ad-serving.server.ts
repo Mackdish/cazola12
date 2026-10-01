@@ -679,8 +679,6 @@ export async function recordImpression(
   });
   if (error) return error.code === "23505" ? "duplicate" : "failed";
 
-  await recordDeliveredFrequencyCap();
-
   let fraudEvaluation: { status: string } | null = null;
   if (ipAddress) {
     try {
