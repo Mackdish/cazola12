@@ -66,22 +66,42 @@ export const Route = createFileRoute("/api/public/ad")({
 
         const { serveAd } = await import("@/lib/ad-serving.server");
 
+        // Prefer Cloudflare's trusted request.cf geolocation metadata, with
+        // visitor-location headers as a fallback for deployments where the
+        // Managed Transform is enabled. Never accept geo values from query
+        // parameters or publisher JavaScript.
+        const cf = (request as Request & {
+          cf?: {
+            country?: string | null;
+            region?: string | null;
+            regionCode?: string | null;
+            city?: string | null;
+          };
+        }).cf;
+
+        const country = normalizeCountry(
+          request.headers.get("cf-ipcountry") ?? cf?.country ?? null,
+        );
+        const county =
+          geoSchema.safeParse(
+            request.headers.get("cf-region") ??
+              request.headers.get("cf-region-code") ??
+              cf?.region ??
+              cf?.regionCode ??
+              undefined,
+          ).data ?? null;
+        const city =
+          geoSchema.safeParse(
+            request.headers.get("cf-ipcity") ?? cf?.city ?? undefined,
+          ).data ?? null;
+
         const requestId = crypto.randomUUID();
         const result = await serveAd({
           zoneKey: parsedZone.data,
           userAgent: request.headers.get("user-agent"),
-          country: normalizeCountry(request.headers.get("cf-ipcountry")),
-          // Cloudflare supplies these at the edge. Do not trust publisher-supplied
-          // query parameters for geo targeting; otherwise a visitor could spoof
-          // their location and receive campaigns targeted to another area.
-          county:
-            geoSchema.safeParse(
-              request.headers.get("cf-region") ??
-                request.headers.get("cf-region-code") ??
-                undefined,
-            ).data ?? null,
-          city:
-            geoSchema.safeParse(request.headers.get("cf-ipcity") ?? undefined).data ?? null,
+          country,
+          county,
+          city,
           requestId,
           ipAddress,
           origin: request.headers.get("origin"),
