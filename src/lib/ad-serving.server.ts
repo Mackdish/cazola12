@@ -598,9 +598,8 @@ export async function recordImpression(
 ): Promise<"recorded" | "duplicate" | "failed"> {
   const useBuffer = process.env["USE_BUFFERED_IMPRESSIONS"] === "true";
 
-  // Frequency caps represent delivered impressions, not ad responses.
-  // Increment the cap only after the impression has been accepted, otherwise
-  // a rendered-but-never-viewed ad can consume the visitor's entire cap.
+  // Frequency caps are consumed only after a billable impression has
+  // actually been accepted. Buffering alone is not proof that billing succeeded.
   const recordDeliveredFrequencyCap = async () => {
     if (!payload.campaignId) return;
     const { recordFrequencyCap } = await import("@/lib/frequency-cap.server");
@@ -654,7 +653,8 @@ export async function recordImpression(
 
     const buffered = await bufferImpression(event);
     if (buffered) {
-      await recordDeliveredFrequencyCap();
+      // The flush worker owns billing for buffered events. Do not consume the
+      // visitor's frequency cap until that billing step succeeds.
       return "recorded";
     }
 
@@ -727,7 +727,7 @@ export async function recordImpression(
   }
 
   const { chargeAdEvent } = await import("@/lib/billing-charge.server");
-  await chargeAdEvent({
+  const charge = await chargeAdEvent({
     eventType: "impression",
     requestId: payload.rid,
     campaignId: payload.campaignId,
@@ -736,6 +736,8 @@ export async function recordImpression(
     websiteId: payload.websiteId,
     adZoneId: payload.zoneId,
   });
+
+  if (charge.ok) await recordDeliveredFrequencyCap();
 
   return "recorded";
 }
