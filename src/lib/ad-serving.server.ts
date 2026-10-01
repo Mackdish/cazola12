@@ -95,7 +95,14 @@ export async function loadZoneContext(zoneKey: string): Promise<ZoneContext | nu
 
     console.debug("[ad] zone_lookup_ms", Date.now() - t0);
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("[ad] zone_lookup_failed", {
+        zone: zoneKey,
+        error: error.message,
+      });
+      throw error;
+    }
+    if (!data) return null;
     const website = data.websites as unknown as {
       status: ZoneContext["websiteStatus"];
       approval_status: ZoneContext["websiteApproval"];
@@ -162,9 +169,13 @@ async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandida
     if (formats) query = query.in("format", formats);
 
     const { data, error } = await query;
-    if (error || !data) {
-      console.warn("[ad] candidates_lookup_failed", error?.message ?? "no data");
-      return [];
+    if (error) {
+      console.error("[ad] candidates_lookup_failed", error.message);
+      throw error;
+    }
+    if (!data) {
+      console.error("[ad] candidates_lookup_failed", "no data");
+      throw new Error("candidate_lookup_no_data");
     }
 
     rows.push(...data);
