@@ -824,11 +824,14 @@ export async function adminGetWebsiteDetail(ctx: Ctx, websiteId: string) {
  * Origin the embed snippet points at. Configured ad domain wins; the request
  * origin is only a fallback so previews stay usable.
  */
-export function resolveAdServerOrigin(requestUrl: string): string {
-  const configured =
-    process.env["AD_SERVER_ORIGIN"] ??
-    process.env["PUBLIC_SITE_ORIGIN"] ??
-    process.env["SITE_URL"];
-  if (configured && /^https?:\/\//.test(configured)) return configured.replace(/\/+$/, "");
+export function resolveAdServerOrigin(_requestUrl?: string): string {
+  // Production ad traffic must use the dedicated ad origin. Do not fall back
+  // to PUBLIC_SITE_ORIGIN/SITE_URL because those normally point to the main
+  // TradeMall application and would make publisher SDK requests hit the wrong
+  // origin.
+  const configured = process.env["AD_SERVER_ORIGIN"];
+  if (configured && /^https?:\/\//.test(configured)) {
+    return configured.replace(/\/+$/, "");
+  }
   return "https://ads.trademall.co.ke";
 }
