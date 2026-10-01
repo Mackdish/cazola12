@@ -833,5 +833,5 @@ export function resolveAdServerOrigin(_requestUrl?: string): string {
   if (configured && /^https?:\/\//.test(configured)) {
     return configured.replace(/\/+$/, "");
   }
-  return "https://ads.trademall.co.ke";
+  return "https://trademall.co.ke";
 }
