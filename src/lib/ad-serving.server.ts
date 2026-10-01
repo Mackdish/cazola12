@@ -465,7 +465,11 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   let winner: ServingCandidate | null = null;
   let creative: { url: string; width: number | null; height: number | null } | null = null;
   const frequencyCheckBatchSize = 8;
-  const maxCreativeFallbacks = 12;
+  // Do not stop the auction after an arbitrary number of broken creatives.
+  // A stale/unready creative near the top of the ranking must not hide a valid
+  // campaign further down the candidate pool. The candidate pool is already
+  // bounded by AD_CANDIDATE_MAX, so this remains a hard upper bound.
+  const maxCreativeFallbacks = AD_CANDIDATE_MAX;
 
   for (let i = 0; i < rankedCandidates.length && !winner; i += frequencyCheckBatchSize) {
     const batch = rankedCandidates.slice(i, i + frequencyCheckBatchSize);
@@ -495,8 +499,9 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
       break;
     }
 
-    // Avoid turning a single bad creative into a storage/DB fan-out under load.
-    if (i + frequencyCheckBatchSize >= maxCreativeFallbacks) break;
+    // The candidate pool is bounded, so continue through the full ranked pool
+    // when necessary. This is important for fill-rate: one broken creative
+    // should never suppress a valid lower-ranked ad.
   }
 
   if (!winner || !creative) {
