@@ -94,5 +94,5 @@
     "vite": "^8.2.2",
     "vitest": "^4.1.10"
   },
-  "packageManager": "bun@1.4.0"
+  "packageManager": "npm@10.9.2"
 }
