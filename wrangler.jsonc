@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nairobi-biz-growth",
+  "name": "pixel-perfect-frame-34",
   "main": "dist/server/index.mjs",
   "compatibility_date": "2026-09-26",
   "compatibility_flags": [
