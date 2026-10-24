@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 280" width="336" height="280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1226"/>
+      <stop offset="1" stop-color="#1a3173"/>
+    </linearGradient>
+  </defs>
+  <rect width="336" height="280" fill="url(#bg)" rx="12"/>
+  <rect x="20" y="20" width="132" height="132" fill="#0d1535" rx="10"/>
+  <rect x="36" y="38" width="100" height="96" fill="#1a2350" rx="8"/>
+  <text x="86" y="94" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#ffffff">GTD</text>
+  <text x="172" y="58" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#ffffff">REACH MORE</text>
+  <text x="172" y="84" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#ffffff">CUSTOMERS</text>
+  <text x="172" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#a5b4fc">ACROSS AFRICA</text>
+  <rect x="172" y="136" width="130" height="34" fill="#ffffff" rx="8"/>
+  <text x="237" y="158" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f1b3d">LEARN MORE</text>
+  <circle cx="290" cy="212" r="26" fill="#4f46e5" opacity="0.25"/>
+  <circle cx="290" cy="212" r="14" fill="#6366f1" opacity="0.55"/>
+</svg>

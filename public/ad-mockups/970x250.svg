@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 970 250" width="970" height="250">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0b1226"/>
+      <stop offset="1" stop-color="#273c87"/>
+    </linearGradient>
+  </defs>
+  <rect width="970" height="250" fill="url(#bg)" rx="14"/>
+  <rect x="36" y="36" width="178" height="178" fill="#0d1535" rx="14"/>
+  <rect x="58" y="62" width="134" height="126" fill="#1a2350" rx="10"/>
+  <text x="125" y="136" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#ffffff">GTD</text>
+  <text x="252" y="96" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="700" fill="#ffffff">GROW YOUR BUSINESS</text>
+  <text x="252" y="146" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="700" fill="#a5b4fc">WITH LOCAL AUDIENCES</text>
+  <rect x="252" y="170" width="170" height="44" fill="#ffffff" rx="10"/>
+  <text x="337" y="198" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#0f1b3d">GET STARTED</text>
+  <circle cx="860" cy="125" r="70" fill="#4f46e5" opacity="0.22"/>
+  <circle cx="860" cy="125" r="38" fill="#6366f1" opacity="0.5"/>
+</svg>
