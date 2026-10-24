@@ -27,10 +27,16 @@ export function equivalentCpm(cpc: number, assumedCtr: number): number {
   return cpc * assumedCtr * 1000;
 }
 
+/** "KES 500", or "No minimum" when no threshold is configured. */
 export function describeMinimumPayout(minimum: number, currency: string): string {
+  return minimum > 0 ? `${currency} ${minimum.toLocaleString()}` : "No minimum";
+}
+
+/** Sentence fragment for running text, e.g. "currently KES 500". */
+export function currentMinimumPayoutPhrase(minimum: number, currency: string): string {
   return minimum > 0
-    ? `${currency} ${minimum.toLocaleString()}`
-    : "No minimum payout threshold";
+    ? `currently ${currency} ${minimum.toLocaleString()}`
+    : "currently there is no minimum";
 }
 
 /**
