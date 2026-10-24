@@ -14,7 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { seoDefaults, organizationStructuredData, websiteStructuredData } from "@/lib/seo";
-import { getTheme } from "@/lib/theme.server";
+import { getTheme, getThemeCookie } from "@/lib/theme.server";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export type RootRouteContext = {
@@ -132,7 +132,10 @@ export const Route = createRootRouteWithContext<RootRouteContext>()({
     ],
   }),
   beforeLoad: async () => {
-    const theme = await getTheme();
+    // On the server read the cookie via the server function. In the browser read
+    // document.cookie directly: calling a server function here added a network
+    // round trip to every client-side navigation just to read a cookie.
+    const theme = typeof window === "undefined" ? await getTheme() : getThemeCookie();
     return { theme };
   },
   shellComponent: RootShell,

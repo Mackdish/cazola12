@@ -40,6 +40,7 @@ export function CreativePreview({
       src={data.url}
       alt={alt}
       loading="lazy"
+      decoding="async"
       className={cn("rounded-md border border-border bg-muted/30 object-contain", className)}
     />
   );

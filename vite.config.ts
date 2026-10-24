@@ -50,6 +50,17 @@ export default defineConfig(async ({ mode, command }) => {
           serverDir: "dist/server",
           publicDir: "dist/client",
         },
+        // Un-hashed static files get a 1-day browser cache (+ stale-while-revalidate)
+        // so repeat visits on slow networks don't re-check them with the server.
+        // (Hashed /assets/* files already have a 1-year immutable cache.)
+        routeRules: {
+          "/ad-mockups/**": {
+            headers: { "cache-control": "public, max-age=86400, stale-while-revalidate=604800" },
+          },
+          "/favicon.svg": {
+            headers: { "cache-control": "public, max-age=86400, stale-while-revalidate=604800" },
+          },
+        },
       }),
     );
   }

@@ -71,7 +71,7 @@ function CreativeCard({
     <div className={`relative flex flex-col overflow-hidden rounded-lg border ${selected ? "border-primary ring-2 ring-primary/20" : "border-border"}`}>
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
         {isImage && previewUrl ? (
-          <img src={previewUrl} alt={asset.file_name} className="h-full w-full object-cover" />
+          <img src={previewUrl} alt={asset.file_name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <Image className="size-8 text-muted-foreground" />
         )}
