@@ -11,12 +11,12 @@ const ADVERTISER_TRUST = [
   {
     title: "Brand safety controls",
     description:
-      "Block categories, exclude specific publishers, and manage placements. Every ad appearance is logged for accountability.",
+      "Target by website category, and every publisher site is reviewed and approved before it can serve your ads. Every ad appearance is logged for accountability.",
   },
   {
     title: "Invalid traffic policy",
     description:
-      "Suspicious traffic patterns are filtered automatically. If invalid traffic is detected, charges are reversed.",
+      "Suspicious traffic is scored and filtered before billing, so flagged impressions and clicks aren't charged. Charges confirmed invalid after the fact can be refunded.",
   },
   {
     title: "Creative review",

@@ -281,8 +281,8 @@ function Landing() {
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
                 Create targeted campaigns, choose from multiple ad formats, and reach customers by
-                country, city, device, and browser. Track every impression, click, and conversion
-                from the same dashboard.
+                country, city, device, and browser. Track every impression and click, plus spend and
+                CTR, from the same dashboard.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
@@ -465,7 +465,7 @@ function Landing() {
                 See exactly what's working.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                Every impression, click, and conversion is tracked in real time. Advertisers see
+                Every impression and click is tracked in real time. Advertisers see
                 CTR, CPC, CPM, spend, and revenue; publishers see earnings by site and zone.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">

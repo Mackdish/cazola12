@@ -16,6 +16,13 @@ import {
 import { PublicLayout } from "@/components/layout/public-layout";
 import { useBillingSettings } from "@/hooks/use-billing";
 import { pageMetadata } from "@/lib/seo";
+import { AD_FORMATS } from "@/lib/publisher-domain";
+import {
+  currentMinimumPayoutPhrase,
+  describeMinimumPayout,
+  equivalentCpm,
+  formatSharePercent,
+} from "@/lib/public-terms";
 
 export const Route = createFileRoute("/pricing")({
   head: () => pageMetadata({
@@ -35,8 +42,12 @@ function PricingPage() {
 
   const currency = settings.data?.currency ?? "KES";
   const startingCpc = settings.data?.startingCpc ?? 5;
-  const cpmRate = settings.data?.startingCpc ?? 5;
-
+  const assumedCtr = settings.data?.assumedCtr ?? 0.01;
+  // No separate CPM rate card exists: the ad server scores a CPC bid as
+  // cpc * ctr per impression, so this is the CPM that competes with the starting CPC.
+  const cpmRate = equivalentCpm(startingCpc, assumedCtr);
+  const holdDays = settings.data?.earningsHoldDays;
+  const publisherTermsLoaded = Boolean(settings.data);
   const estimate = useMemo(() => {
     const b = Number(budget || 0);
     if (b <= 0) return null;
@@ -84,7 +95,9 @@ function PricingPage() {
                     <li className="flex items-center gap-2">
                       <ChevronRight className="size-4 text-accent" />
                       <span>
-                        <strong className="text-foreground">CPM</strong> — Pay per 1,000 impressions
+                        <strong className="text-foreground">CPM</strong> — You set the bid per 1,000
+                        impressions (about {currency} {Math.round(cpmRate).toLocaleString()} per 1,000
+                        competes with the {currency} {startingCpc} starting CPC)
                       </span>
                     </li>
                   </ul>
@@ -111,10 +124,12 @@ function PricingPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Supported Ad Formats</h3>
                   <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <li>Banner (728×90)</li>
-                    <li>Rectangle (300×250)</li>
-                    <li>Mobile banner (320×50)</li>
-                    <li>Responsive</li>
+                    {AD_FORMATS.map((f) => (
+                      <li key={f.format}>
+                        {f.label}
+                        {f.width && f.height ? ` (${f.width}×${f.height})` : ""}
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
@@ -137,23 +152,27 @@ function PricingPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Revenue Share</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Publishers earn a configurable share of eligible advertising revenue. Exact
-                    percentages are set in platform settings.
+                    {publisherTermsLoaded
+                      ? `Publishers earn ${formatSharePercent(settings.data!.publisherRevenueShare)} of eligible advertising revenue. Invalid traffic earns nothing.`
+                      : "Loading current revenue share…"}
                   </p>
                 </div>
 
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Minimum Payout</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Payout thresholds apply. Exact minimums are configured in platform settings.
+                    {publisherTermsLoaded
+                      ? describeMinimumPayout(settings.data!.minimumPayoutAmount, currency)
+                      : "Loading current payout terms…"}
                   </p>
                 </div>
 
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Payment Schedule</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Payouts are processed according to the platform payment schedule. Details are
-                    available in the publisher dashboard after approval.
+                    {publisherTermsLoaded
+                      ? `Earnings become available after a ${holdDays}-day hold. Once your available earnings reach the minimum, you can request a payout from your dashboard.`
+                      : "Loading current payout terms…"}
                   </p>
                 </div>
 
@@ -290,8 +309,11 @@ function PricingPage() {
                   <p className="text-sm font-semibold">How are publisher earnings calculated?</p>
                   <p className="text-sm text-muted-foreground">
                     Publisher earnings are calculated from eligible advertising revenue multiplied
-                    by the platform revenue share percentage. Invalid traffic does not generate
-                    publisher revenue.
+                    by the platform revenue share percentage
+                    {publisherTermsLoaded
+                      ? ` (currently ${formatSharePercent(settings.data!.publisherRevenueShare)})`
+                      : ""}
+                    . Invalid traffic does not generate publisher revenue.
                   </p>
                 </CardContent>
               </Card>
@@ -326,8 +348,13 @@ function PricingPage() {
                 <CardContent className="pt-6 space-y-2">
                   <p className="text-sm font-semibold">When can publishers request payouts?</p>
                   <p className="text-sm text-muted-foreground">
-                    Earnings become available after the hold period. Publishers can request payouts
-                    once available earnings exceed the minimum payout threshold.
+                    Earnings become available after the{" "}
+                    {publisherTermsLoaded ? `${holdDays}-day` : ""} hold period. Publishers can
+                    request payouts once available earnings reach the minimum payout threshold
+                    {publisherTermsLoaded
+                      ? ` (${currentMinimumPayoutPhrase(settings.data!.minimumPayoutAmount, currency)})`
+                      : ""}
+                    .
                   </p>
                 </CardContent>
               </Card>

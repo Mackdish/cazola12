@@ -94,6 +94,8 @@ export const pageMetadata = (data: {
 
   return {
     meta: [
+      // Without this, every page inherits the root default <title>.
+      { title: data.title },
       { name: "description", content: data.description },
       { name: "author", content: seoDefaults.siteName },
       { rel: "canonical", href: canonical },
