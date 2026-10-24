@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/patterns/states";
 import { useAuth } from "@/lib/auth-context";
+import { supabasePreconnectLinks } from "@/lib/preconnect";
 import type { FriendlyError } from "@/lib/errors";
 
 export const Route = createFileRoute("/auth")({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/auth")({
         content: "Access the TradeMall advertiser, publisher and platform admin workspaces.",
       },
     ],
+    links: supabasePreconnectLinks(),
   }),
   component: AuthPage,
 });

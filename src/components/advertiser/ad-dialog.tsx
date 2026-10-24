@@ -486,6 +486,8 @@ export function AdDialog({
                                     : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl
                                 }
                                 alt={asset.file_name}
+                                loading="lazy"
+                                decoding="async"
                                 className="h-16 w-16 rounded object-contain"
                               />
                               <span className="truncate text-xs font-medium">{asset.file_name}</span>
@@ -565,6 +567,8 @@ export function AdDialog({
                                   : supabase.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl
                               }
                               alt={asset.file_name}
+                              loading="lazy"
+                              decoding="async"
                               className="h-16 w-16 rounded object-contain"
                             />
                             <span className="truncate text-xs font-medium">{asset.file_name}</span>

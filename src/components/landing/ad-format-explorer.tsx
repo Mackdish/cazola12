@@ -116,6 +116,8 @@ export function AdFormatExplorer() {
               key={active.id}
               src={active.image}
               alt={active.title}
+              loading="lazy"
+              decoding="async"
               className="h-full max-h-64 w-auto rounded-lg object-contain transition-all duration-300"
             />
           ) : (

@@ -104,28 +104,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIdentityError(null);
   }, []);
 
-  const loadIdentity = useCallback(async () => {
+  // Which user's identity is already loaded / currently loading. Supabase can emit
+  // INITIAL_SESSION, SIGNED_IN (also on tab refocus) and getSession() for the same
+  // user; without this we re-ran the whole identity load several times per visit.
+  const loadedUserRef = useRef<string | null>(null);
+  const loadingUserRef = useRef<string | null>(null);
+
+  const loadIdentity = useCallback(async (userId?: string) => {
     setLoadingIdentity(true);
     setIdentityError(null);
     try {
       const fullName = pendingFullName.current;
       pendingFullName.current = null;
 
-      const profileResult = await supabase.rpc(
-        "ensure_profile",
-        fullName ? { _full_name: fullName } : {},
-      );
-
-      console.log("[auth] ensure_profile result:", {
-        error: profileResult.error,
-        data: profileResult.data,
-        onboarding_completed: profileResult.data?.onboarding_completed,
-      });
-
-      if (profileResult.error) throw profileResult.error;
-      setProfile(profileResult.data as Profile);
-
-      const [membershipResult, roleResult] = await Promise.all([
+      // Fire all three lookups at once. They don't depend on each other, and on a
+      // slow connection running them one after another tripled the wait before the
+      // dashboard could render.
+      const [profileResult, membershipResult, roleResult] = await Promise.all([
+        supabase.rpc("ensure_profile", fullName ? { _full_name: fullName } : {}),
         supabase
           .from("organization_members")
           .select("id, role, status, organizations(*)")
@@ -133,19 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.from("platform_roles").select("role"),
       ]);
 
-      console.log("[auth] organization_members query:", {
-        error: membershipResult.error,
-        count: membershipResult.data?.length,
-        rows: membershipResult.data,
-      });
-      console.log("[auth] platform_roles query:", {
-        error: roleResult.error,
-        count: roleResult.data?.length,
-        rows: roleResult.data,
-      });
-
+      if (profileResult.error) throw profileResult.error;
       if (membershipResult.error) throw membershipResult.error;
       if (roleResult.error) throw roleResult.error;
+
+      setProfile(profileResult.data as Profile);
 
       const memberships = (membershipResult.data ?? []).flatMap((row) => {
         if (!row.organizations) return [];
@@ -160,24 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const platformRoles = (roleResult.data ?? []).map((row) => row.role);
 
-      console.log("[auth] computed identity:", {
-        profileId: profileResult.data?.id,
-        onboarding_completed: profileResult.data?.onboarding_completed,
-        membershipsCount: memberships.length,
-        memberships: memberships.map((m) => ({
-          id: m.membershipId,
-          role: m.role,
-          status: m.status,
-          orgType: m.organization.type,
-          orgStatus: m.organization.status,
-        })),
-        platformRoles,
-        workspaces: availableWorkspaces(memberships, platformRoles),
-        homePath: defaultWorkspacePath(memberships, platformRoles, profileResult.data as Profile | null),
-      });
-
       setMemberships(memberships);
       setPlatformRoles(platformRoles);
+      if (userId) loadedUserRef.current = userId;
     } catch (error) {
       console.error("[auth] loadIdentity failed", error);
       setIdentityError(toFriendlyError(error, "We couldn't load your account"));
@@ -186,18 +159,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshIdentity = useCallback(() => loadIdentity(), [loadIdentity]);
+
   useEffect(() => {
     let active = true;
+
+    const autoLoad = (userId: string, force = false) => {
+      if (loadingUserRef.current === userId) return;
+      if (!force && loadedUserRef.current === userId) return;
+      loadingUserRef.current = userId;
+      void loadIdentity(userId).finally(() => {
+        if (loadingUserRef.current === userId) loadingUserRef.current = null;
+      });
+    };
 
     const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
       if (event === "SIGNED_OUT" || !nextSession) {
+        loadedUserRef.current = null;
+        loadingUserRef.current = null;
         clearIdentity();
         return;
       }
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") {
-        void loadIdentity();
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        autoLoad(nextSession.user.id);
+      } else if (event === "USER_UPDATED") {
+        autoLoad(nextSession.user.id, true);
       }
     });
 
@@ -205,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setSession(data.session);
       setInitializing(false);
-      if (data.session) void loadIdentity();
+      if (data.session) autoLoad(data.session.user.id);
     });
 
     return () => {
@@ -329,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       workspaces: availableWorkspaces(memberships, platformRoles),
       homePath: defaultWorkspacePath(memberships, platformRoles, profile),
       identityError,
-      refreshIdentity: loadIdentity,
+      refreshIdentity,
       signIn,
       signInWithGoogle,
       signUp,
@@ -346,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     memberships,
     platformRoles,
     identityError,
-    loadIdentity,
+    refreshIdentity,
     signIn,
     signInWithGoogle,
     signUp,
