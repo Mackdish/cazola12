@@ -588,6 +588,16 @@ export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
     return result;
   } catch (error) {
     const isTimeout = error instanceof Error && error.message === "serve_timeout";
+    // A thrown error here means a winning ad may have been found and then lost
+    // (e.g. a missing signing secret). Log it at error level with the stack so it
+    // stands out in Workers Logs instead of looking like a normal "no ad".
+    if (!isTimeout) {
+      console.error("[ad] serve_failed", {
+        zone: input.zoneKey,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
     console.warn("[ad] serve_timeout_or_error", {
       zone: input.zoneKey,
       timeout: isTimeout,
