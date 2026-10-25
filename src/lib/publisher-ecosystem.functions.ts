@@ -185,19 +185,11 @@ export const updateAutoAdsConfig = createServerFn({ method: "POST" })
   )
   .handler(({ data }) => {
     const { websiteId, ...input } = data;
-    const mapped: Record<string, unknown> = {};
-    if (input.status !== undefined) mapped.status = input.status;
-    if (input.adLoad !== undefined) mapped.ad_load = input.adLoad;
-    if (input.enabledFormats !== undefined) mapped.enabled_formats = input.enabledFormats;
-    if (input.excludedPages !== undefined) mapped.excluded_pages = input.excludedPages;
-    if (input.excludedSelectors !== undefined) mapped.excluded_selectors = input.excludedSelectors;
-    if (input.minSpacing !== undefined) mapped.min_spacing = input.minSpacing;
-    if (input.anchorAdsEnabled !== undefined) mapped.anchor_ads_enabled = input.anchorAdsEnabled;
-    if (input.overlayAdsEnabled !== undefined) mapped.overlay_ads_enabled = input.overlayAdsEnabled;
-    if (input.mobileAdsEnabled !== undefined) mapped.mobile_ads_enabled = input.mobileAdsEnabled;
-    if (input.bannerAdsEnabled !== undefined) mapped.banner_ads_enabled = input.bannerAdsEnabled;
-    if (input.responsiveAdsEnabled !== undefined) mapped.responsive_ads_enabled = input.responsiveAdsEnabled;
-    return updateAutoAdsConfigDomain(websiteId, mapped as Parameters<typeof updateAutoAdsConfigDomain>[1]);
+    // The domain function takes the camelCase UI shape and does the column
+    // mapping itself. This handler used to pre-map to snake_case and cast, so
+    // the domain function saw `ad_load`, `min_spacing`, ... instead of
+    // `adLoad`, `minSpacing`, ... and silently saved nothing but `status`.
+    return updateAutoAdsConfigDomain(websiteId, input);
   });
 
 export const fetchAutoAdsScript = createServerFn({ method: "GET" })

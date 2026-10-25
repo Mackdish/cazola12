@@ -47,8 +47,12 @@ export const Route = createFileRoute("/api/public/ad")({
           });
         }
 
-        const { checkRateLimit, getRateLimitConfig, extractIpAddress } =
-          await import("@/lib/rate-limit.server");
+        const {
+          checkRateLimit,
+          getRateLimitConfig,
+          extractIpAddress,
+          RateLimitUnavailableError,
+        } = await import("@/lib/rate-limit.server");
         const ipAddress = extractIpAddress(request);
         const rateLimitConfig = getRateLimitConfig("ad_request");
 
@@ -59,10 +63,18 @@ export const Route = createFileRoute("/api/public/ad")({
             ipAddress,
           );
         } catch (error) {
-          return new Response(JSON.stringify({ ok: false, reason: "rate_limited" }), {
-            status: 429,
-            headers: { ...JSON_HEADERS, "Retry-After": "60" },
-          });
+          // A broken limiter (missing RPC, database error) must not switch off
+          // all ad delivery: the SDK treats a 429 as "no ad" and hides the
+          // slot. Only a genuine over-limit result is rejected; an unavailable
+          // limiter fails open here (fraud checks still run at billing time).
+          if (error instanceof RateLimitUnavailableError) {
+            console.warn("[ad] rate_limit_unavailable_failing_open", { ip: ipAddress });
+          } else {
+            return new Response(JSON.stringify({ ok: false, reason: "rate_limited" }), {
+              status: 429,
+              headers: { ...JSON_HEADERS, "Retry-After": "60" },
+            });
+          }
         }
 
         const { serveAd } = await import("@/lib/ad-serving.server");

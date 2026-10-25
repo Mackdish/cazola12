@@ -12,6 +12,14 @@ type Client = SupabaseClient<Database>;
 
 export class RateLimitError extends Error {}
 
+/**
+ * The limiter itself could not be evaluated (RPC missing, database error), as
+ * opposed to a caller actually exceeding the limit. Still a RateLimitError, so
+ * existing callers keep failing closed; callers on public, low-risk paths
+ * (ad requests) can choose to fail open on this specific case.
+ */
+export class RateLimitUnavailableError extends RateLimitError {}
+
 export type RateLimitConfig = {
   key: string;
   action: string;
@@ -76,7 +84,11 @@ export async function checkRateLimit(
   const { data, error } = await client.rpc("check_rate_limit", params as never);
 
   if (error) {
-    throw new RateLimitError("We couldn't verify the rate limit. Please try again.");
+    console.error("[rate-limit] check_rate_limit rpc failed", {
+      action: config.action,
+      error: error.message,
+    });
+    throw new RateLimitUnavailableError("We couldn't verify the rate limit. Please try again.");
   }
 
   if (!data) {
