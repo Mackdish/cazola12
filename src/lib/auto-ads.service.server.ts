@@ -5,6 +5,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 import { cachedGetVersioned, cacheDelete, cacheBumpVersion } from "@/lib/cache.server";
+import { autoAdsPlacementKeys, type AutoAdsToggles } from "@/lib/auto-ads-domain";
 
 export type AutoAdsConfig = Database["public"]["Tables"]["auto_ads_config"]["Row"];
 
@@ -27,15 +28,9 @@ export async function getAutoAdsConfig(websiteId: string): Promise<AutoAdsConfig
   });
 }
 
-async function syncAutoAdsPlacements(websiteId: string, organizationId: string, enabled: boolean, config: { responsiveAdsEnabled?: boolean | null; bannerAdsEnabled?: boolean | null; mobileAdsEnabled?: boolean | null }) {
-  const desktopPlacementsEnabled =
-    config.bannerAdsEnabled !== false && config.responsiveAdsEnabled !== false;
-  const placementKeys = enabled
-    ? [
-        ...(desktopPlacementsEnabled ? ["top_page", "article_top", "bottom_article"] : []),
-        ...(config.mobileAdsEnabled !== false ? ["mobile_sticky"] : []),
-      ]
-    : [];
+async function syncAutoAdsPlacements(websiteId: string, organizationId: string, enabled: boolean, config: AutoAdsToggles) {
+  // `config` is the auto_ads_config row (snake_case columns).
+  const placementKeys: string[] = autoAdsPlacementKeys(enabled, config);
 
   const { data: website, error: websiteError } = await supabaseAdmin
     .from("websites")
@@ -188,12 +183,21 @@ export async function updateAutoAdsConfig(
   if (input.bannerAdsEnabled !== undefined) patch.banner_ads_enabled = input.bannerAdsEnabled;
   if (input.responsiveAdsEnabled !== undefined) patch.responsive_ads_enabled = input.responsiveAdsEnabled;
 
-  const { data, error } = await supabaseAdmin
-    .from("auto_ads_config")
-    .update(patch)
-    .eq("website_id", websiteId)
-    .select("*")
-    .maybeSingle();
+  // An empty UPDATE is rejected by PostgREST; read the row instead so the
+  // placements are still re-synchronized from the current settings.
+  const { data, error } =
+    Object.keys(patch).length === 0
+      ? await supabaseAdmin
+          .from("auto_ads_config")
+          .select("*")
+          .eq("website_id", websiteId)
+          .maybeSingle()
+      : await supabaseAdmin
+          .from("auto_ads_config")
+          .update(patch)
+          .eq("website_id", websiteId)
+          .select("*")
+          .maybeSingle();
 
   if (error) throw new Error(error.message);
   if (data) {

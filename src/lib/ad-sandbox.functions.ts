@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -31,4 +30,10 @@ export const fetchZoneDiagnostics = createServerFn({ method: "POST" })
 
 export const fetchSandboxOrigin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(() => ({ origin: new URL(getRequest().url).origin }));
+  .handler(async () => {
+    // Always hand publishers the canonical ad-server origin. Deriving it from
+    // the dashboard request made embed snippets point at whichever host the
+    // dashboard happened to be opened on (a workers.dev preview, www, ...).
+    const { resolveAdServerOrigin } = await import("@/lib/publisher-service.server");
+    return { origin: resolveAdServerOrigin() };
+  });

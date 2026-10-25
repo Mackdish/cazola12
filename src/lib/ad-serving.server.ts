@@ -10,6 +10,7 @@ import { parseSchedule, type RequestSignals } from "@/lib/advertiser-domain";
 import {
   FORMAT_SIZES,
   classifyUserAgent,
+  candidateIsEligible,
   deriveSessionId,
   isSafeDestination,
   rankCandidates,
@@ -38,9 +39,20 @@ import {
 const CREATIVE_URL_TTL_SECONDS = 60 * 30;
 const DEFAULT_AD_SERVE_TIMEOUT_MS = 2500;
 const MAX_AD_SERVE_TIMEOUT_MS = 3000;
+// The serve path makes several sequential network hops (zone lookup, candidate
+// query, wallet query, frequency-cap reads, creative lookup + signed URL). A
+// budget below ~1.5s makes every cold request fall through to the house-ad /
+// no-fill path even when a perfectly valid campaign exists, so a too-small
+// AD_SERVE_TIMEOUT_MS (e.g. the old 200-350ms suggestion in .env.example) is
+// clamped up rather than honoured.
+const MIN_AD_SERVE_TIMEOUT_MS = 1500;
 const AD_SERVE_TIMEOUT_MS = Math.min(
   MAX_AD_SERVE_TIMEOUT_MS,
-  Math.max(200, Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) || DEFAULT_AD_SERVE_TIMEOUT_MS),
+  Math.max(
+    MIN_AD_SERVE_TIMEOUT_MS,
+    Number(process.env["AD_SERVE_TIMEOUT_MS"] ?? DEFAULT_AD_SERVE_TIMEOUT_MS) ||
+      DEFAULT_AD_SERVE_TIMEOUT_MS,
+  ),
 );
 const AD_CANDIDATE_BATCH_SIZE = 100;
 const AD_CANDIDATE_MAX = 300;
@@ -303,7 +315,16 @@ async function creativeUrl(
     .maybeSingle();
   console.debug("[ad] creative_lookup_ms", Date.now() - t0, "cache_hit=false");
 
-  if (error || !asset || asset.status !== "ready") return null;
+  if (error || !asset || asset.status !== "ready") {
+    // Surface *why* a creative was rejected. This used to return null silently,
+    // which made a missing/unready asset indistinguishable from "no campaigns".
+    console.warn("[ad] creative_rejected", {
+      mediaAssetId,
+      reason: error ? "lookup_error" : !asset ? "asset_not_found" : `status_${asset.status}`,
+      error: error?.message,
+    });
+    return null;
+  }
 
   let url: string;
   if (asset.storage_provider === "supabase") {
@@ -379,7 +400,9 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "unknown_zone" };
   }
-  if (!zoneIsServeable(zone).eligible) {
+  const zoneVerdict = zoneIsServeable(zone);
+  if (!zoneVerdict.eligible) {
+    console.warn("[ad] zone_unavailable", { zone: input.zoneKey, reason: zoneVerdict.reason });
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "zone_unavailable" };
   }
@@ -438,6 +461,9 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
 
   const candidates = await loadCandidates(zone);
   if (candidates.length === 0) {
+    // No ad row passed the SQL pre-filter: ad active+approved with a creative,
+    // campaign approved and active/approved, and a format matching the zone.
+    console.warn("[ad] no_candidates", { zone: input.zoneKey, zoneFormat: zone.zoneFormat });
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
@@ -450,6 +476,13 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
     (c) => !c.organizationId || funded.has(c.organizationId),
   );
   if (fundedCandidates.length === 0) {
+    // Serving requires a KES wallet with balance_amount > 0 for the advertiser's
+    // organization (the charge RPC enforces the same rule).
+    console.warn("[ad] no_funded_candidates", {
+      zone: input.zoneKey,
+      candidates: candidates.length,
+      organizationIds: [...new Set(candidates.map((c) => c.organizationId))],
+    });
     console.debug("[ad] serve_total_ms", Date.now() - t0);
     return { ok: false, reason: "no_ad" };
   }
@@ -462,6 +495,30 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   // Previously, a top-ranked ad with a missing/unready/private creative caused
   // an immediate no-fill even when a lower-ranked valid ad was available.
   const rankedCandidates = rankCandidates(fundedCandidates, zone, { now, signals });
+  if (rankedCandidates.length === 0) {
+    // Every funded candidate was rejected by the eligibility gate. Log a
+    // histogram of the reasons (budget_exhausted, targeting_mismatch,
+    // campaign_not_started, ...) so a silent no-fill can be diagnosed.
+    const reasons: Record<string, number> = {};
+    for (const candidate of fundedCandidates) {
+      const verdict = candidateIsEligible(candidate, zone, { now, signals });
+      if (!verdict.eligible) reasons[verdict.reason] = (reasons[verdict.reason] ?? 0) + 1;
+    }
+    console.warn("[ad] no_eligible_candidates", {
+      zone: input.zoneKey,
+      zoneFormat: zone.zoneFormat,
+      reasons,
+      signals: {
+        country: signals.country ?? null,
+        county: signals.county ?? null,
+        city: signals.city ?? null,
+        device: signals.device,
+        os: signals.os,
+        browser: signals.browser,
+        websiteCategory: signals.websiteCategory,
+      },
+    });
+  }
   let winner: ServingCandidate | null = null;
   let creative: { url: string; width: number | null; height: number | null } | null = null;
   const frequencyCheckBatchSize = 8;

@@ -2,6 +2,26 @@ import { redis } from "@/lib/redis.server";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
+/**
+ * @upstash/redis deserializes JSON automatically, so a value written with
+ * `JSON.stringify(...)` comes back from `get()` already parsed (an object), not
+ * as the original string. Calling `JSON.parse` on that object throws
+ * ("[object Object]" is not valid JSON), which made every cache read fail and
+ * fall through to the database while paying for the wasted Redis round trips.
+ * Accept both shapes: raw JSON text is parsed, anything already decoded is
+ * returned as is.
+ */
+export function decodeCached<T>(raw: unknown): T {
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return raw as T;
+    }
+  }
+  return raw as T;
+}
+
 async function getVersion(versionKey: string): Promise<number> {
   if (!redis) return 1;
   try {
@@ -33,9 +53,9 @@ export async function cachedGet<T extends JsonValue>(
   if (!redis) return supplier();
 
   try {
-    const cached = await redis.get<string>(key);
+    const cached = await redis.get<unknown>(key);
     if (cached !== null) {
-      return JSON.parse(cached) as T;
+      return decodeCached<T>(cached);
     }
   } catch (err) {
     console.error("[cache] get failed", err);
@@ -77,9 +97,9 @@ export async function cachedGetVersioned<T extends JsonValue>(
   if (!redis) return opts.supplier();
 
   try {
-    const cached = await redis.get<string>(versionedKey);
+    const cached = await redis.get<unknown>(versionedKey);
     if (cached !== null) {
-      return JSON.parse(cached) as T;
+      return decodeCached<T>(cached);
     }
   } catch (err) {
     console.error("[cache] versioned get failed", err);
@@ -87,9 +107,9 @@ export async function cachedGetVersioned<T extends JsonValue>(
 
   if (opts.legacyKey) {
     try {
-      const legacy = await redis.get<string>(opts.legacyKey);
+      const legacy = await redis.get<unknown>(opts.legacyKey);
       if (legacy !== null) {
-        return JSON.parse(legacy) as T;
+        return decodeCached<T>(legacy);
       }
     } catch (err) {
       console.error("[cache] legacy get failed", err);
@@ -120,10 +140,10 @@ export async function cachedServePathGet<T extends JsonValue>(
   if (!redis) return supplier();
 
   try {
-    const cached = await redis.get<string>(cacheKey);
+    const cached = await redis.get<unknown>(cacheKey);
     if (cached !== null) {
       console.debug("[ad] zone_context cache_hit=true", key);
-      return JSON.parse(cached) as T;
+      return decodeCached<T>(cached);
     }
   } catch (err) {
     console.error("[cache] zone_context get failed", err);

@@ -14,6 +14,7 @@ import {
 import { TradeMallLogo } from "@/components/branding/trademall-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/footer";
+import { AutoAdsLoader } from "@/components/layout/auto-ads-loader";
 import {
   Sheet,
   SheetClose,
@@ -121,6 +122,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <main>{children}</main>
 
       <Footer />
+      <AutoAdsLoader />
     </div>
   );
 }
