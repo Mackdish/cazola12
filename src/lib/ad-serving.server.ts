@@ -7,6 +7,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseSchedule, type RequestSignals } from "@/lib/advertiser-domain";
+import { computeCreativeDisplay, type CreativeDisplay } from "@/lib/creative-fit";
 import {
   FORMAT_SIZES,
   classifyUserAgent,
@@ -382,11 +383,14 @@ export type AdResponse =
       fillType?: "house_ad";
       ad: {
         format: string;
+        /** The creative's own (natural) size. Unchanged so API clients keep working. */
         width: number | null;
         height: number | null;
         imageUrl: string;
         alt: string;
         clickUrl: string;
+        /** Box + fit the publisher SDK should draw the creative in (see creative-fit.ts). */
+        display?: CreativeDisplay;
       };
     }
   | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" | "blocked_ip" | "serve_timeout" };
@@ -589,6 +593,13 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
       format: winner.adFormat,
       width: creative.width ?? fallbackSize.width,
       height: creative.height ?? fallbackSize.height,
+      // Auto-size the creative to the slot it is being served into.
+      display: computeCreativeDisplay({
+        zoneFormat: zone.zoneFormat,
+        adFormat: winner.adFormat,
+        naturalWidth: creative.width,
+        naturalHeight: creative.height,
+      }),
       imageUrl: creative.url,
       alt: winner.adName,
       clickUrl: "", // filled in by the route, which knows the request origin
