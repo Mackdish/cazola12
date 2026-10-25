@@ -8,6 +8,8 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { readEnv } from "@/lib/runtime-env.server";
+
 export type ServedTokenPayload = {
   rid: string;
   adId: string;
@@ -25,11 +27,29 @@ export type ServedTokenPayload = {
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 6;
 
+export type TokenSecretStatus = "ok" | "missing" | "too_short";
+
+/**
+ * Non-throwing health check for the signing secret (used by /api/_internal/config-check).
+ *
+ * The secret MUST be read through readEnv(), never process.env directly. On
+ * Cloudflare Workers, secrets arrive on the per-request `env` object and the
+ * process.env mirror can be rejected (see SECURITY.md). Reading process.env
+ * here made every ad request fail at the very last step — after the winning ad
+ * had been selected — and fall back to the placeholder house ad.
+ */
+export function tokenSecretStatus(): TokenSecretStatus {
+  const value = readEnv("AD_TOKEN_SECRET") || "";
+  if (!value) return "missing";
+  if (value.length < 32) return "too_short";
+  return "ok";
+}
+
 function secret(): string {
-  const value = process.env["AD_TOKEN_SECRET"] || "";
-  if (!value) throw new Error("Ad serving secret is not configured");
-  if (value.length < 32) throw new Error("Ad serving secret is too short");
-  return value;
+  const status = tokenSecretStatus();
+  if (status === "missing") throw new Error("Ad serving secret is not configured");
+  if (status === "too_short") throw new Error("Ad serving secret is too short");
+  return readEnv("AD_TOKEN_SECRET") as string;
 }
 
 function b64url(input: Buffer | string): string {
