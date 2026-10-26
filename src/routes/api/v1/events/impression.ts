@@ -1,27 +1,28 @@
 /**
- * POST /api/v1/events/impression
+ * POST /api/v1/events/impression?request_id=<uuid>   body: { token }
  *
- * Records an ad impression. Validates server-side, prevents duplicates,
- * runs fraud detection, and triggers billing.
+ * Records an impression for an ad this server actually served. The `token` is
+ * the signed value returned by GET /api/v1/ads/serve; every field of the event
+ * (ad, campaign, publisher, zone) is read from it, never from the request, so a
+ * caller cannot attribute impressions to an ad or zone it was not served.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { loadZoneContext, recordImpression } from "@/lib/ad-serving.server";
-import { classifyUserAgent } from "@/lib/ad-serving-domain";
-import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
-import { jsonResponse, validationError, rateLimitedError, serverError } from "@/lib/api-response";
-import { publicCorsHeaders, publicPreflight } from "@/lib/api-v1.server";
+import { recordImpression } from "@/lib/ad-serving.server";
+import { verifyServedToken } from "@/lib/ad-token.server";
+import { isIpBlocked } from "@/lib/blocked-ip.server";
+import {
+  checkRateLimit,
+  getRateLimitConfig,
+  extractGeoAndBotScore,
+  RateLimitUnavailableError,
+} from "@/lib/rate-limit.server";
+import { jsonResponse, rateLimitedError, serverError } from "@/lib/api-response";
+import { publicPreflight } from "@/lib/api-v1.server";
 
-const CORS = publicCorsHeaders("POST, OPTIONS");
-
-const impressionBodySchema = z.object({
-  ad_id: z.string().uuid(),
-  zone_id: z.string().min(4).max(64).regex(/^[A-Za-z0-9_-]+$/),
-  device: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
-  country: z.string().max(2).optional().nullable(),
-});
+const bodySchema = z.object({ token: z.string().min(20).max(4096) });
 
 export const Route = createFileRoute("/api/v1/events/impression")({
   server: {
@@ -29,10 +30,7 @@ export const Route = createFileRoute("/api/v1/events/impression")({
       OPTIONS: async () => publicPreflight("POST, OPTIONS"),
 
       POST: async ({ request }) => {
-        const url = new URL(request.url);
-        const requestId = url.searchParams.get("request_id");
-        const userAgent = request.headers.get("user-agent") ?? "";
-
+        const requestId = new URL(request.url).searchParams.get("request_id");
         if (!requestId || !z.string().uuid().safeParse(requestId).success) {
           return jsonResponse(
             { ok: false, error: "invalid_request", message: "A valid request_id is required" },
@@ -49,97 +47,51 @@ export const Route = createFileRoute("/api/v1/events/impression")({
             400,
           );
         }
-
-        const parsed = impressionBodySchema.safeParse(body);
+        const parsed = bodySchema.safeParse(body);
         if (!parsed.success) {
-          return validationError(parsed.error.flatten().fieldErrors);
+          return jsonResponse(
+            { ok: false, error: "invalid_request", message: "A signed token is required" },
+            400,
+          );
         }
-        const data = parsed.data;
+
+        const payload = verifyServedToken(parsed.data.token);
+        // The token must belong to the request it is reported against.
+        if (!payload || payload.rid !== requestId) {
+          return jsonResponse(
+            { ok: false, error: "invalid_token", message: "Token is invalid or expired" },
+            401,
+          );
+        }
 
         const geo = extractGeoAndBotScore(request);
-        const ipAddress = geo.ipAddress;
-
         try {
           await checkRateLimit(
             supabaseAdmin as unknown as Parameters<typeof checkRateLimit>[0],
             getRateLimitConfig("impression"),
-            ipAddress,
+            geo.ipAddress,
           );
-        } catch {
-          return rateLimitedError(60);
+        } catch (error) {
+          if (!(error instanceof RateLimitUnavailableError)) return rateLimitedError(60);
         }
 
-        const { redis } = await import("@/lib/redis.server");
-        if (redis && ipAddress) {
-          const blocked = await redis.sismember("blocked_ips", ipAddress);
-          if (blocked) {
-            console.warn("[ad] blocklist_event_hit", { ip: ipAddress, event: "impression" });
-            const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
-            void recordBlockedIpHit(ipAddress, data.zone_id, "impression");
-            return jsonResponse(
-              { ok: false, error: "blocked_ip", message: "This IP is blocked" },
-              403,
-            );
-          }
+        if (await isIpBlocked(geo.ipAddress)) {
+          console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "impression" });
+          const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+          void recordBlockedIpHit(geo.ipAddress, payload.zoneId, "impression");
+          return jsonResponse({ ok: false, error: "blocked_ip", message: "This IP is blocked" }, 403);
         }
-
-        const zone = await loadZoneContext(data.zone_id);
-        if (!zone) {
-          return jsonResponse({ ok: false, error: "invalid_zone", message: "Zone not found" }, 404);
-        }
-        if (
-          !zone.zoneStatus ||
-          zone.websiteStatus !== "active" ||
-          zone.websiteApproval !== "approved"
-        ) {
-          return jsonResponse(
-            { ok: false, error: "zone_unavailable", message: "Zone is not available" },
-            403,
-          );
-        }
-
-        const { data: ad } = await supabaseAdmin
-          .from("ads")
-          .select("campaign_id, status, approval_status")
-          .eq("id", data.ad_id)
-          .maybeSingle();
-
-        if (!ad || ad.status !== "active" || ad.approval_status !== "approved") {
-          return jsonResponse(
-            { ok: false, error: "ad_unavailable", message: "Ad is not available" },
-            404,
-          );
-        }
-
-        const agent = classifyUserAgent(userAgent);
-        const payload = {
-          rid: requestId,
-          adId: data.ad_id,
-          campaignId: ad.campaign_id,
-          publisherId: zone.publisherId,
-          websiteId: zone.websiteId,
-          zoneId: zone.zoneId,
-          device: (data.device ?? agent.device) as never,
-          browser: agent.browser as never,
-          os: agent.os as never,
-          country: geo.country,
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        };
 
         const outcome = await recordImpression(
           payload,
-          ipAddress,
-          userAgent,
+          geo.ipAddress,
+          request.headers.get("user-agent") ?? undefined,
           geo.botScore,
           geo.isLikelyBot,
           geo.country,
           geo.region,
         );
-
-        if (outcome === "failed") {
-          return serverError("Failed to record impression");
-        }
-
+        if (outcome === "failed") return serverError("Failed to record impression");
         return jsonResponse({ ok: true, outcome }, 200);
       },
     },

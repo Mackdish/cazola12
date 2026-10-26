@@ -33,7 +33,8 @@ const ENDPOINTS = [
     "width": 300,
     "height": 250,
     "click_url": "https://...",
-    "impression_tracking_url": "https://..."
+    "impression_tracking_url": "https://...",
+    "token": "signed-token"
   }
 }`,
   },
@@ -44,10 +45,7 @@ const ENDPOINTS = [
     description: "Records an ad impression with server-side validation.",
     params: [
       { name: "request_id", type: "string", required: true, desc: "UUID from ad serve response" },
-      { name: "ad_id", type: "string", required: true, desc: "Ad ID" },
-      { name: "zone_id", type: "string", required: true, desc: "Ad zone key" },
-      { name: "device", type: "string", required: false, desc: "desktop | mobile | tablet" },
-      { name: "country", type: "string", required: false, desc: "ISO 3166 alpha-2" },
+      { name: "token", type: "string", required: true, desc: "Signed token from the serve response (ad.token), sent in the JSON body" },
     ],
     response: `{
   "ok": true,
@@ -61,8 +59,7 @@ const ENDPOINTS = [
     description: "Records an ad click and returns the destination URL.",
     params: [
       { name: "request_id", type: "string", required: true, desc: "UUID from ad serve response" },
-      { name: "ad_id", type: "string", required: true, desc: "Ad ID" },
-      { name: "zone_id", type: "string", required: true, desc: "Ad zone key" },
+      { name: "token", type: "string", required: true, desc: "Signed token from the serve response (ad.token), sent in the JSON body" },
     ],
     response: `{
   "ok": true,

@@ -69,6 +69,10 @@ export type ServingCandidate = {
   bidAmount: number;
   totalBudget: number;
   spentAmount: number;
+  /** Per-day spend cap in KES; null/0 means no daily cap. */
+  dailyBudget?: number | null;
+  /** Spend so far today (UTC), filled in fresh on every request. */
+  spentToday?: number;
   priority: number;
   startDate: string | null;
   endDate: string | null;
@@ -98,6 +102,7 @@ export type IneligibleReason =
   | "campaign_not_started"
   | "campaign_ended"
   | "budget_exhausted"
+  | "daily_budget_exhausted"
   | "insufficient_funds"
   | "bid_amount_zero"
   | "ad_not_approved"
@@ -134,6 +139,18 @@ export function remainingBudget(
   return Math.max(0, Number(candidate.totalBudget) - Number(candidate.spentAmount));
 }
 
+/**
+ * True once today's spend has reached the campaign's daily cap. The billing RPC
+ * refuses to charge past the cap, so serving beyond it would deliver unpaid ads.
+ */
+export function dailyBudgetExhausted(
+  candidate: Pick<ServingCandidate, "dailyBudget" | "spentToday">,
+): boolean {
+  const cap = Number(candidate.dailyBudget ?? 0);
+  if (!Number.isFinite(cap) || cap <= 0) return false;
+  return Number(candidate.spentToday ?? 0) >= cap;
+}
+
 /** Demand-side gate for a single candidate ad in a given zone. */
 export function candidateIsEligible(
   candidate: ServingCandidate,
@@ -149,6 +166,7 @@ export function candidateIsEligible(
   if (candidate.startDate && candidate.startDate > today) return no("campaign_not_started");
   if (candidate.endDate && candidate.endDate < today) return no("campaign_ended");
   if (remainingBudget(candidate) <= 0) return no("budget_exhausted");
+  if (dailyBudgetExhausted(candidate)) return no("daily_budget_exhausted");
   if (candidate.adApproval !== "approved") return no("ad_not_approved");
   if (candidate.adStatus !== "active") return no("ad_not_active");
   if (!candidate.mediaAssetId) return no("no_creative");

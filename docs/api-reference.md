@@ -134,19 +134,14 @@ Authenticated ad serving endpoint for v1 API clients. Requires `x-api-key` heade
 
 **File:** `src/routes/api/v1/events/impression.ts`
 
-Authenticated impression recording.
+Records an impression for an ad this server served. The signed `token` must match `request_id`; every field of the event is read from it, so events cannot be forged with an arbitrary `ad_id`/`zone_id`.
 
 **Query parameters:** `request_id` (UUID).
 
 **Request body:**
 
 ```json
-{
-  "ad_id": "uuid",
-  "zone_id": "string",
-  "device": "desktop | mobile | tablet",
-  "country": "KE"
-}
+{ "token": "signed token from the serve response (ad.token)" }
 ```
 
 **Response (200):** `{ "ok": true }`
@@ -157,17 +152,14 @@ Authenticated impression recording.
 
 **File:** `src/routes/api/v1/events/click.ts`
 
-Authenticated click recording.
+Records a click for an ad this server served (same signed `token` rule as impressions) and returns the destination.
 
 **Query parameters:** `request_id` (UUID).
 
 **Request body:**
 
 ```json
-{
-  "ad_id": "uuid",
-  "zone_id": "string"
-}
+{ "token": "signed token from the serve response (ad.token)" }
 ```
 
 **Response (200):** `{ "ok": true }`

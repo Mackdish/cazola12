@@ -7,7 +7,12 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
+import {
+  checkRateLimit,
+  getRateLimitConfig,
+  extractGeoAndBotScore,
+  RateLimitUnavailableError,
+} from "@/lib/rate-limit.server";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -55,19 +60,22 @@ export const Route = createFileRoute("/api/public/impression")({
             rateLimitConfig,
             ipAddress,
           );
-        } catch {
-          return new Response(JSON.stringify({ ok: false, reason: "rate_limited" }), {
-            status: 429,
-            headers: { ...JSON_HEADERS, "Retry-After": "60" },
-          });
+        } catch (error) {
+          // A broken limiter must not silently drop billable views. The token is
+          // signed and request_id is unique, so failing open here is safe.
+          if (!(error instanceof RateLimitUnavailableError)) {
+            return new Response(JSON.stringify({ ok: false, reason: "rate_limited" }), {
+              status: 429,
+              headers: { ...JSON_HEADERS, "Retry-After": "60" },
+            });
+          }
         }
 
         const { recordImpression } = await import("@/lib/ad-serving.server");
 
-        const { redis } = await import("@/lib/redis.server");
-        if (redis && geo.ipAddress) {
-          const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
-          if (blocked) {
+        const { isIpBlocked } = await import("@/lib/blocked-ip.server");
+        {
+          if (await isIpBlocked(geo.ipAddress)) {
             console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "impression" });
             const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
             const zoneId = (payload as any).zoneId;
