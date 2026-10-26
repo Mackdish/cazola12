@@ -17,9 +17,10 @@ import {
   weekdayOf,
   zoneIsServeable,
   type DeviceType,
+  type EligibilityVerdict,
   type IneligibleReason,
 } from "@/lib/ad-serving-domain";
-import { loadCandidates, loadZoneContext } from "@/lib/ad-serving.server";
+import { loadCandidates, loadZoneContext, withTodaySpend } from "@/lib/ad-serving.server";
 import { fundedOrganizationIds } from "@/lib/billing-charge.server";
 
 type Ctx = { supabase: SupabaseClient<Database>; userId: string };
@@ -126,7 +127,7 @@ export async function diagnoseZone(
   };
 
   const gate = zoneIsServeable(zone);
-  const candidates = await loadCandidates(zone);
+  const candidates = await withTodaySpend(await loadCandidates(zone));
   const funded = await fundedOrganizationIds([
     ...new Set(candidates.map((candidate) => candidate.organizationId).filter((id): id is string => Boolean(id))),
   ]);
@@ -160,9 +161,10 @@ export async function diagnoseZone(
       .map((candidate) => {
         const verdict = candidateIsEligible(candidate, zone, { now, signals });
         const fundedCandidate = !candidate.organizationId || funded.has(candidate.organizationId);
-        const finalVerdict = verdict.eligible && !fundedCandidate
-          ? ("insufficient_funds" as const)
-          : verdict;
+        const finalVerdict: EligibilityVerdict =
+          verdict.eligible && !fundedCandidate
+            ? { eligible: false, reason: "insufficient_funds" }
+            : verdict;
         return {
           adId: candidate.adId,
           adName: candidate.adName,

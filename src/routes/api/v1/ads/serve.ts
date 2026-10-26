@@ -131,6 +131,8 @@ export const Route = createFileRoute("/api/v1/ads/serve")({
             height: number | null;
             click_url: string;
             impression_tracking_url: string;
+            /** Signed value to send as `{ token }` to the click and impression URLs. */
+            token: string;
           };
         } = {
           ok: true as const,
@@ -144,6 +146,7 @@ export const Route = createFileRoute("/api/v1/ads/serve")({
             height: result.ad.height,
             click_url: `${origin}/api/v1/events/click?request_id=${encodeURIComponent(result.requestId)}`,
             impression_tracking_url: `${origin}/api/v1/events/impression?request_id=${encodeURIComponent(result.requestId)}`,
+            token: result.token ?? "",
           },
         };
 

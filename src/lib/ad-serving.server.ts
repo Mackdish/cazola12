@@ -164,7 +164,7 @@ async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandida
     let query = supabaseAdmin
       .from("ads")
       .select(
-        `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule, frequency_cap))`,
+        `id, name, format, status, approval_status, destination_url, media_asset_id, campaign_id, campaigns!inner(id, organization_id, status, approval_status, bid_type, bid_amount, total_budget, spent_amount, daily_budget, priority, start_date, end_date, campaign_targeting(countries, counties, cities, devices, operating_systems, browsers, website_categories, schedule, frequency_cap))`,
       )
       .eq("status", "active")
       .eq("approval_status", "approved")
@@ -216,6 +216,7 @@ async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandida
       bid_amount: number;
       total_budget: number;
       spent_amount: number;
+      daily_budget?: number | null;
       priority: number;
       start_date: string | null;
       end_date: string | null;
@@ -239,6 +240,7 @@ async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandida
       bidAmount: Number(campaign.bid_amount),
       totalBudget: Number(campaign.total_budget),
       spentAmount: Number(campaign.spent_amount ?? 0),
+      dailyBudget: campaign.daily_budget == null ? null : Number(campaign.daily_budget),
       priority: Number(campaign.priority ?? 5),
       startDate: campaign.start_date,
       endDate: campaign.end_date,
@@ -395,6 +397,38 @@ export type AdResponse =
     }
   | { ok: false; reason: "unknown_zone" | "zone_unavailable" | "no_ad" | "blocked_ip" | "serve_timeout" };
 
+/**
+ * Today's (UTC) spend for campaigns that have a daily cap. Read fresh on every
+ * request, never from the 3s candidate snapshot, so the cap is enforced where
+ * the billing RPC enforces it. Fails open: a stats read error must not blank
+ * the whole network, and billing stays authoritative.
+ */
+export async function withTodaySpend(candidates: ServingCandidate[]): Promise<ServingCandidate[]> {
+  const capped = [
+    ...new Set(
+      candidates.filter((c) => Number(c.dailyBudget ?? 0) > 0).map((c) => c.campaignId),
+    ),
+  ];
+  if (capped.length === 0) return candidates;
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await (supabaseAdmin as any)
+    .from("campaign_daily_stats")
+    .select("campaign_id, spend")
+    .in("campaign_id", capped)
+    .eq("date", today);
+  if (error) {
+    console.warn("[ad] daily_spend_lookup_failed", error.message);
+    return candidates;
+  }
+  const spend = new Map<string, number>(
+    ((data ?? []) as { campaign_id: string; spend: number | string | null }[]).map((r) => [
+      r.campaign_id,
+      Number(r.spend ?? 0),
+    ]),
+  );
+  return candidates.map((c) => ({ ...c, spentToday: spend.get(c.campaignId) ?? 0 }));
+}
+
 async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   const t0 = Date.now();
   console.debug("[ad] serve_ip", input.ipAddress);
@@ -476,8 +510,8 @@ async function serveAdInner(input: AdRequestInput): Promise<AdResponse> {
   const funded = await fundedOrganizationIds([
     ...new Set(candidates.map((c) => c.organizationId).filter((id): id is string => Boolean(id))),
   ]);
-  const fundedCandidates = candidates.filter(
-    (c) => !c.organizationId || funded.has(c.organizationId),
+  const fundedCandidates = await withTodaySpend(
+    candidates.filter((c) => !c.organizationId || funded.has(c.organizationId)),
   );
   if (fundedCandidates.length === 0) {
     // Serving requires a KES wallet with balance_amount > 0 for the advertiser's
@@ -636,9 +670,9 @@ async function loadHouseAd(): Promise<{
 }
 
 export async function serveAd(input: AdRequestInput): Promise<AdResponse> {
-  if (redis && input.ipAddress) {
-    const blocked = await redis.sismember("blocked_ips", input.ipAddress);
-    if (blocked) {
+  if (input.ipAddress) {
+    const { isIpBlocked } = await import("@/lib/blocked-ip.server");
+    if (await isIpBlocked(input.ipAddress)) {
       console.warn("[ad] blocklist_hit", { ip: input.ipAddress, zone: input.zoneKey });
       const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
       void recordBlockedIpHit(input.ipAddress, input.zoneKey, "serve");
@@ -844,7 +878,9 @@ export async function recordImpression(
     adZoneId: payload.zoneId,
   });
 
-  if (charge.ok) await recordDeliveredFrequencyCap();
+  // CPC campaigns are never charged per impression ("not_billable"), but the
+  // impression was still delivered, so it must count against the visitor's cap.
+  if (charge.ok || charge.reason === "not_billable") await recordDeliveredFrequencyCap();
 
   return "recorded";
 }

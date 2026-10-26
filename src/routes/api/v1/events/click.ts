@@ -1,44 +1,27 @@
 /**
- * POST /api/v1/events/click
+ * POST /api/v1/events/click?request_id=<uuid>   body: { token }
  *
- * Records an ad click. Validates server-side, prevents duplicates,
- * runs fraud detection, and triggers billing. Returns the destination URL
- * so the client can redirect.
- *
- * Query parameters:
- *   request_id  - UUID of the ad request (optional)
- *
- * Body:
- *   ad_id       - Ad ID (required)
- *   zone_id     - Ad zone key (required)
+ * Records a click for an ad this server actually served and returns the
+ * destination. Like the impression endpoint, every field comes from the signed
+ * token returned by GET /api/v1/ads/serve, never from the request body.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { loadZoneContext } from "@/lib/ad-serving.server";
-import { classifyUserAgent } from "@/lib/ad-serving-domain";
 import { recordClick } from "@/lib/ad-serving.server";
-import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
-import { jsonResponse, validationError, rateLimitedError, serverError } from "@/lib/api-response";
-import { publicCorsHeaders, publicPreflight } from "@/lib/api-v1.server";
+import { verifyServedToken } from "@/lib/ad-token.server";
+import { isIpBlocked } from "@/lib/blocked-ip.server";
+import {
+  checkRateLimit,
+  getRateLimitConfig,
+  extractGeoAndBotScore,
+  RateLimitUnavailableError,
+} from "@/lib/rate-limit.server";
+import { jsonResponse, rateLimitedError } from "@/lib/api-response";
+import { publicPreflight } from "@/lib/api-v1.server";
 
-const CORS = publicCorsHeaders("POST, OPTIONS");
-
-const JSON_HEADERS = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store",
-  ...CORS,
-} as const;
-
-const clickBodySchema = z.object({
-  ad_id: z.string().uuid(),
-  zone_id: z
-    .string()
-    .min(4)
-    .max(64)
-    .regex(/^[A-Za-z0-9_-]+$/),
-});
+const bodySchema = z.object({ token: z.string().min(20).max(4096) });
 
 export const Route = createFileRoute("/api/v1/events/click")({
   server: {
@@ -46,9 +29,7 @@ export const Route = createFileRoute("/api/v1/events/click")({
       OPTIONS: async () => publicPreflight("POST, OPTIONS"),
 
       POST: async ({ request }) => {
-        const url = new URL(request.url);
-        const requestId = url.searchParams.get("request_id");
-
+        const requestId = new URL(request.url).searchParams.get("request_id");
         if (!requestId || !z.string().uuid().safeParse(requestId).success) {
           return jsonResponse(
             { ok: false, error: "invalid_request", message: "A valid request_id is required" },
@@ -56,7 +37,7 @@ export const Route = createFileRoute("/api/v1/events/click")({
           );
         }
 
-        let body: unknown = null;
+        let body: unknown;
         try {
           body = await request.json();
         } catch {
@@ -65,98 +46,49 @@ export const Route = createFileRoute("/api/v1/events/click")({
             400,
           );
         }
-
-        const parsed = clickBodySchema.safeParse(body);
+        const parsed = bodySchema.safeParse(body);
         if (!parsed.success) {
-          return validationError(parsed.error.flatten().fieldErrors);
+          return jsonResponse(
+            { ok: false, error: "invalid_request", message: "A signed token is required" },
+            400,
+          );
         }
 
-        const data = parsed.data;
-        const geo = extractGeoAndBotScore(request);
-        const ipAddress = geo.ipAddress;
-        const userAgent = request.headers.get("user-agent") ?? undefined;
+        const payload = verifyServedToken(parsed.data.token);
+        if (!payload || payload.rid !== requestId) {
+          return jsonResponse(
+            { ok: false, error: "invalid_token", message: "Token is invalid or expired" },
+            401,
+          );
+        }
 
-        const rateLimitConfig = getRateLimitConfig("click");
+        const geo = extractGeoAndBotScore(request);
         try {
           await checkRateLimit(
             supabaseAdmin as unknown as Parameters<typeof checkRateLimit>[0],
-            rateLimitConfig,
-            ipAddress,
+            getRateLimitConfig("click"),
+            geo.ipAddress,
           );
-        } catch {
-          return rateLimitedError(60);
+        } catch (error) {
+          if (!(error instanceof RateLimitUnavailableError)) return rateLimitedError(60);
         }
 
-        // Defense-in-depth: reject events from blocked IPs
-        const { redis } = await import("@/lib/redis.server");
-        if (redis && ipAddress) {
-          const blocked = await redis.sismember("blocked_ips", ipAddress);
-          if (blocked) {
-            console.warn("[ad] blocklist_event_hit", { ip: ipAddress, event: "click" });
-            const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
-            void recordBlockedIpHit(ipAddress, data.zone_id, "click");
-            return jsonResponse(
-              { ok: false, error: "blocked_ip", message: "This IP is blocked" },
-              403,
-            );
-          }
+        if (await isIpBlocked(geo.ipAddress)) {
+          console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "click" });
+          const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
+          void recordBlockedIpHit(geo.ipAddress, payload.zoneId, "click");
+          return jsonResponse({ ok: false, error: "blocked_ip", message: "This IP is blocked" }, 403);
         }
-
-        // Validate zone context
-        const zone = await loadZoneContext(data.zone_id);
-        if (!zone) {
-          return jsonResponse({ ok: false, error: "invalid_zone", message: "Zone not found" }, 404);
-        }
-        if (
-          !zone.zoneStatus ||
-          zone.websiteStatus !== "active" ||
-          zone.websiteApproval !== "approved"
-        ) {
-          return jsonResponse(
-            { ok: false, error: "zone_unavailable", message: "Zone is not available" },
-            403,
-          );
-        }
-
-        // Validate ad exists and get campaign_id
-        const { data: ad } = await supabaseAdmin
-          .from("ads")
-          .select("campaign_id, status, approval_status, destination_url")
-          .eq("id", data.ad_id)
-          .maybeSingle();
-
-        if (!ad || ad.status !== "active" || ad.approval_status !== "approved") {
-          return jsonResponse(
-            { ok: false, error: "ad_unavailable", message: "Ad is not available" },
-            404,
-          );
-        }
-
-        const agent = classifyUserAgent(userAgent);
-        const payload = {
-          rid: requestId,
-          adId: data.ad_id,
-          campaignId: ad.campaign_id,
-          publisherId: zone.publisherId,
-          websiteId: zone.websiteId,
-          zoneId: zone.zoneId,
-          device: agent.device,
-          browser: agent.browser,
-          os: agent.os,
-          country: geo.country,
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        };
 
         const result = await recordClick(
           payload,
           geo.ipAddress,
-          userAgent,
+          request.headers.get("user-agent") ?? undefined,
           geo.botScore,
           geo.isLikelyBot,
           geo.country,
           geo.region,
         );
-
         if (!result) {
           return jsonResponse(
             {
@@ -167,7 +99,6 @@ export const Route = createFileRoute("/api/v1/events/click")({
             410,
           );
         }
-
         return jsonResponse({ ok: true, destination: result.destination }, 200);
       },
     },

@@ -7,7 +7,12 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { checkRateLimit, getRateLimitConfig, extractGeoAndBotScore } from "@/lib/rate-limit.server";
+import {
+  checkRateLimit,
+  getRateLimitConfig,
+  extractGeoAndBotScore,
+  RateLimitUnavailableError,
+} from "@/lib/rate-limit.server";
 
 const HEADERS = {
   "Cache-Control": "no-store",
@@ -35,16 +40,18 @@ export const Route = createFileRoute("/api/public/click")({
             rateLimitConfig,
             ipAddress,
           );
-        } catch {
-          return new Response("Too many clicks. Please wait.", { status: 429, headers: HEADERS });
+        } catch (error) {
+          // A broken limiter must not strand a visitor on a dead link.
+          if (!(error instanceof RateLimitUnavailableError)) {
+            return new Response("Too many clicks. Please wait.", { status: 429, headers: HEADERS });
+          }
         }
 
         const { recordClick } = await import("@/lib/ad-serving.server");
 
-        const { redis } = await import("@/lib/redis.server");
-        if (redis && geo.ipAddress) {
-          const blocked = await redis.sismember("blocked_ips", geo.ipAddress);
-          if (blocked) {
+        const { isIpBlocked } = await import("@/lib/blocked-ip.server");
+        {
+          if (await isIpBlocked(geo.ipAddress)) {
             console.warn("[ad] blocklist_event_hit", { ip: geo.ipAddress, event: "click" });
             const { recordBlockedIpHit } = await import("@/lib/fraud-center.server");
             const zoneId = (payload as any).zoneId;
