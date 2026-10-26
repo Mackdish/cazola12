@@ -2,9 +2,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { builtInBlogSlugs } from "@/lib/blog";
 
 const blogInput = z.object({
-  slug: z.string().trim().min(2).max(160),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(160)
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug may only contain lowercase letters, numbers and single hyphens.",
+    ),
   title: z.string().trim().min(2).max(240),
   excerpt: z.string().trim().max(1000).default(""),
   category: z.string().trim().min(2).max(80),
@@ -48,14 +57,24 @@ export const fetchBlogPostBySlug = createServerFn({ method: "GET" })
 async function assertBlogAdmin(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
-  const { data: role, error } = await db
+  // A user can hold several platform roles; maybeSingle() would error on that and
+  // wrongly lock them out, so just ask whether ANY admin-level role exists.
+  const { data: roles, error } = await db
     .from("platform_roles")
     .select("role")
     .eq("user_id", userId)
-    .maybeSingle();
+    .in("role", ["admin", "super_admin"])
+    .limit(1);
 
-  if (error || !role || !["admin", "super_admin"].includes(role.role)) {
+  if (error || !roles?.length) {
     throw new Error("Forbidden: administrator access is required.");
+  }
+}
+
+/** Built-in articles own their URLs; a database post must not shadow them. */
+function assertSlugNotReserved(slug: string | undefined) {
+  if (slug && builtInBlogSlugs.includes(slug)) {
+    throw new Error("That slug is reserved by a built-in article. Choose a different one.");
   }
 }
 
@@ -79,6 +98,7 @@ export const adminCreateBlogPost = createServerFn({ method: "POST" })
   .validator((data: unknown) => blogInput.parse(data))
   .handler(async ({ data, context }) => {
     await assertBlogAdmin(context.userId);
+    assertSlugNotReserved(data.slug);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data: post, error } = await db
@@ -108,6 +128,7 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertBlogAdmin(context.userId);
+    assertSlugNotReserved(data.slug);
     const { blogPostId, readTime, isPublished, ...rest } = data;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
@@ -120,7 +141,7 @@ export const adminUpdateBlogPost = createServerFn({ method: "POST" })
 
     // Let the database trigger set published_at only on the draft -> published transition.
     // This preserves the original publication date when an already-published post is edited.
-    if (isPublished === false) patch.published_at = null;
+    if (isPublished === false) patch["published_at"] = null;
 
     const { data: post, error } = await db
       .from("blog_posts")
