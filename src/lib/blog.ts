@@ -1,3 +1,5 @@
+import { makeExcerpt } from "@/lib/blog-content";
+
 export type BlogSection = {
   heading: string;
   paragraphs: string[];
@@ -12,8 +14,12 @@ export type BlogPost = {
   publishedAt: string;
   readTime: string;
   author: string;
+  /** Built-in articles are written as structured sections. */
   sections: BlogSection[];
+  /** Articles created in the admin blog editor carry a Markdown body instead. */
+  body?: string;
 };
+
 
 export const blogPosts: BlogPost[] = [
   {
@@ -389,6 +395,8 @@ export const blogPosts: BlogPost[] = [
 ];
 
 
+export const builtInBlogSlugs: readonly string[] = blogPosts.map((post) => post.slug);
+
 export type DatabaseBlogPost = {
   id: string;
   slug: string;
@@ -405,50 +413,16 @@ export type DatabaseBlogPost = {
 };
 
 export function databaseBlogPostToBlogPost(post: DatabaseBlogPost): BlogPost {
-  const sections: BlogSection[] = [];
-  const lines = post.content.split(/\r?\n/);
-  let heading = "Article";
-  let paragraphs: string[] = [];
-  let bullets: string[] = [];
-
-  const flush = () => {
-    if (paragraphs.length || bullets.length) {
-      sections.push({
-        heading,
-        paragraphs,
-        ...(bullets.length ? { bullets } : {}),
-      });
-    }
-    paragraphs = [];
-    bullets = [];
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    if (line.startsWith("## ")) {
-      flush();
-      heading = line.slice(3).trim() || "Article";
-      continue;
-    }
-    if (line.startsWith("- ")) {
-      bullets.push(line.slice(2).trim());
-      continue;
-    }
-    paragraphs.push(line);
-  }
-  flush();
-
-  if (!sections.length) sections.push({ heading: "Article", paragraphs: [post.content] });
-
   return {
     slug: post.slug,
     title: post.title,
-    excerpt: post.excerpt,
+    // Fall back to the opening paragraph so listings/meta descriptions are never blank.
+    excerpt: post.excerpt?.trim() ? post.excerpt : makeExcerpt(post.content),
     category: post.category,
     publishedAt: post.published_at ?? post.created_at,
     readTime: post.read_time,
     author: post.author,
-    sections,
+    sections: [],
+    body: post.content,
   };
 }
