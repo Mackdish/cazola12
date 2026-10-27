@@ -71,11 +71,20 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <h3 className="text-sm font-semibold text-white">Company</h3>
             <ul className="mt-4 space-y-3">
               <li><Link to="/about" className="text-sm text-slate-400 hover:text-white transition-colors">About TradeMall</Link></li>
+              <li><Link to="/contact" className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link to="/policies" className="text-sm text-slate-400 hover:text-white transition-colors">All Policies</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Legal</h3>
+            <ul className="mt-4 space-y-3">
+              <li><Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
@@ -84,7 +93,7 @@ export function Footer() {
       <div className="border-t border-slate-800">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © 2026 TradeMall. All rights reserved.
+            © {new Date().getFullYear()} TradeMall. All rights reserved.
           </p>
           <p className="text-xs text-slate-500">
             Built for Africa's digital advertising ecosystem.
