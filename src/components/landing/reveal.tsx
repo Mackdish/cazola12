@@ -1,11 +1,15 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import { useInView } from "@/hooks/use-in-view";
 
 /**
- * Fades + lifts its children into place once scrolled into view.
+ * Fades + lifts its children into place as they scroll into view.
  * Pass `delay` (ms) to stagger a group of Reveal siblings.
+ *
+ * Content is VISIBLE BY DEFAULT. It is only hidden after the page has hydrated,
+ * and only for blocks that are still below the fold. Hiding everything up front
+ * (the old behaviour) left whole sections blank on slow connections until the
+ * JavaScript bundle arrived, and permanently blank with JS off or for crawlers.
  */
 export function Reveal({
   children,
@@ -18,17 +22,44 @@ export function Reveal({
   delay?: number | undefined;
   as?: "div" | "li";
 }) {
-  const { ref, inView } = useInView();
+  const ref = useRef<HTMLElement>(null);
+  // "armed" = this block is below the fold and waiting to animate in.
+  const [armed, setArmed] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Already on screen: leave it as-is, no hide-then-show flash.
+    if (node.getBoundingClientRect().top < window.innerHeight * 0.9) return;
+
+    setArmed(true);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setRevealed(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const hidden = armed && !revealed;
 
   return (
     <As
       ref={ref as never}
       className={cn(
         "transition-all duration-700 ease-out motion-reduce:transition-none",
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+        hidden ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0",
         className,
       )}
-      style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}
+      style={{ transitionDelay: revealed ? `${delay}ms` : "0ms" }}
     >
       {children}
     </As>

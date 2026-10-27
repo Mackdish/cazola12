@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -557,12 +558,7 @@ function Landing() {
               aria-label="Visit PayzaAPI website"
             >
               <div className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-border bg-black p-2 sm:size-28">
-                <img
-                  src="/payzaapi-logo.webp"
-                  alt="PayzaAPI logo"
-                  className="size-full object-contain"
-                  loading="lazy"
-                />
+                <PartnerLogo src="/payzaapi-logo.webp" name="PayzaAPI" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center justify-center gap-2 sm:justify-start">
@@ -629,5 +625,37 @@ function Landing() {
         </div>
       </section>
     </PublicLayout>
+  );
+}
+
+/**
+ * Partner logo with a graceful fallback. If the file is missing or fails to load
+ * (React can miss an img "error" that fires before hydration, so we also check
+ * the element after mount) we show the partner's name instead of a broken image.
+ */
+function PartnerLogo({ src, name }: { src: string; name: string }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const img = ref.current;
+    if (img && img.complete && img.naturalWidth === 0) setFailed(true);
+  }, []);
+
+  if (failed) {
+    return (
+      <span className="px-1 text-center text-sm font-semibold leading-tight text-white">{name}</span>
+    );
+  }
+  return (
+    <img
+      ref={ref}
+      src={src}
+      alt={`${name} logo`}
+      className="size-full object-contain"
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
   );
 }

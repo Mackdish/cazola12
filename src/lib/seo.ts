@@ -43,14 +43,6 @@ export const websiteStructuredData = {
   url: SITE_URL,
   description: seoDefaults.defaultDescription,
   inLanguage: "en",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 export const webPageStructuredData = (data: {

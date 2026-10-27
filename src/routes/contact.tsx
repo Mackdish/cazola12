@@ -33,8 +33,8 @@ function ContactPage() {
           </div>
 
           <div className="mt-16 grid gap-6 sm:grid-cols-2">
-            <Link
-              to="mailto:support@trademall.co.ke"
+            <a
+              href="mailto:support@trademall.co.ke"
               className="flex items-start gap-4 rounded-lg border border-border bg-card p-6 transition-colors hover:bg-muted/50"
             >
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
@@ -49,7 +49,7 @@ function ContactPage() {
                   We typically respond within one business day.
                 </p>
               </div>
-            </Link>
+            </a>
 
             <a
               href="tel:+254705186502"

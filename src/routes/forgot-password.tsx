@@ -13,6 +13,7 @@ export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
       { title: "Reset your password — TradeMall" },
+      { name: "robots", content: "noindex" },
       {
         name: "description",
         content: "Request a secure password reset link for your TradeMall ad network account.",

@@ -247,7 +247,7 @@ function PoliciesPage() {
                 Publishers must follow traffic quality and placement guidelines to ensure a
                 sustainable marketplace.
               </p>
-              <Link to="/policies/$slug" params={{ slug: "publisher-policies" }}>
+              <Link to="/policies/publisher-guidelines">
                 <Button variant="outline" size="sm" className="mt-4">
                   View Publisher Policies
                 </Button>
