@@ -142,6 +142,35 @@ export default {
       console.error("[fraud-retention] scheduled purge failed", error);
     }
 
+    // Money safety net: bill events that were recorded but never charged.
+    try {
+      const { retryUnbilledEvents } = await import("@/lib/billing-retry.server");
+      await retryUnbilledEvents(50);
+    } catch (error) {
+      console.error("[billing-retry] scheduled retry failed", error);
+    }
+
+    // Hourly: do the billing ledgers agree?
+    try {
+      const now = new Date();
+      if (now.getUTCMinutes() === 0) {
+        const { reconcileBilling } = await import("@/lib/billing-retry.server");
+        await reconcileBilling(3);
+      }
+    } catch (error) {
+      console.error("[billing-reconcile] scheduled run failed", error);
+    }
+
+    // Every 5 minutes: can the platform actually serve an ad right now?
+    try {
+      if (new Date().getUTCMinutes() % 5 === 0) {
+        const { runSyntheticServeCheck } = await import("@/lib/serve-health.server");
+        await runSyntheticServeCheck();
+      }
+    } catch (error) {
+      console.error("[synthetic] scheduled check failed", error);
+    }
+
     try {
       const { syncBlockedIpsToRedis } = await import("@/lib/fraud-center.server");
       const syncResult = await syncBlockedIpsToRedis();
