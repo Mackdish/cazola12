@@ -149,5 +149,20 @@ export default {
     } catch (error) {
       console.error("[blocklist] scheduled sync failed", error);
     }
+
+    try {
+      // Referral program: accrue commissions, recognise milestones, release matured rewards and
+      // credit advertiser wallets. Incremental and safe to repeat, so every 5 minutes is plenty.
+      if (new Date().getUTCMinutes() % 5 === 0) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data, error } = await (
+          supabaseAdmin as unknown as { rpc: (name: string) => Promise<{ data: unknown; error: unknown }> }
+        ).rpc("process_referrals");
+        if (error) throw error;
+        console.info("[referrals] scheduled processing complete", data);
+      }
+    } catch (error) {
+      console.error("[referrals] scheduled processing failed", error);
+    }
   },
 };

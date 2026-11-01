@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { LoadingState } from "@/components/patterns/states";
+import { ReferralApplier } from "@/components/referral/referral-capture";
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePreconnectLinks } from "@/lib/preconnect";
 
@@ -22,5 +23,11 @@ export const Route = createFileRoute("/_authenticated")({
       <LoadingState rows={3} label="Loading your workspace" />
     </div>
   ),
-  component: () => <Outlet />,
+  component: () => (
+    <>
+      {/* Applies a referral code remembered from a referral link, once, after sign-in. */}
+      <ReferralApplier />
+      <Outlet />
+    </>
+  ),
 });

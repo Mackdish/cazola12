@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { seoDefaults, organizationStructuredData, websiteStructuredData } from "@/lib/seo";
+import { ReferralCapture } from "@/components/referral/referral-capture";
 import { getTheme, getThemeCookie } from "@/lib/theme.server";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -180,6 +181,7 @@ function RootComponent() {
         <ThemeProvider initialTheme={(theme as "light" | "dark" | "system") || "dark"}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
+          <ReferralCapture />
           <Toaster />
         </ThemeProvider>
       </AuthProvider>

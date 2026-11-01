@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/patterns/states";
 import { useAuth } from "@/lib/auth-context";
+import { ReferralSignupNotice } from "@/components/referral/referral-capture";
+import { referralCodeFromSearch } from "@/lib/referral-domain";
 import { supabasePreconnectLinks } from "@/lib/preconnect";
 import type { FriendlyError } from "@/lib/errors";
 
@@ -52,6 +54,10 @@ function AuthPage() {
   const navigate = useNavigate();
 
   const [tab, setTab] = useState("signin");
+  // A referral link (?ref=CODE) should land people on the Register tab.
+  useEffect(() => {
+    if (referralCodeFromSearch(window.location.search)) setTab("signup");
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -265,6 +271,7 @@ function AuthPage() {
                 </TabsContent>
 
                 <TabsContent value="signup">
+                  <ReferralSignupNotice />
                   <form className="space-y-4" onSubmit={handleSignUp} noValidate>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-name">Full name</Label>

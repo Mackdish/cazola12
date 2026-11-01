@@ -22,6 +22,7 @@ import {
   Target,
   LineChart,
   Gavel,
+  Gift,
   Eye,
   Key,
   type LucideIcon,
@@ -79,6 +80,7 @@ export const WORKSPACE_NAV: Record<Workspace, NavSection[]> = {
         { label: "Transactions", to: "/admin/transactions", icon: Receipt },
         { label: "Payouts", to: "/admin/payouts", icon: Banknote },
         { label: "Analytics", to: "/admin/analytics", icon: LineChart },
+        { label: "Referrals", to: "/admin/referrals", icon: Gift },
       ],
     },
     {
@@ -107,6 +109,7 @@ export const WORKSPACE_NAV: Record<Workspace, NavSection[]> = {
         { label: "Wallet", to: "/advertiser/wallet", icon: Wallet },
         { label: "Transactions", to: "/advertiser/transactions", icon: CreditCard },
         { label: "Analytics", to: "/advertiser/analytics", icon: LineChart },
+        { label: "Refer & Earn", to: "/advertiser/referrals", icon: Gift },
       ],
     },
     {
@@ -137,6 +140,7 @@ export const WORKSPACE_NAV: Record<Workspace, NavSection[]> = {
         { label: "Earnings", to: "/publisher/earnings", icon: Coins },
         { label: "Payouts", to: "/publisher/payouts", icon: Banknote },
         { label: "Analytics", to: "/publisher/analytics", icon: LineChart },
+        { label: "Refer & Earn", to: "/publisher/referrals", icon: Gift },
       ],
     },
     {
