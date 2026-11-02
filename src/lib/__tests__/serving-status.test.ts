@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { campaignServingStatus, type ServingStatusInput } from "@/lib/serving-status";
+import { campaignServingStatus, zoneServingSummary, type ServingStatusInput } from "@/lib/serving-status";
 
 const healthy = (): ServingStatusInput => ({
   campaign: {
@@ -142,5 +142,69 @@ describe("campaignServingStatus", () => {
     a.walletBalance = 0;
     a.ads = [];
     expect(campaignServingStatus(a).headline).toBe("Not serving: 2 things to fix");
+  });
+});
+
+
+describe("zoneServingSummary", () => {
+  const zone = (over: Partial<{ serveable: boolean; blockedBy: string | null; format: string }> = {}) => ({
+    serveable: true,
+    blockedBy: null,
+    format: "300x250",
+    ...over,
+  });
+  const cand = (verdict: string, winner = false) => ({ verdict, winner });
+
+  it("tells a publisher what to fix when the zone itself is blocked", () => {
+    const s = zoneServingSummary({ zone: zone({ serveable: false, blockedBy: "website_unverified" }), candidates: [] });
+    expect(s.state).toBe("blocked");
+    expect(s.headline).toMatch(/isn't verified/);
+    expect(s.advice[0]).toMatch(/verification/);
+  });
+
+  it("falls back gracefully for an unknown block reason", () => {
+    const s = zoneServingSummary({ zone: zone({ serveable: false, blockedBy: "mystery" }), candidates: [] });
+    expect(s.state).toBe("blocked");
+    expect(s.advice).toHaveLength(1);
+  });
+
+  it("says an empty pool is not the publisher's fault, and suggests responsive for fixed sizes", () => {
+    const fixed = zoneServingSummary({ zone: zone(), candidates: [] });
+    expect(fixed.state).toBe("empty");
+    expect(fixed.advice[0]).toMatch(/responsive/);
+    const resp = zoneServingSummary({ zone: zone({ format: "responsive" }), candidates: [] });
+    expect(resp.advice[0]).not.toMatch(/responsive zone accepts/);
+  });
+
+  it("reports serving when at least one ad is eligible", () => {
+    const s = zoneServingSummary({
+      zone: zone(),
+      candidates: [cand("eligible", true), cand("insufficient_funds"), cand("insufficient_funds")],
+    });
+    expect(s.state).toBe("serving");
+    expect(s.headline).toBe("1 ad can serve in this zone");
+    expect(s.reasons).toEqual([{ code: "insufficient_funds", label: "Advertiser wallet has no balance", count: 2 }]);
+  });
+
+  it("ranks reasons by frequency and gives targeted advice when nothing is eligible", () => {
+    const s = zoneServingSummary({
+      zone: zone(),
+      candidates: [
+        cand("targeting_mismatch"),
+        cand("targeting_mismatch"),
+        cand("format_mismatch"),
+        cand("insufficient_funds"),
+      ],
+    });
+    expect(s.state).toBe("unmatched");
+    expect(s.reasons[0]?.code).toBe("targeting_mismatch");
+    expect(s.reasons[0]?.count).toBe(2);
+    expect(s.advice.join(" ")).toMatch(/different device or country/);
+    expect(s.advice.join(" ")).toMatch(/responsive/);
+  });
+
+  it("attributes demand-side failures to advertisers", () => {
+    const s = zoneServingSummary({ zone: zone(), candidates: [cand("insufficient_funds"), cand("insufficient_funds")] });
+    expect(s.advice.join(" ")).toMatch(/advertiser side/);
   });
 });
