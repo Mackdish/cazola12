@@ -15,7 +15,7 @@ import {
   fetchZoneDiagnostics,
 } from "@/lib/ad-sandbox.functions";
 import { toFriendlyError } from "@/lib/errors";
-import { REASON_COPY } from "@/lib/serving-status";
+import { REASON_COPY, zoneServingSummary } from "@/lib/serving-status";
 
 type Diagnostics = Awaited<ReturnType<typeof fetchZoneDiagnostics>>;
 type CandidateRow = Diagnostics["candidates"][number];
@@ -243,6 +243,7 @@ function SandboxPage() {
 
           {diagnostics.data ? (
             <div className="space-y-4">
+              <ZoneSummaryPanel diagnostics={diagnostics.data} />
               <div className="rounded-md border p-3 text-sm">
                 <p className="font-medium">
                   Zone gate:{" "}
@@ -272,6 +273,37 @@ function SandboxPage() {
           ) : null}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+const SUMMARY_TONE = {
+  serving: "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950",
+  blocked: "border-destructive/30 bg-destructive/10",
+  empty: "border-border bg-muted/40",
+  unmatched: "border-orange-500/30 bg-orange-50 dark:bg-orange-950",
+} as const;
+
+/** Plain-language verdict shown above the raw trace. */
+function ZoneSummaryPanel({ diagnostics }: { diagnostics: Diagnostics }) {
+  const summary = zoneServingSummary(diagnostics);
+  return (
+    <div className={`space-y-1.5 rounded-md border p-3 text-sm ${SUMMARY_TONE[summary.state]}`} role="status">
+      <p className="font-semibold">{summary.headline}</p>
+      <p className="text-muted-foreground">{summary.detail}</p>
+      {summary.advice.length > 0 ? (
+        <ul className="list-disc space-y-0.5 pl-5">
+          {summary.advice.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+      {summary.reasons.length > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Why ads were filtered:{" "}
+          {summary.reasons.map((r) => `${r.label} (${r.count})`).join(" · ")}
+        </p>
+      ) : null}
     </div>
   );
 }

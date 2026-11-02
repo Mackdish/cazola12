@@ -311,3 +311,136 @@ export function campaignServingStatus(input: ServingStatusInput): ServingStatus 
     issues,
   };
 }
+
+// ------------------------------------------------------------------ publisher
+
+export type ZoneSummaryInput = {
+  zone: { serveable: boolean; blockedBy: string | null; format: string };
+  candidates: Array<{ verdict: string; winner: boolean }>;
+};
+
+export type ZoneSummary = {
+  state: "serving" | "blocked" | "empty" | "unmatched";
+  headline: string;
+  detail: string;
+  /** Why candidate ads were dropped, most common first. */
+  reasons: Array<{ code: string; label: string; count: number }>;
+  advice: string[];
+};
+
+const ZONE_BLOCK_ADVICE: Record<string, { headline: string; advice: string }> = {
+  website_unverified: {
+    headline: "Your website isn't verified yet",
+    advice: "Finish domain verification on the Websites page. Ads never serve on an unverified site.",
+  },
+  website_unapproved: {
+    headline: "Your website is waiting for approval",
+    advice: "Ads start as soon as the site is approved. Nothing else is needed from you.",
+  },
+  website_inactive: {
+    headline: "Your website is not active",
+    advice: "Re-activate the website from the Websites page.",
+  },
+  zone_inactive: {
+    headline: "This ad zone is switched off",
+    advice: "Activate the zone on the Ad zones page.",
+  },
+  publisher_unapproved: {
+    headline: "Your publisher account is waiting for approval",
+    advice: "Ads start once the account is approved.",
+  },
+  publisher_inactive: {
+    headline: "Your publisher account is not active",
+    advice: "Contact support to restore the account.",
+  },
+};
+
+/** Reasons that mean "the demand isn't there right now", not "something is misconfigured". */
+const DEMAND_REASONS = new Set([
+  "insufficient_funds",
+  "budget_exhausted",
+  "daily_budget_exhausted",
+  "campaign_not_active",
+  "campaign_not_approved",
+  "campaign_not_started",
+  "campaign_ended",
+  "ad_not_approved",
+  "ad_not_active",
+  "no_creative",
+  "bid_amount_zero",
+]);
+
+export function zoneServingSummary(input: ZoneSummaryInput): ZoneSummary {
+  if (!input.zone.serveable) {
+    const known = ZONE_BLOCK_ADVICE[input.zone.blockedBy ?? ""];
+    return {
+      state: "blocked",
+      headline: known?.headline ?? "This zone isn't cleared to serve",
+      detail: REASON_COPY[input.zone.blockedBy ?? ""] ?? "The zone or website is not cleared to serve.",
+      reasons: [],
+      advice: [known?.advice ?? "Check the website and zone status on the Websites and Ad zones pages."],
+    };
+  }
+
+  const total = input.candidates.length;
+  if (total === 0) {
+    return {
+      state: "empty",
+      headline: "No advertisers are bidding on this size yet",
+      detail: "Your setup is fine; there are simply no active ads for this format right now.",
+      reasons: [],
+      advice:
+        input.zone.format === "responsive"
+          ? ["Check back as more campaigns go live. Your placement needs no changes."]
+          : [
+              "A responsive zone accepts ads of every size, so it matches more advertisers than a fixed-size zone.",
+            ],
+    };
+  }
+
+  const eligible = input.candidates.filter((c) => c.verdict === "eligible").length;
+  if (eligible > 0) {
+    return {
+      state: "serving",
+      headline: eligible === 1 ? "1 ad can serve in this zone" : `${eligible} ads can serve in this zone`,
+      detail: `${total - eligible} other ad${total - eligible === 1 ? " was" : "s were"} filtered out for this request.`,
+      reasons: tally(input.candidates),
+      advice: [],
+    };
+  }
+
+  const reasons = tally(input.candidates);
+  const top = reasons[0]?.code ?? "";
+  const advice: string[] = [];
+  if (reasons.some((r) => r.code === "format_mismatch") && input.zone.format !== "responsive") {
+    advice.push("Several ads are a different size. A responsive zone accepts every size.");
+  }
+  if (reasons.some((r) => r.code === "targeting_mismatch")) {
+    advice.push(
+      "Some advertisers target other countries, devices or hours than this test request. Try a different device or country above; real visitors vary.",
+    );
+  }
+  if (DEMAND_REASONS.has(top)) {
+    advice.push("This is on the advertiser side (budget, review or paused campaigns). It clears up as campaigns are funded and approved.");
+  }
+  if (advice.length === 0) advice.push("Run the check again in a few minutes as campaigns change.");
+
+  return {
+    state: "unmatched",
+    headline: "Ads exist, but none can serve this request",
+    detail: `${total} ad${total === 1 ? "" : "s"} considered, none eligible. The most common reason: ${reasons[0]?.label ?? "unknown"}.`,
+    reasons,
+    advice,
+  };
+}
+
+function tally(candidates: Array<{ verdict: string }>) {
+  const counts = new Map<string, number>();
+  for (const c of candidates) {
+    if (c.verdict === "eligible") continue;
+    counts.set(c.verdict, (counts.get(c.verdict) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([code, count]) => ({ code, label: REASON_COPY[code] ?? code, count }))
+    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+}
