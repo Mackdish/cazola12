@@ -9,7 +9,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { writeFileSync } from "node:fs";
 
 type Row = Record<string, any>;
-type Data = { zones: Row[]; ads: Row[]; wallets: Row[]; daily: Row[]; assets: Row[]; houseAds: Row[]; latencyMs: number };
+type Data = { zones: Row[]; ads: Row[]; wallets: Row[]; daily: Row[]; assets: Row[]; houseAds: Row[]; latencyMs: number; calls?: Record<string, number> };
 
 const RESULTS: Array<Record<string, unknown>> = [];
 const SECRET = "s".repeat(48);
@@ -86,6 +86,8 @@ function fakeSupabase(d: Data) {
     ({ ad_zones: d.zones, ads: d.ads, wallets: d.wallets, campaign_daily_stats: d.daily, media_assets: d.assets, house_ads: d.houseAds }[table] ?? []);
 
   function from(table: string) {
+    d.calls = d.calls ?? {};
+    d.calls[table] = (d.calls[table] ?? 0) + 1;
     const filters: Array<(r: Row) => boolean> = [];
     let lo = 0;
     let hi = Infinity;
@@ -169,7 +171,7 @@ async function serve(mutate?: (d: Data) => void, opts: Opts = {}) {
     ipAddress: "203.0.113.9",
     origin: opts.origin ?? null,
   });
-  return { res, ms: Date.now() - t0, logs: warnings.map((w) => String(w[0])).filter((s) => s.startsWith("[ad]")) };
+  return { res, calls: d.calls ?? {}, ms: Date.now() - t0, logs: warnings.map((w) => String(w[0])).filter((s) => s.startsWith("[ad]")) };
 }
 
 function outcome(res: any) {
@@ -313,6 +315,26 @@ describe("serveAd() end to end, real code, fake database", () => {
     const { res } = await serve(undefined, { redis: broken });
     RESULTS.push({ name: "Redis configured but erroring", want: "SERVED", got: outcome(res), ms: 0, logs: "" });
     expect(outcome(res)).toBe("SERVED");
+  });
+
+  it("Redis tier: a second request is served without touching ads, wallets, zones or media tables", async () => {
+    const store = new Map<string, unknown>();
+    const fake = {
+      sismember: async () => 0,
+      get: async (k: string) => (store.has(k) ? JSON.parse(store.get(k) as string) : null),
+      mget: async (...ks: string[]) => ks.map((k) => (store.has(k) ? JSON.parse(store.get(k) as string) : null)),
+      setex: async (k: string, _t: number, v: unknown) => (store.set(k, typeof v === "string" ? v : JSON.stringify(v)), "OK"),
+      del: async (k: string) => (store.delete(k), 1),
+    };
+    const first = await serve(undefined, { redis: fake });
+    const second = await serve(undefined, { redis: fake });
+    expect(outcome(first.res)).toBe("SERVED");
+    expect(outcome(second.res)).toBe("SERVED");
+    expect(first.calls["ads"]).toBeGreaterThan(0);
+    for (const table of ["ads", "wallets", "ad_zones", "media_assets"]) {
+      expect(second.calls[table] ?? 0, table).toBe(0);
+    }
+    RESULTS.push({ name: "Redis tier warm", want: "0 db reads", got: JSON.stringify(second.calls), ms: 0, logs: "" });
   });
 
   it("Redis blocklist hit still blocks when Redis is healthy", async () => {
