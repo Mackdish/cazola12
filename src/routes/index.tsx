@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { pageMetadata } from "@/lib/seo";
 import { Reveal } from "@/components/landing/reveal";
-import { PlatformMetrics } from "@/components/landing/platform-metrics";
 import { NetworkFlow } from "@/components/landing/network-flow";
 import { AdFormatExplorer } from "@/components/landing/ad-format-explorer";
 import { EarningsCalculator } from "@/components/landing/earnings-calculator";
@@ -220,22 +219,6 @@ function Landing() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Platform Metrics */}
-      <section className="relative overflow-hidden bg-mkt-navy py-16 sm:py-20">
-        <div className="absolute inset-0 -z-10 bg-mkt-grid opacity-40" aria-hidden />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal className="text-center">
-            <p className="text-eyebrow text-slate-400">Right now on TradeMall</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              A growing marketplace, in real numbers
-            </h2>
-          </Reveal>
-          <div className="mt-10">
-            <PlatformMetrics />
           </div>
         </div>
       </section>
