@@ -15,29 +15,7 @@ import {
   fetchZoneDiagnostics,
 } from "@/lib/ad-sandbox.functions";
 import { toFriendlyError } from "@/lib/errors";
-
-const REASON_COPY: Record<string, string> = {
-  zone_inactive: "Ad zone is suspended",
-  website_inactive: "Website is not active",
-  website_unapproved: "Website is not approved",
-  website_unverified: "Website ownership is not verified",
-  publisher_inactive: "Publisher account is not active",
-  publisher_unapproved: "Publisher is not approved",
-  campaign_not_approved: "Campaign is not approved",
-  campaign_not_active: "Campaign is paused, draft or completed",
-  campaign_not_started: "Campaign has not started yet",
-  campaign_ended: "Campaign has expired",
-  budget_exhausted: "Campaign budget is spent",
-  ad_not_approved: "Advertisement is not approved",
-  ad_not_active: "Advertisement is disabled",
-  no_creative: "Advertisement has no creative",
-  format_mismatch: "Creative format doesn't fit this zone",
-  targeting_mismatch: "Targeting rules exclude this request",
-  eligible: "Eligible",
-  unknown_zone: "Zone key not recognised",
-  zone_unavailable: "Zone or website is not cleared to serve",
-  no_ad: "No eligible advertisement",
-};
+import { REASON_COPY } from "@/lib/serving-status";
 
 type Diagnostics = Awaited<ReturnType<typeof fetchZoneDiagnostics>>;
 type CandidateRow = Diagnostics["candidates"][number];

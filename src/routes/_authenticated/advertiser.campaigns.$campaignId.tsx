@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { ErrorState, LoadingState } from "@/components/patterns/states";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { AdDialog } from "@/components/advertiser/ad-dialog";
+import { ServingStatusCard } from "@/components/advertiser/serving-status-card";
 import { AdEditDialog } from "@/components/advertiser/ad-edit-dialog";
 import { AiAdCreativeAssistant } from "@/components/advertiser/ai-ad-creative-assistant";
 import { TargetingForm } from "@/components/advertiser/targeting-form";
@@ -45,7 +46,7 @@ function CampaignDetailPage() {
 }
 
 function CampaignDetailView({ detail, currency }: { detail: CampaignDetail; currency: string }) {
-  const { campaign, adGroups, ads, targeting, mediaAssets } = detail;
+  const { campaign, adGroups, ads, targeting, mediaAssets, delivery } = detail;
   const { organizationId } = useAdvertiserOrg();
   const { data: profile } = useAdvertiserProfile(organizationId);
   const setCampaignStatus = useSetCampaignStatus();
@@ -56,6 +57,7 @@ function CampaignDetailView({ detail, currency }: { detail: CampaignDetail; curr
     <PageHeader eyebrow="Campaign" title={campaign.name} description={`${objectiveLabel(campaign.objective)} · ${campaign.bid_type.toUpperCase()} ${formatCurrency(campaign.bid_amount, currency)}`} actions={<div className="flex flex-wrap items-center gap-2"><StatusBadge tone={campaignStatusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusBadge>{transitions.map((next) => <Button key={next} size="sm" variant={next === "pending_review" ? "default" : "outline"} disabled={setCampaignStatus.isPending} onClick={async () => { try { await setCampaignStatus.mutateAsync({ campaignId: campaign.id, status: next }); toast.success(`Campaign moved to ${campaignStatusLabel(next)}.`); } catch (mutationError) { toast.error(toFriendlyError(mutationError).message); } }}>{next === "pending_review" ? "Submit for review" : campaignStatusLabel(next)}</Button>)}</div>} />
     {campaign.rejection_reason ? <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">Review feedback: {campaign.rejection_reason}</p> : null}
     {campaign.status === "paused" && campaign.pause_reason === "insufficient_funds" ? <p className="rounded-md border border-orange-500/30 bg-orange-50 p-3 text-sm text-orange-700 dark:bg-orange-950 dark:text-orange-300">Paused — insufficient wallet balance. Add funds to resume this campaign.</p> : null}
+    {campaign.status !== "draft" ? <ServingStatusCard input={{ campaign, ads, mediaAssets, targeting, walletBalance: delivery.walletBalance, spentToday: delivery.spentToday }} /> : null}
     <Tabs defaultValue="overview">
       <TabsList><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="ad-groups">Ad groups</TabsTrigger><TabsTrigger value="ads">Ads</TabsTrigger><TabsTrigger value="targeting">Targeting</TabsTrigger></TabsList>
       <TabsContent value="overview" className="pt-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard label="Total budget" value={formatCurrency(campaign.total_budget, currency)} /><MetricCard label="Daily budget" value={campaign.daily_budget ? formatCurrency(campaign.daily_budget, currency) : "Not set"} /><MetricCard label="Ad groups" value={String(adGroups.length)} /><MetricCard label="Ads" value={String(ads.length)} /></div><Card className="mt-4 shadow-none"><CardHeader><CardTitle className="text-base">Flight & destination</CardTitle><CardDescription>Schedule and landing page for this campaign.</CardDescription></CardHeader><CardContent className="grid gap-3 text-sm sm:grid-cols-2"><DetailRow label="Starts" value={campaign.start_date ?? "Immediately"} /><DetailRow label="Ends" value={campaign.end_date ?? "No end date"} /><DetailRow label="Landing page" value={campaign.landing_page_url ?? "—"} /><DetailRow label="Approval" value={campaign.approval_status} /></CardContent></Card></TabsContent>
