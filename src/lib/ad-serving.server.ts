@@ -30,7 +30,7 @@ import {
   evaluateImpressionFraud,
   recordFraudEvent,
 } from "@/lib/fraud-detection.server";
-import { cachedServePathGet } from "@/lib/cache.server";
+import { cacheDelete, cachedGet, cachedServePathGet } from "@/lib/cache.server";
 import { redis } from "@/lib/redis.server";
 import {
   bufferImpression,
@@ -86,9 +86,14 @@ function cleanupCreativeCache() {
   }
 }
 
+const creativeRedisKey = (mediaAssetId: string) => `serve:creative:v1:${mediaAssetId}`;
+/** Shorter than the 30 min signed-URL lifetime so a cached URL is never near expiry. */
+const CREATIVE_REDIS_TTL_SECONDS = 10 * 60;
+
 export function invalidateCreativeCache(mediaAssetId?: string) {
   if (mediaAssetId) {
     CREATIVE_CACHE.delete(mediaAssetId);
+    void cacheDelete(creativeRedisKey(mediaAssetId));
   } else {
     CREATIVE_CACHE.clear();
   }
@@ -266,6 +271,7 @@ async function loadCandidatesUncached(zone: ZoneContext): Promise<ServingCandida
 // request does not repeat the same 2–3 Supabase queries. Billing remains
 // authoritative and rejects stale/paused/exhausted campaigns at charge time.
 const CANDIDATE_CACHE_TTL_MS = 3_000;
+const CANDIDATE_REDIS_TTL_SECONDS = 10;
 const CANDIDATE_CACHE_MAX_ENTRIES = 12;
 type CandidateCacheEntry = {
   expiresAt: number;
@@ -290,7 +296,15 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
     CANDIDATE_CACHE.delete(oldestKey);
   }
 
-  const promise = loadCandidatesUncached(zone);
+  // Second tier: Redis, shared by every Worker isolate. The in-process map above
+  // only helps within one isolate, so on its own most requests still pay for the
+  // full candidate query. Billing re-checks budget and campaign state on every
+  // charge, so a few seconds of staleness here cannot overspend.
+  const promise = cachedGet(
+    `serve:candidates:v1:${zone.zoneFormat}`,
+    CANDIDATE_REDIS_TTL_SECONDS,
+    () => loadCandidatesUncached(zone) as unknown as Promise<never>,
+  ) as unknown as Promise<ServingCandidate[]>;
   CANDIDATE_CACHE.set(key, { expiresAt: now + CANDIDATE_CACHE_TTL_MS, promise });
   try {
     return await promise;
@@ -300,7 +314,32 @@ export async function loadCandidates(zone: ZoneContext): Promise<ServingCandidat
   }
 }
 
-async function creativeUrl(
+type CreativeUrl = { url: string; width: number | null; height: number | null };
+
+/**
+ * Creative lookup = a media_assets query plus a storage signing call, per ad, per
+ * request. Cache the result in-process (60s) and in Redis (10 min, shared by all
+ * isolates). Only successful lookups are cached, so a creative that becomes
+ * ready is picked up on the next request.
+ */
+async function creativeUrl(mediaAssetId: string): Promise<CreativeUrl | null> {
+  cleanupCreativeCache();
+  const local = CREATIVE_CACHE.get(mediaAssetId);
+  if (local) return { url: local.url, width: local.width, height: local.height };
+
+  const value = (await cachedGet(
+    creativeRedisKey(mediaAssetId),
+    CREATIVE_REDIS_TTL_SECONDS,
+    () => creativeUrlFromDb(mediaAssetId) as Promise<never>,
+  )) as unknown as CreativeUrl | null;
+
+  if (value) {
+    CREATIVE_CACHE.set(mediaAssetId, { ...value, _ts: Date.now() });
+  }
+  return value;
+}
+
+async function creativeUrlFromDb(
   mediaAssetId: string,
 ): Promise<{ url: string; width: number | null; height: number | null } | null> {
   cleanupCreativeCache();

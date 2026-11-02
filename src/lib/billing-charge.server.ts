@@ -8,6 +8,8 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { redis } from "@/lib/redis.server";
+
 import type { Database } from "@/integrations/supabase/types";
 import {
   amount,
@@ -77,6 +79,7 @@ export async function chargeAdEvent(input: ChargeInput): Promise<ChargeResult> {
  * campaigns before selection so we don't serve an impression we can't bill.
  */
 const FUNDED_ORG_CACHE_TTL_MS = 2_000;
+const FUNDED_REDIS_TTL_SECONDS = 5;
 const FUNDED_ORG_CACHE_MAX_ENTRIES = 2_000;
 const FUNDED_ORG_CACHE = new Map<string, { funded: boolean; expiresAt: number }>();
 
@@ -118,6 +121,32 @@ export async function fundedOrganizationIds(organizationIds: string[]): Promise<
     }
   }
 
+  // Shared tier: Redis flags per organization, so isolates don't each re-query
+  // wallets every 2s. Short TTL: a top-up is visible within seconds and the
+  // billing RPC stays authoritative against a stale "funded".
+  const stillMissing: string[] = [];
+  const sharedKeys = missing.map((id) => `serve:funded:v1:${id}`);
+  let shared: unknown[] | null = null;
+  if (redis && missing.length > 0) {
+    try {
+      shared = (await redis.mget<unknown[]>(...sharedKeys)) as unknown[];
+    } catch (error) {
+      console.warn("[billing] funded cache read failed", error instanceof Error ? error.message : error);
+    }
+  }
+  missing.forEach((organizationId, i) => {
+    const flag = shared?.[i];
+    if (flag === 1 || flag === "1" || flag === 0 || flag === "0") {
+      const isFunded = flag === 1 || flag === "1";
+      FUNDED_ORG_CACHE.set(organizationId, { funded: isFunded, expiresAt: now + FUNDED_ORG_CACHE_TTL_MS });
+      if (isFunded) funded.add(organizationId);
+    } else {
+      stillMissing.push(organizationId);
+    }
+  });
+  missing.length = 0;
+  missing.push(...stillMissing);
+
   if (missing.length === 0) return funded;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -146,6 +175,13 @@ export async function fundedOrganizationIds(organizationIds: string[]): Promise<
     const isFunded = fundedIds.has(organizationId);
     FUNDED_ORG_CACHE.set(organizationId, { funded: isFunded, expiresAt });
     if (isFunded) funded.add(organizationId);
+    if (redis) {
+      try {
+        await redis.setex(`serve:funded:v1:${organizationId}`, FUNDED_REDIS_TTL_SECONDS, isFunded ? "1" : "0");
+      } catch {
+        // cache write is best effort
+      }
+    }
   }
 
   return funded;

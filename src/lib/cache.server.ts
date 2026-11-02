@@ -49,6 +49,8 @@ export async function cachedGet<T extends JsonValue>(
   key: string,
   ttlSeconds: number,
   supplier: () => Promise<T>,
+  /** Skip the write when the serialized value is larger than this (Upstash caps requests at ~1MB). */
+  maxBytes = 800_000,
 ): Promise<T> {
   if (!redis) return supplier();
 
@@ -64,7 +66,12 @@ export async function cachedGet<T extends JsonValue>(
   const value = await supplier();
 
   try {
-    await redis.setex(key, ttlSeconds, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (serialized.length <= maxBytes) {
+      await redis.setex(key, ttlSeconds, serialized);
+    } else {
+      console.warn("[cache] value too large to cache", { key, bytes: serialized.length });
+    }
   } catch (err) {
     console.error("[cache] set failed", err);
   }
