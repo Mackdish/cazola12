@@ -215,12 +215,38 @@ export async function getCampaignDetail(ctx: Ctx, campaignId: string) {
   if (targeting.error) fail("We couldn't load targeting.");
   if (assets.error) fail("We couldn't load creatives.");
 
+  // Inputs for the "why isn't this serving" panel. A failed read yields null
+  // (unknown), which the panel treats as "don't claim anything", never as zero.
+  let walletBalance: number | null = null;
+  let spentToday: number | null = null;
+  try {
+    const [wallet, daily] = await Promise.all([
+      db
+        .from("wallets")
+        .select("balance_amount")
+        .eq("organization_id", campaign.data.organization_id)
+        .eq("currency", "KES")
+        .maybeSingle(),
+      db
+        .from("campaign_daily_stats" as never)
+        .select("spend")
+        .eq("campaign_id", campaignId)
+        .eq("date", new Date().toISOString().slice(0, 10))
+        .maybeSingle(),
+    ]);
+    if (!wallet.error) walletBalance = Number(wallet.data?.balance_amount ?? 0);
+    if (!daily.error) spentToday = Number((daily.data as { spend?: number } | null)?.spend ?? 0);
+  } catch {
+    // leave both unknown
+  }
+
   return {
     campaign: campaign.data,
     adGroups: groups.data ?? [],
     ads: ads.data ?? [],
     targeting: targeting.data ?? null,
     mediaAssets: assets.data ?? [],
+    delivery: { walletBalance, spentToday },
   };
 }
 
