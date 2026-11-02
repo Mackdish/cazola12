@@ -83,7 +83,7 @@ AS $$
     ON a.event_type = x.event_type AND a.request_id = x.request_id
   WHERE NOT EXISTS (
           SELECT 1 FROM public.campaign_spend s
-          WHERE s.request_id::text = x.request_id AND s.event_type = x.event_type
+          WHERE s.request_id::text = x.request_id AND s.event_type::text = x.event_type
         )
     AND (
           a.request_id IS NULL
@@ -176,7 +176,7 @@ AS $$
         AND i.created_at >= CURRENT_DATE - (GREATEST(_days, 1) - 1)
         AND i.created_at < now() - interval '10 minutes'
         AND NOT EXISTS (SELECT 1 FROM public.campaign_spend s
-                        WHERE s.request_id::text = i.request_id::text AND s.event_type = 'impression')
+                        WHERE s.request_id::text = i.request_id::text AND s.event_type::text = 'impression')
       UNION ALL
       SELECT k.created_at FROM public.clicks k
       JOIN public.campaigns c ON c.id = k.campaign_id
@@ -184,7 +184,7 @@ AS $$
         AND k.created_at >= CURRENT_DATE - (GREATEST(_days, 1) - 1)
         AND k.created_at < now() - interval '10 minutes'
         AND NOT EXISTS (SELECT 1 FROM public.campaign_spend s
-                        WHERE s.request_id::text = k.request_id::text AND s.event_type = 'click')
+                        WHERE s.request_id::text = k.request_id::text AND s.event_type::text = 'click')
     ) u GROUP BY 1
   )
   SELECT d.day,
