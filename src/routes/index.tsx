@@ -321,7 +321,7 @@ function Landing() {
                   "Easy integration",
                   "Multiple ad formats",
                   "Real-time statistics",
-                  "Reliable earnings",
+                  "Transparent earnings",
                   "Flexible ad zones",
                   "Payout management",
                 ].map((feature) => (
@@ -528,7 +528,7 @@ function Landing() {
               Local payments, through a trusted partner
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              TradeMall partners with PayzaAPI to support a reliable, locally focused payment experience for our growing African digital ecosystem.
+              TradeMall partners with PayzaAPI to support locally focused payment options for advertisers and publishers across Africa.
             </p>
           </Reveal>
 
