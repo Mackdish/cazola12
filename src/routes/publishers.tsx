@@ -10,7 +10,7 @@ export const Route = createFileRoute("/publishers")({
   head: () => pageMetadata({
     title: "Publishers — TradeMall",
     description:
-      "Monetize your website with TradeMall. Fast approval, simple integration, transparent earnings, and local payment options.",
+      "Monetize your website with TradeMall. Simple integration, transparent earnings, and local payment options.",
     path: "/publishers",
     image: "/trademall-logo.png",
   }),
@@ -28,8 +28,8 @@ function PublishersPage() {
               Turn your website traffic into revenue.
             </h1>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Join publishers across Africa who monetize their websites with TradeMall. Fast
-              approval, one-line integration, transparent earnings, and reliable payments.
+              Join publishers across Africa who monetize their websites with TradeMall.
+              One-line integration, transparent earnings, and local payment options.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 px-8">
@@ -49,13 +49,13 @@ function PublishersPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="size-5 text-accent" />
-                  Fast Website Approval
+                  Website Verification
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Submit your domain and get verified quickly. Our streamlined process gets your
-                  site approved and ready to serve ads without unnecessary delays.
+                  Submit your domain and verify ownership. Once your site is reviewed and approved,
+                  it is ready to serve ads.
                 </p>
               </CardContent>
             </Card>
@@ -129,8 +129,8 @@ function PublishersPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Receive payouts through payment methods designed for African publishers. Fast,
-                  reliable, and transparent.
+                  Receive payouts through payment methods designed for African publishers, with every
+                  earning visible in your dashboard.
                 </p>
               </CardContent>
             </Card>
@@ -142,7 +142,7 @@ function PublishersPage() {
             </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                "Fast website approval",
+                "Simple website verification",
                 "Simple one-line integration",
                 "Transparent earnings",
                 "Local payment options",

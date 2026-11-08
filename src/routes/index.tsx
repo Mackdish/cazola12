@@ -155,7 +155,7 @@ function Landing() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-11 px-8">
-                  <Link to="/auth">
+                  <Link to="/publishers">
                     Earn as a publisher
                     <ChevronRight className="ml-1.5 size-4" />
                   </Link>
@@ -576,7 +576,7 @@ function Landing() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" className="h-11 px-8">
                 <Link to="/auth">
-                  Start Advertising
+                  Launch your first campaign
                   <ChevronRight className="ml-1.5 size-4" />
                 </Link>
               </Button>
@@ -586,8 +586,8 @@ function Landing() {
                 variant="outline"
                 className="h-11 border-white/20 bg-white/5 px-8 text-white hover:bg-white/10 hover:text-white"
               >
-                <Link to="/auth">
-                  Monetize Your Website
+                <Link to="/publishers">
+                  Earn as a publisher
                   <ArrowRight className="ml-1.5 size-4" />
                 </Link>
               </Button>

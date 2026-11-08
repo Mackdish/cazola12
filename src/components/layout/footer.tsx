@@ -96,7 +96,7 @@ export function Footer() {
             © {new Date().getFullYear()} TradeMall. All rights reserved.
           </p>
           <p className="text-xs text-slate-500">
-            Built for Africa's digital advertising ecosystem.
+            Advertising for African audiences.
           </p>
         </div>
       </div>

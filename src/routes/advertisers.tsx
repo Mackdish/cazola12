@@ -20,7 +20,7 @@ export const Route = createFileRoute("/advertisers")({
   head: () => pageMetadata({
     title: "Advertisers — TradeMall",
     description:
-      "Reach the right audience across Africa with TradeMall. Targeted campaigns, real-time analytics, and brand-safe inventory.",
+      "Launch targeted ad campaigns across Africa with TradeMall. Choose your audience, pay per click or per thousand impressions, and track results live.",
     path: "/advertisers",
     image: "/trademall-logo.png",
   }),
@@ -35,17 +35,17 @@ function AdvertisersPage() {
           <div className="max-w-3xl">
             <p className="text-eyebrow">For Advertisers</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-              Reach the Right Audience
+              Reach African customers on the sites they already visit.
             </h1>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Run targeted campaigns across Africa with precision. Reach users by country, county,
-              city, device, browser, OS, and website category. Track performance in real time and
-              protect your brand.
+              Target by country, county, city, device, browser, OS and website category. Set a
+              budget you control, pay per click (CPC) or per thousand impressions (CPM), and follow
+              results in real time.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 px-8">
                 <Link to="/auth">
-                  Start Advertising
+                  Launch your first campaign
                   <ChevronRight className="ml-1.5 size-4" />
                 </Link>
               </Button>
@@ -187,7 +187,7 @@ function AdvertisersPage() {
               <div className="mt-6">
                 <Button asChild size="lg" className="h-11 px-8">
                   <Link to="/auth">
-                    Start Advertising
+                    Launch your first campaign
                     <ChevronRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
