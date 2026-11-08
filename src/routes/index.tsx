@@ -37,9 +37,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () =>
     pageMetadata({
-      title: "TradeMall — Built for Africa's Digital Ecosystem",
+      title: "TradeMall — Advertise to African Audiences",
       description:
-        "TradeMall is a premium digital advertising platform built for Africa. Advertise to local audiences or monetize your website with transparent, data-driven tools.",
+        "Launch targeted ad campaigns across Kenya, Nigeria, South Africa and more. Pay per click or per thousand impressions and track results live. Website owners can monetize their traffic too.",
       path: "/",
       image: "/trademall-logo.png",
     }),
@@ -60,7 +60,7 @@ const ADVERTISER_STEPS = [
   {
     icon: TrendingUp,
     title: "Reach your customers",
-    description: "Your ads go live across our verified publisher network instantly.",
+    description: "Once approved, your ads go live across our verified publisher network.",
   },
 ];
 
@@ -68,7 +68,7 @@ const PUBLISHER_STEPS = [
   {
     icon: Globe,
     title: "Add your website",
-    description: "Submit your domain for verification and get approved fast.",
+    description: "Submit your domain, verify ownership, and get reviewed.",
   },
   {
     icon: Settings,
@@ -134,29 +134,29 @@ function Landing() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:py-28">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
             <div className="max-w-2xl">
-              <p className="text-eyebrow">Built for Africa's digital ecosystem</p>
+              <p className="text-eyebrow">Advertising for African audiences</p>
               <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-                Local audiences. <span className="text-accent">Local advertisers.</span>
+                Reach African customers <span className="text-accent">on the sites they already visit.</span>
               </h1>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl text-muted-foreground">
-                Local payment options.
+                Pay per click or per thousand views.
               </h2>
               <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                TradeMall is the advertising marketplace built for Africa. Advertisers reach
-                targeted audiences across Kenya, Nigeria, South Africa, Uganda, Tanzania, Ghana, and
-                Rwanda. Publishers monetize their traffic with transparent earnings and local
-                payment options.
+                Choose your audience by country, city, device and website category across Kenya,
+                Nigeria, South Africa, Uganda, Tanzania, Ghana and Rwanda. Set a budget you control,
+                fund your wallet with local payment options, and track every impression and click
+                on one live dashboard.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="h-11 px-8">
                   <Link to="/auth">
-                    Start Advertising
+                    Launch your first campaign
                     <ChevronRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-11 px-8">
                   <Link to="/auth">
-                    Monetize Your Website
+                    Earn as a publisher
                     <ChevronRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
@@ -261,12 +261,12 @@ function Landing() {
             <Reveal>
               <p className="text-eyebrow">For Advertisers</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Put your business in front of the right audience.
+                Pay only for the audience you choose.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                Create targeted campaigns, choose from multiple ad formats, and reach customers by
-                country, city, device, and browser. Track every impression and click, plus spend and
-                CTR, from the same dashboard.
+                Build a campaign in minutes: pick your ad formats, target by country, city, device
+                and browser, and set a budget you control. Pay per click (CPC) or per thousand
+                impressions (CPM), then watch spend, clicks and CTR on one dashboard.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
@@ -312,9 +312,9 @@ function Landing() {
                 Turn your website traffic into revenue.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                Add your website, install an ad zone with one line of code, and start earning from
-                every visit. Get real-time statistics, reliable payments, and flexible ad zone
-                management.
+                Add your website, verify it, and paste one line of code to place an ad zone. Earn
+                from every impression and click, follow your earnings in real time, and manage
+                your zones and payouts from one dashboard.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
@@ -505,11 +505,11 @@ function Landing() {
           <Reveal className="text-center mb-12">
             <p className="text-eyebrow">Trust & Transparency</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Built on honest infrastructure
+              Transparent by design
             </h2>
             <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
-              TradeMall is designed with transparency at its core, for both sides of the
-              marketplace.
+              Clear pricing, verified publishers and tracked delivery, for advertisers and
+              publishers alike.
             </p>
           </Reveal>
           <Reveal delay={100}>
@@ -525,7 +525,7 @@ function Landing() {
           <Reveal className="text-center">
             <p className="text-eyebrow">Our Partner</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Powering seamless payments
+              Local payments, through a trusted partner
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
               TradeMall partners with PayzaAPI to support a reliable, locally focused payment experience for our growing African digital ecosystem.
@@ -567,11 +567,11 @@ function Landing() {
           <Reveal>
             <p className="text-eyebrow text-slate-400">Built for Africa</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Local audiences. Local advertisers. Local payment options.
+              Start reaching African customers today.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-slate-400">
-              From Nairobi to Lagos, Johannesburg to Kigali — start advertising or start monetizing
-              your website today.
+              From Nairobi to Lagos, Johannesburg to Kigali — launch your first campaign, or start
+              earning from your website.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" className="h-11 px-8">
