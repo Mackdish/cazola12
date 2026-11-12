@@ -300,6 +300,8 @@ async function bulkInsertImpressions(events: ImpressionEvent[]): Promise<any> {
 }
 
 async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> {
+  let fraudStatus: "normal" | "suspicious" | "blocked" | "review_required" = "normal";
+
   if (event.ip_address) {
     try {
       const evaluation = await evaluateImpressionFraud(supabaseAdmin as never, {
@@ -311,6 +313,7 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
         adZoneId: event.ad_zone_id,
         requestId: event.request_id,
       });
+      fraudStatus = evaluation.status;
       await recordFraudEvent(supabaseAdmin as never, evaluation, {
         eventType: "impression_fraud",
         actorType: "ip",
@@ -321,65 +324,75 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
         userAgent: event.user_agent ?? "",
         country: event.country ?? "",
       });
-    } catch {
-      // Fraud detection failure must not break impression recording
+    } catch (error) {
+      // Match the direct path's fail-open behavior when the fraud service itself
+      // is unavailable. A positive blocked verdict, however, always suppresses billing.
+      console.error("[impression-buffer] fraud evaluation failed", {
+        requestId: event.request_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  if (!event.is_likely_bot) {
-    const charge = await chargeAdEvent({
-      eventType: "impression",
-      requestId: event.request_id,
-      campaignId: event.campaign_id,
-      adId: event.ad_id,
-      publisherId: event.publisher_id,
-      websiteId: event.website_id,
-      adZoneId: event.ad_zone_id,
-    });
-
-    if (charge.ok) {
-      try {
-        const { data: targeting } = await supabaseAdmin
-          .from("campaign_targeting")
-          .select("frequency_cap")
-          .eq("campaign_id", event.campaign_id)
-          .maybeSingle();
-        const cap = targeting?.frequency_cap as { impressions: number; periodHours: number } | null;
-        if (cap) {
-          const { recordFrequencyCap } = await import("@/lib/frequency-cap.server");
-          const { deriveSessionId } = await import("@/lib/ad-serving-domain");
-          const sessionId = deriveSessionId({
-            ipAddress: event.ip_address ?? null,
-            userAgent: event.user_agent ?? null,
-            device: event.device as never,
-            os: event.operating_system as never,
-            browser: event.browser as never,
-          });
-          await recordFrequencyCap(sessionId, event.campaign_id, cap);
-        }
-      } catch (error) {
-        console.warn("[impression-buffer] frequency-cap record failed", {
-          campaignId: event.campaign_id,
-          error: error instanceof Error ? error.message : String(error),
+  const shouldSkipBilling = event.is_likely_bot === true || fraudStatus === "blocked";
+  if (shouldSkipBilling) {
+    if (fraudStatus === "blocked" && !event.is_likely_bot) {
+      const { error } = await supabaseAdmin
+        .from("impressions")
+        .update({ is_likely_bot: true })
+        .eq("request_id", event.request_id);
+      if (error) {
+        console.warn("[impression-buffer] failed to flag blocked impression", {
+          requestId: event.request_id,
+          error: error.message,
         });
       }
     }
-
-    // Only transient RPC errors should keep the stream message pending.
-    // Permanent business outcomes (duplicate, no funds, exhausted budget, etc.)
-    // are already resolved and must not be retried forever.
-    return charge.ok || charge.reason !== "error";
+    return true;
   }
 
-  if (typeof event.bot_score === "number" && event.bot_score >= 11 && event.bot_score <= 30) {
-    console.info("[ad] bot_score_tier_11_30", {
-      requestId: event.request_id,
-      campaignId: event.campaign_id,
-      botScore: event.bot_score,
-    });
+  const charge = await chargeAdEvent({
+    eventType: "impression",
+    requestId: event.request_id,
+    campaignId: event.campaign_id,
+    adId: event.ad_id,
+    publisherId: event.publisher_id,
+    websiteId: event.website_id,
+    adZoneId: event.ad_zone_id,
+  });
+
+  if (charge.ok) {
+    try {
+      const { data: targeting } = await supabaseAdmin
+        .from("campaign_targeting")
+        .select("frequency_cap")
+        .eq("campaign_id", event.campaign_id)
+        .maybeSingle();
+      const cap = targeting?.frequency_cap as { impressions: number; periodHours: number } | null;
+      if (cap) {
+        const { recordFrequencyCap } = await import("@/lib/frequency-cap.server");
+        const { deriveSessionId } = await import("@/lib/ad-serving-domain");
+        const sessionId = deriveSessionId({
+          ipAddress: event.ip_address ?? null,
+          userAgent: event.user_agent ?? null,
+          device: event.device_type as never,
+          os: event.operating_system as never,
+          browser: event.browser as never,
+        });
+        await recordFrequencyCap(sessionId, event.campaign_id, cap);
+      }
+    } catch (error) {
+      console.warn("[impression-buffer] frequency-cap record failed", {
+        campaignId: event.campaign_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
-  return true;
+  // Only transient RPC errors should keep the stream message pending.
+  // Permanent business outcomes (duplicate, no funds, exhausted budget, etc.)
+  // are already resolved and must not be retried forever.
+  return charge.ok || charge.reason !== "error";
 }
 
 // ---------------------------------------------------------------------------
