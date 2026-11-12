@@ -14,6 +14,7 @@ import { redis } from "@/lib/redis.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { evaluateImpressionFraud, recordFraudEvent } from "@/lib/fraud-detection.server";
 import { chargeAdEvent } from "@/lib/billing-charge.server";
+import { shouldBillImpression } from "@/lib/ad-event-policy";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -334,8 +335,7 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
     }
   }
 
-  const shouldSkipBilling = event.is_likely_bot === true || fraudStatus === "blocked";
-  if (shouldSkipBilling) {
+  if (!shouldBillImpression(fraudStatus, event.is_likely_bot)) {
     if (fraudStatus === "blocked" && !event.is_likely_bot) {
       const { error } = await supabaseAdmin
         .from("impressions")
