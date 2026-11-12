@@ -37,9 +37,9 @@ import {
 export const Route = createFileRoute("/")({
   head: () =>
     pageMetadata({
-      title: "TradeMall — Advertise to African Audiences",
+      title: "TradeMall — Global Digital Advertising Network",
       description:
-        "Launch targeted ad campaigns across Kenya, Nigeria, South Africa and more. Pay per click or per thousand impressions and track results live. Website owners can monetize their traffic too.",
+        "Launch targeted digital ad campaigns across supported markets worldwide. Choose CPC or CPM pricing, track campaign performance live, and help publishers monetize their websites.",
       path: "/",
       image: "/trademall-logo.png",
     }),
@@ -84,7 +84,7 @@ const PUBLISHER_STEPS = [
 
 const TARGETING_OPTIONS = [
   { icon: Globe2, label: "Country" },
-  { icon: MapPin, label: "County" },
+  { icon: MapPin, label: "Region / County" },
   { icon: MapPin, label: "City" },
   { icon: Smartphone, label: "Device" },
   { icon: Monitor, label: "Browser" },
@@ -134,18 +134,18 @@ function Landing() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:py-28">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
             <div className="max-w-2xl">
-              <p className="text-eyebrow">Advertising for African audiences</p>
+              <p className="text-eyebrow">A digital advertising network without borders</p>
               <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-                Reach African customers <span className="text-accent">on the sites they already visit.</span>
+                Reach the audiences that matter <span className="text-accent">wherever they are.</span>
               </h1>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl text-muted-foreground">
                 Pay per click or per thousand views.
               </h2>
               <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Choose your audience by country, city, device and website category across Kenya,
-                Nigeria, South Africa, Uganda, Tanzania, Ghana and Rwanda. Set a budget you control,
-                fund your wallet with local payment options, and track every impression and click
-                on one live dashboard.
+                Launch campaigns across the markets you want to reach. Choose audiences by country, city,
+                device and website category, set a budget you control, and track impressions and
+                clicks from one live dashboard. Publishers can also join the network and monetize
+                eligible website traffic.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="h-11 px-8">
@@ -421,7 +421,7 @@ function Landing() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {[
-                    { label: "Country", value: "Kenya, Nigeria, South Africa" },
+                    { label: "Country", value: "Your selected markets" },
                     { label: "Device", value: "Mobile, Desktop, Tablet" },
                     { label: "Browser", value: "Chrome, Safari, Firefox" },
                     { label: "OS", value: "Android, iOS, Windows, macOS" },
@@ -528,7 +528,7 @@ function Landing() {
               Local payments, through a trusted partner
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              TradeMall partners with PayzaAPI to support a reliable, locally focused payment experience for our growing African digital ecosystem.
+              Our partnership with PayzaAPI supports convenient local payment options for users in the markets it serves.
             </p>
           </Reveal>
 
@@ -565,13 +565,13 @@ function Landing() {
         />
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <Reveal>
-            <p className="text-eyebrow text-slate-400">Built for Africa</p>
+            <p className="text-eyebrow text-slate-400">Advertising without borders</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Start reaching African customers today.
+              Take your campaigns beyond borders.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-slate-400">
-              From Nairobi to Lagos, Johannesburg to Kigali — launch your first campaign, or start
-              earning from your website.
+              Reach audiences in the markets that matter to your business. Launch a campaign or start
+              monetizing your website with TradeMall.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" className="h-11 px-8">
@@ -593,7 +593,7 @@ function Landing() {
               </Button>
             </div>
             <div className="mt-10 flex flex-wrap justify-center gap-2.5">
-              {["Kenya", "Nigeria", "South Africa", "Uganda", "Tanzania", "Ghana", "Rwanda"].map(
+              {["For advertisers", "For publishers", "Country & city targeting", "CPC & CPM campaigns", "Website monetization"].map(
                 (country) => (
                   <span
                     key={country}
