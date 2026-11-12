@@ -944,13 +944,14 @@ export async function recordClick(
       .select("destination_url, status, approval_status")
       .eq("id", payload.adId)
       .maybeSingle(),
-    supabaseAdmin.from("impressions").select("id").eq("request_id", payload.rid).maybeSingle(),
+    supabaseAdmin.from("impressions").select("id, is_likely_bot").eq("request_id", payload.rid).maybeSingle(),
   ]);
 
   if (!ad || ad.status !== "active" || ad.approval_status !== "approved") return null;
   if (!isSafeDestination(ad.destination_url)) return null;
 
   let impressionId = impression?.id ?? null;
+  let impressionIsLikelyBot = impression?.is_likely_bot === true;
 
   // A click must never manufacture its own impression: doing so allows a
   // signed serving token to create a billable CPC event without a recorded
@@ -962,10 +963,11 @@ export async function recordClick(
       await flushImpressionBatch();
       const { data: flushedImpression } = await supabaseAdmin
         .from("impressions")
-        .select("id")
+        .select("id, is_likely_bot")
         .eq("request_id", payload.rid)
         .maybeSingle();
       impressionId = flushedImpression?.id ?? null;
+      impressionIsLikelyBot = flushedImpression?.is_likely_bot === true;
     } catch (error) {
       console.warn("[ad] buffered_click_impression_lookup_failed", {
         requestId: payload.rid,
@@ -977,6 +979,12 @@ export async function recordClick(
   if (!impressionId) {
     console.warn("[ad] click_without_impression_rejected", { requestId: payload.rid });
     return null;
+  }
+
+  // A fraud-blocked impression is not eligible to generate a CPC charge.
+  // Still redirect the visitor so the advertiser's destination remains usable.
+  if (impressionIsLikelyBot || isLikelyBot === true) {
+    return { destination: ad.destination_url };
   }
 
   const { error: clickError } = await supabaseAdmin.from("clicks").insert({
