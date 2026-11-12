@@ -329,3 +329,14 @@
     animation: none !important;
   }
 }
+
+/* Public website mobile alignment. Scoped to PublicLayout so dashboards stay unchanged. */
+@media (max-width: 639px) {
+  .public-page-content {
+    text-align: center;
+  }
+
+  .public-page-content [class*="max-w-"] {
+    margin-inline: auto;
+  }
+}
