@@ -32,6 +32,7 @@ import {
 } from "@/lib/fraud-detection.server";
 import { cacheDelete, cachedGet, cachedServePathGet } from "@/lib/cache.server";
 import { redis } from "@/lib/redis.server";
+import { shouldFlushBufferedImpression } from "@/lib/ad-event-policy";
 import {
   bufferImpression,
   type ImpressionEvent,
@@ -955,7 +956,7 @@ export async function recordClick(
   // signed serving token to create a billable CPC event without a recorded
   // impression beacon. If buffering is enabled, first give the durable stream
   // a chance to materialize and process the real impression event.
-  if (!impressionId && process.env["USE_BUFFERED_IMPRESSIONS"] === "true") {
+  if (shouldFlushBufferedImpression(Boolean(impressionId), process.env["USE_BUFFERED_IMPRESSIONS"] === "true")) {
     try {
       const { flushImpressionBatch } = await import("@/lib/impression-buffer.server");
       await flushImpressionBatch();
