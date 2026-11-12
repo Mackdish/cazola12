@@ -957,7 +957,12 @@ export async function recordClick(
   // signed serving token to create a billable CPC event without a recorded
   // impression beacon. If buffering is enabled, first give the durable stream
   // a chance to materialize and process the real impression event.
-  if (shouldFlushBufferedImpression(Boolean(impressionId), process.env["USE_BUFFERED_IMPRESSIONS"] === "true")) {
+  if (
+    shouldFlushBufferedImpression(
+      Boolean(impressionId),
+      process.env["USE_BUFFERED_IMPRESSIONS"] === "true",
+    )
+  ) {
     try {
       const { flushImpressionBatch } = await import("@/lib/impression-buffer.server");
       await flushImpressionBatch();
@@ -978,7 +983,9 @@ export async function recordClick(
 
   if (!impressionId) {
     console.warn("[ad] click_without_impression_rejected", { requestId: payload.rid });
-    return null;
+    // Preserve the visitor's navigation, but do not record or bill an
+    // unattributed click. A later impression flush cannot retroactively charge it.
+    return { destination: ad.destination_url };
   }
 
   // A fraud-blocked impression is not eligible to generate a CPC charge.
