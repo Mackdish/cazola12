@@ -32,6 +32,7 @@ import {
 } from "@/lib/fraud-detection.server";
 import { cacheDelete, cachedGet, cachedServePathGet } from "@/lib/cache.server";
 import { redis } from "@/lib/redis.server";
+import { shouldFlushBufferedImpression } from "@/lib/ad-event-policy";
 import {
   bufferImpression,
   type ImpressionEvent,
@@ -943,61 +944,55 @@ export async function recordClick(
       .select("destination_url, status, approval_status")
       .eq("id", payload.adId)
       .maybeSingle(),
-    supabaseAdmin.from("impressions").select("id").eq("request_id", payload.rid).maybeSingle(),
+    supabaseAdmin.from("impressions").select("id, is_likely_bot").eq("request_id", payload.rid).maybeSingle(),
   ]);
 
   if (!ad || ad.status !== "active" || ad.approval_status !== "approved") return null;
   if (!isSafeDestination(ad.destination_url)) return null;
 
   let impressionId = impression?.id ?? null;
+  let impressionIsLikelyBot = impression?.is_likely_bot === true;
 
-  // With buffered impressions enabled, the impression beacon can arrive before
-  // the flush worker has materialized the impression row. A click can happen
-  // in that short window and must not be rejected just because the async
-  // impression write has not caught up yet. Materialize the same signed event
-  // synchronously; the stream flush uses request_id idempotency and will ignore
-  // the duplicate row while still completing its billing/fraud processing.
-  if (!impressionId) {
-    const { data: ensured, error: ensureError } = await supabaseAdmin
-      .from("impressions")
-      .insert({
-        request_id: payload.rid,
-        ad_id: payload.adId,
-        campaign_id: payload.campaignId,
-        publisher_id: payload.publisherId,
-        website_id: payload.websiteId,
-        ad_zone_id: payload.zoneId,
-        device_type: payload.device as never,
-        browser: payload.browser as never,
-        operating_system: payload.os as never,
-        country: country ?? payload.country,
-        ip_address: ipAddress,
-        region: region ?? null,
-        bot_score: botScore ?? null,
-        is_likely_bot: isLikelyBot ?? false,
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (ensured?.id) {
-      impressionId = ensured.id;
-    } else if (ensureError?.code !== "23505") {
-      console.warn("[ad] click_impression_materialization_failed", {
-        requestId: payload.rid,
-        error: ensureError?.message ?? "unknown",
-      });
-      return null;
-    } else {
-      const { data: existing } = await supabaseAdmin
+  // A click must never manufacture its own impression: doing so allows a
+  // signed serving token to create a billable CPC event without a recorded
+  // impression beacon. If buffering is enabled, first give the durable stream
+  // a chance to materialize and process the real impression event.
+  if (
+    shouldFlushBufferedImpression(
+      Boolean(impressionId),
+      process.env["USE_BUFFERED_IMPRESSIONS"] === "true",
+    )
+  ) {
+    try {
+      const { flushImpressionBatch } = await import("@/lib/impression-buffer.server");
+      await flushImpressionBatch();
+      const { data: flushedImpression } = await supabaseAdmin
         .from("impressions")
-        .select("id")
+        .select("id, is_likely_bot")
         .eq("request_id", payload.rid)
         .maybeSingle();
-      impressionId = existing?.id ?? null;
+      impressionId = flushedImpression?.id ?? null;
+      impressionIsLikelyBot = flushedImpression?.is_likely_bot === true;
+    } catch (error) {
+      console.warn("[ad] buffered_click_impression_lookup_failed", {
+        requestId: payload.rid,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  if (!impressionId) return null;
+  if (!impressionId) {
+    console.warn("[ad] click_without_impression_rejected", { requestId: payload.rid });
+    // Preserve the visitor's navigation, but do not record or bill an
+    // unattributed click. A later impression flush cannot retroactively charge it.
+    return { destination: ad.destination_url };
+  }
+
+  // A fraud-blocked impression is not eligible to generate a CPC charge.
+  // Still redirect the visitor so the advertiser's destination remains usable.
+  if (impressionIsLikelyBot || isLikelyBot === true) {
+    return { destination: ad.destination_url };
+  }
 
   const { error: clickError } = await supabaseAdmin.from("clicks").insert({
     request_id: payload.rid,

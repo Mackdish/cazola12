@@ -47,6 +47,16 @@ export const Route = createFileRoute("/api/public/ad")({
           });
         }
 
+        // Publisher embeds are cross-origin browser requests. Requiring Origin
+        // prevents requests that omit the publisher context from silently
+        // bypassing the registered-domain comparison in serveAdInner().
+        if (!request.headers.get("origin")) {
+          return new Response(JSON.stringify({ ok: false, reason: "publisher_origin_required" }), {
+            status: 403,
+            headers: JSON_HEADERS,
+          });
+        }
+
         const {
           checkRateLimit,
           getRateLimitConfig,
