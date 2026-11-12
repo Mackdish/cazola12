@@ -346,6 +346,9 @@ async function processImpressionEvent(event: ImpressionEvent): Promise<boolean> 
           requestId: event.request_id,
           error: error.message,
         });
+        // Keep the stream entry pending so the fraud flag is retried before
+        // the event can be acknowledged.
+        return false;
       }
     }
     return true;
