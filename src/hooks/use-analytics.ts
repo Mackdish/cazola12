@@ -5,6 +5,7 @@ import {
   exportAdvertiserAnalytics,
   exportAdminAnalytics,
   exportPublisherAnalytics,
+  fetchAdminCampaignInsights,
   fetchAdvertiserAnalytics,
   fetchAdminAnalytics,
   fetchPublisherAnalytics,
@@ -91,5 +92,14 @@ export function useExportAdminAnalytics() {
   const fn = useServerFn(exportAdminAnalytics);
   return useMutation({
     mutationFn: (filters: AdminAnalyticsFilters) => fn({ data: filters }),
+  });
+}
+
+export function useAdminCampaignInsights(filters: AdminAnalyticsFilters | null) {
+  const fn = useServerFn(fetchAdminCampaignInsights);
+  return useQuery({
+    queryKey: ["admin", "campaign-insights", filters],
+    enabled: Boolean(filters?.dateRange),
+    queryFn: () => fn({ data: filters! }),
   });
 }
