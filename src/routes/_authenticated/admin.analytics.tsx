@@ -118,6 +118,11 @@ function Page() {
           <div className="flex flex-wrap items-center gap-2">
             <AnalyticsDateFilter value={dateRange} onChange={setDateRange} />
             <CsvExportButton onExport={handleExport} disabled={exportMutation.isPending} />
+            {campaignInsights.data && (
+              <Button variant="outline" onClick={() => downloadInsightsCsv(campaignInsights.data!, dateRange)}>
+                Export detailed report
+              </Button>
+            )}
           </div>
         }
       />
@@ -445,4 +450,53 @@ function InsightBreakdown({ title, rows }: { title: string; rows: { name: string
       </CardContent>
     </Card>
   );
+}
+
+
+function downloadInsightsCsv(
+  data: {
+    campaigns: CampaignInsightRow[];
+    countries: { name: string; impressions: number }[];
+    devices: { name: string; impressions: number }[];
+    browsers: { name: string; impressions: number }[];
+    operatingSystems: { name: string; impressions: number }[];
+    publishers: { name: string; impressions: number }[];
+  },
+  range: { from: string; to: string },
+) {
+  const escape = (value: string) => {
+    const text = value.replace(/"/g, '""');
+    return /[",\\n]/.test(text) ? `"${text}"` : text;
+  };
+  const lines = [
+    "Campaign performance",
+    "Campaign,Status,Objective,Impressions,Clicks,CTR,Conversions,Period spend,CPC,CPM,Remaining budget",
+    ...data.campaigns.map((row) => [
+      escape(row.name), escape(row.status), escape(row.objective ?? ""),
+      row.impressions, row.clicks, (row.ctr * 100).toFixed(2) + "%",
+      row.conversions, row.spentAmount.toFixed(2), row.cpc.toFixed(4),
+      row.cpm.toFixed(4), row.remainingBudget.toFixed(2),
+    ].join(",")),
+    "",
+    "Visitor countries",
+    "Country,Impressions",
+    ...data.countries.map((row) => [escape(row.name), row.impressions].join(",")),
+    "",
+    "Devices",
+    "Device,Impressions",
+    ...data.devices.map((row) => [escape(row.name), row.impressions].join(",")),
+    "",
+    "Browsers",
+    "Browser,Impressions",
+    ...data.browsers.map((row) => [escape(row.name), row.impressions].join(",")),
+    "",
+    "Operating systems",
+    "Operating system,Impressions",
+    ...data.operatingSystems.map((row) => [escape(row.name), row.impressions].join(",")),
+    "",
+    "Publisher websites",
+    "Website,Impressions",
+    ...data.publishers.map((row) => [escape(row.name), row.impressions].join(",")),
+  ];
+  downloadCsv(lines.join("\\n"), `admin-campaign-insights-${range.from}-to-${range.to}.csv`);
 }
