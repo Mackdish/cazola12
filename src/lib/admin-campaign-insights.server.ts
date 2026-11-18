@@ -67,12 +67,12 @@ export async function getAdminCampaignInsights(
       id: campaign.id, name: campaign.name, status: campaign.status,
       objective: campaign.objective, bidType: campaign.bid_type,
       bidAmount: Number(campaign.bid_amount ?? 0), dailyBudget: Number(campaign.daily_budget ?? 0),
-      totalBudget, spentAmount: spend || Number(campaign.spent_amount ?? 0),
+      totalBudget, spentAmount: spend,
       impressions, clicks, conversions: value.conversions,
       ctr: impressions ? round(clicks / impressions, 4) : 0,
       cpc: clicks ? round(spend / clicks, 4) : 0,
       cpm: impressions ? round((spend / impressions) * 1000, 4) : 0,
-      remainingBudget: round(Math.max(0, totalBudget - (spend || Number(campaign.spent_amount ?? 0)))),
+      remainingBudget: round(Math.max(0, totalBudget - Number(campaign.spent_amount ?? 0))),
       startDate: campaign.start_date, endDate: campaign.end_date, advertiserId: campaign.advertiser_id,
     };
   }).sort((a, b) => b.spendAmount - a.spendAmount);
