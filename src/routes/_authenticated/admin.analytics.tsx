@@ -22,7 +22,7 @@ import {
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { useAdminAnalytics, useExportAdminAnalytics } from "@/hooks/use-analytics";
+import { useAdminAnalytics, useAdminCampaignInsights, useExportAdminAnalytics } from "@/hooks/use-analytics";
 import { useBillingSettings } from "@/hooks/use-billing";
 import { format } from "date-fns";
 import type {
@@ -67,6 +67,7 @@ function Page() {
   const filters: AdminAnalyticsFilters = useMemo(() => ({ dateRange }), [dateRange]);
 
   const analytics = useAdminAnalytics(filters);
+  const campaignInsights = useAdminCampaignInsights(filters);
   const exportMutation = useExportAdminAnalytics();
   const currency = billing.data?.currency ?? "USD";
 
@@ -171,6 +172,8 @@ function Page() {
           <TabsTrigger value="publishers">Top publishers</TabsTrigger>
           <TabsTrigger value="advertisers">Top advertisers</TabsTrigger>
           <TabsTrigger value="campaigns">Top campaigns</TabsTrigger>
+          <TabsTrigger value="campaign-detail">Campaign intelligence</TabsTrigger>
+          <TabsTrigger value="audience">Audience & geography</TabsTrigger>
         </TabsList>
 
         <TabsContent value="time" className="space-y-4">
@@ -260,6 +263,32 @@ function Page() {
             formatCtr
             currency={currency}
           />
+        </TabsContent>
+
+        <TabsContent value="campaign-detail" className="space-y-4">
+          {campaignInsights.isLoading ? (
+            <LoadingState rows={4} label="Loading campaign intelligence" />
+          ) : campaignInsights.error ? (
+            <ErrorState title="Couldn't load campaign details" message={campaignInsights.error.message} onRetry={() => void campaignInsights.refetch()} />
+          ) : (
+            <CampaignIntelligenceTable campaigns={campaignInsights.data?.campaigns ?? []} currency={currency} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="audience" className="space-y-4">
+          {campaignInsights.isLoading ? (
+            <LoadingState rows={3} label="Loading audience insights" />
+          ) : campaignInsights.error ? (
+            <ErrorState title="Couldn't load audience insights" message={campaignInsights.error.message} onRetry={() => void campaignInsights.refetch()} />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <InsightBreakdown title="Visitor countries" rows={campaignInsights.data?.countries ?? []} />
+              <InsightBreakdown title="Devices" rows={campaignInsights.data?.devices ?? []} />
+              <InsightBreakdown title="Browsers" rows={campaignInsights.data?.browsers ?? []} />
+              <InsightBreakdown title="Operating systems" rows={campaignInsights.data?.operatingSystems ?? []} />
+              <InsightBreakdown title="Top publisher websites" rows={campaignInsights.data?.publishers ?? []} />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </WorkspaceGuard>
@@ -361,4 +390,59 @@ function downloadCsv(csv: string, filename: string) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+
+type CampaignInsightRow = {
+  id: string; name: string; status: string; objective: string | null;
+  bidType: string | null; bidAmount: number; dailyBudget: number; totalBudget: number;
+  spentAmount: number; impressions: number; clicks: number; conversions: number;
+  ctr: number; cpc: number; cpm: number; remainingBudget: number;
+  startDate: string | null; endDate: string | null; advertiserId: string | null;
+};
+
+function CampaignIntelligenceTable({ campaigns, currency }: { campaigns: CampaignInsightRow[]; currency: string }) {
+  if (campaigns.length === 0) return <EmptyState icon={<BarChart3 className="size-5" />} title="No campaigns found" description="Campaign records will appear here when available." />;
+  const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">All campaigns with delivery and budget performance for the selected date range. Budget totals reflect campaign configuration; delivery metrics use the selected period.</p>
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-[1180px] text-sm">
+          <thead><tr className="border-b bg-muted/40 text-left text-muted-foreground">
+            {["Campaign","Status","Objective","Impressions","Clicks","CTR","Conversions","Spend","CPC","CPM","Budget left"].map((label) => <th key={label} className="whitespace-nowrap px-3 py-3 font-medium">{label}</th>)}
+          </tr></thead>
+          <tbody>{campaigns.map((campaign) => <tr key={campaign.id} className="border-b last:border-0 hover:bg-muted/30">
+            <td className="max-w-[220px] px-3 py-3"><div className="truncate font-medium">{campaign.name}</div><div className="text-xs text-muted-foreground">{campaign.id.slice(0, 8)}</div></td>
+            <td className="px-3 py-3 capitalize">{campaign.status.replaceAll("_", " ")}</td>
+            <td className="px-3 py-3">{campaign.objective ?? "—"}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{campaign.impressions.toLocaleString()}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{campaign.clicks.toLocaleString()}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{(campaign.ctr * 100).toFixed(2)}%</td>
+            <td className="px-3 py-3 text-right tabular-nums">{campaign.conversions.toLocaleString()}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{money(campaign.spentAmount)}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{money(campaign.cpc)}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{money(campaign.cpm)}</td>
+            <td className="px-3 py-3 text-right tabular-nums">{money(campaign.remainingBudget)}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function InsightBreakdown({ title, rows }: { title: string; rows: { name: string; impressions: number; clicks: number; ctr: number }[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base font-semibold">{title}</CardTitle></CardHeader>
+      <CardContent>
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">No recorded data for this period.</p> : (
+          <div className="space-y-3">{rows.map((row) => <div key={row.name} className="flex items-center justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate font-medium">{row.name}</span>
+            <span className="shrink-0 text-right tabular-nums text-muted-foreground">{row.impressions.toLocaleString()} impressions</span>
+          </div>)}</div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
