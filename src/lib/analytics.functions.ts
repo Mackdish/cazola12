@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getAdminCampaignInsights } from "@/lib/admin-campaign-insights.server";
 import {
   buildAdvertiserCsv,
   buildAdminCsv,
@@ -135,3 +137,12 @@ export const exportAdminAnalytics = createServerFn({ method: "GET" })
       filename: `admin-analytics-${filters.dateRange.from}-to-${filters.dateRange.to}.csv`,
     }));
   });
+
+export const fetchAdminCampaignInsights = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) =>
+    z.object({ dateRange: dateRangeSchema }).parse(data),
+  )
+  .handler(({ data }) =>
+    getAdminCampaignInsights(supabaseAdmin as never, data),
+  );
