@@ -143,6 +143,14 @@ export const fetchAdminCampaignInsights = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
     z.object({ dateRange: dateRangeSchema }).parse(data),
   )
-  .handler(({ data }) =>
-    getAdminCampaignInsights(supabaseAdmin as never, data),
-  );
+  .handler(async ({ data, context }) => {
+    const { data: roles, error } = await context.supabase
+      .from("platform_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (error) throw new Error("Unable to verify platform access.");
+    if (!(roles ?? []).some((row) => row.role === "admin" || row.role === "super_admin")) {
+      throw new Error("Forbidden: platform administrator access is required.");
+    }
+    return getAdminCampaignInsights(supabaseAdmin as never, data);
+  });
