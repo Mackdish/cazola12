@@ -466,7 +466,7 @@ function downloadInsightsCsv(
 ) {
   const escape = (value: string) => {
     const text = value.replace(/"/g, '""');
-    return /[",\\n]/.test(text) ? `"${text}"` : text;
+    return /[",\n]/.test(text) ? `"${text}"` : text;
   };
   const lines = [
     "Campaign performance",
@@ -498,5 +498,5 @@ function downloadInsightsCsv(
     "Website,Impressions",
     ...data.publishers.map((row) => [escape(row.name), row.impressions].join(",")),
   ];
-  downloadCsv(lines.join("\\n"), `admin-campaign-insights-${range.from}-to-${range.to}.csv`);
+  downloadCsv(lines.join("\n"), `admin-campaign-insights-${range.from}-to-${range.to}.csv`);
 }
