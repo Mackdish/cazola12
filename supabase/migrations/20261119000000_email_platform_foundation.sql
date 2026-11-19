@@ -160,8 +160,8 @@ begin
   with candidates as (
     select id
     from public.email_queue
-    where status = 'queued'
-      and scheduled_at <= now()
+    where ((status = 'queued' and scheduled_at <= now())
+        or (status = 'processing' and claimed_at < now() - interval '10 minutes'))
       and attempts < max_attempts
     order by scheduled_at asc, created_at asc
     limit greatest(1, least(coalesce(_limit, 25), 100))
