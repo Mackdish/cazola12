@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign } from "@/lib/email.functions";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/email")({
   head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
@@ -22,10 +22,16 @@ function EmailWorkspace() {
   const [tab, setTab] = useState("overview");
   const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
   const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
+  const [scheduleAt, setScheduleAt] = useState(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16));
+  const [automation, setAutomation] = useState({ slug: "", name: "", audience: "both" as "advertiser"|"publisher"|"both", triggerEvent: "", category: "transactional" as "transactional"|"marketing", templateSlug: "", delayMinutes: 0 });
   const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
   const saveTemplate = useMutation({ mutationFn: () => saveEmailTemplate(template), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const saveCampaign = useMutation({ mutationFn: () => createEmailCampaignDraft(campaign), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const sendCampaign = useMutation({ mutationFn: (campaignId: string) => sendEmailCampaign({ campaignId }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const saveAutomation = useMutation({ mutationFn: () => createEmailAutomation(automation), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const scheduleCampaign = useMutation({ mutationFn: (campaignId: string) => scheduleEmailCampaign({ campaignId, scheduledAt: new Date(scheduleAt).toISOString() }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const changeCampaignStatus = useMutation({ mutationFn: (input: {campaignId:string;status:"paused"|"cancelled"}) => updateEmailCampaignStatus(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const removeSuppression = useMutation({ mutationFn: (email:string) => removeEmailSuppression({email}), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const toggleAutomation = useMutation({ mutationFn: (input: { id: string; enabled: boolean }) => setEmailAutomationEnabled(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const data = query.data;
   const templates = useMemo(() => data?.templates ?? [], [data]);
@@ -73,6 +79,17 @@ function EmailWorkspace() {
       </CardContent></Card>
     </div>}
     {tab === "automations" && <Card><CardHeader><CardTitle className="text-base">Lifecycle automations</CardTitle></CardHeader><CardContent className="space-y-3">
+      <div className="grid gap-3 rounded-lg border p-4 md:grid-cols-2">
+        <Input placeholder="automation-slug" value={automation.slug} onChange={e => setAutomation(v => ({...v,slug:e.target.value}))} />
+        <Input placeholder="Automation name" value={automation.name} onChange={e => setAutomation(v => ({...v,name:e.target.value}))} />
+        <Input placeholder="Trigger event, e.g. advertiser.profile.created" value={automation.triggerEvent} onChange={e => setAutomation(v => ({...v,triggerEvent:e.target.value}))} />
+        <Input placeholder="Template slug" value={automation.templateSlug} onChange={e => setAutomation(v => ({...v,templateSlug:e.target.value}))} />
+        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={automation.audience} onChange={e => setAutomation(v => ({...v,audience:e.target.value as any}))}><option value="both">Both audiences</option><option value="advertiser">Advertisers</option><option value="publisher">Publishers</option></select>
+        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={automation.category} onChange={e => setAutomation(v => ({...v,category:e.target.value as any}))}><option value="transactional">Transactional</option><option value="marketing">Marketing</option></select>
+        <Input type="number" min="0" placeholder="Delay in minutes" value={automation.delayMinutes} onChange={e => setAutomation(v => ({...v,delayMinutes:Number(e.target.value)}))} />
+        <Button disabled={saveAutomation.isPending} onClick={() => saveAutomation.mutate()}>Create paused automation</Button>
+        {saveAutomation.error && <p className="text-sm text-destructive">{saveAutomation.error.message}</p>}
+      </div>
       {(data.automations ?? []).map((item: any) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
         <div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.trigger_event} · {item.audience} · {item.email_automation_steps?.length ?? 0} steps</p></div>
         <Button size="sm" variant={item.is_enabled ? "default" : "outline"} disabled={toggleAutomation.isPending} onClick={() => toggleAutomation.mutate({id:item.id,enabled:!item.is_enabled})}>{item.is_enabled ? "Enabled · Pause" : "Paused · Enable"}</Button>
@@ -81,10 +98,11 @@ function EmailWorkspace() {
     </CardContent></Card>}
     {tab === "campaigns" && <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
       <Card><CardHeader><CardTitle className="text-base">Campaign drafts</CardTitle></CardHeader><CardContent className="space-y-3">
-        {(data.campaigns ?? []).map((item: any) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.subject} · {item.audience} · {item.status}</p></div><Button size="sm" disabled={sendCampaign.isPending || !["draft","paused","scheduled"].includes(item.status)} onClick={() => sendCampaign.mutate(item.id)}>Queue opted-in audience</Button></div>)}
+        {(data.campaigns ?? []).map((item: any) => <div key={item.id} className="space-y-2 rounded-lg border p-3"><div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.subject} · {item.audience} · {item.status}{item.scheduled_at ? " · " + new Date(item.scheduled_at).toLocaleString() : ""}</p></div><div className="flex flex-wrap gap-2">{["draft","paused","scheduled"].includes(item.status) && <Button size="sm" onClick={() => sendCampaign.mutate(item.id)}>Send now to opted-in audience</Button>}{["draft","paused"].includes(item.status) && <Button size="sm" variant="outline" onClick={() => scheduleCampaign.mutate(item.id)}>Schedule at selected time</Button>}{["sending","scheduled"].includes(item.status) && <Button size="sm" variant="outline" onClick={() => changeCampaignStatus.mutate({campaignId:item.id,status:"paused"})}>Pause</Button>}{!["sent","cancelled"].includes(item.status) && <Button size="sm" variant="destructive" onClick={() => changeCampaignStatus.mutate({campaignId:item.id,status:"cancelled"})}>Cancel</Button>}</div></div>)}
         {(data.campaigns ?? []).length === 0 && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Create campaign draft</CardTitle></CardHeader><CardContent className="space-y-3">
+        <Input type="datetime-local" value={scheduleAt} onChange={e => setScheduleAt(e.target.value)} />
         <Input placeholder="Campaign name" value={campaign.name} onChange={e => setCampaign(v => ({...v,name:e.target.value}))} />
         <Input placeholder="Subject" value={campaign.subject} onChange={e => setCampaign(v => ({...v,subject:e.target.value}))} />
         <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={campaign.audience} onChange={e => setCampaign(v => ({...v,audience:e.target.value as "advertiser"|"publisher"|"both"}))}><option value="both">Advertisers and publishers</option><option value="advertiser">Advertisers</option><option value="publisher">Publishers</option></select>
@@ -97,7 +115,7 @@ function EmailWorkspace() {
       <Rows title="Recent queue items" rows={data.queue ?? []} columns={["recipient_email","category","status","attempts"]} />
       <Rows title="Delivery events" rows={data.logs ?? []} columns={["recipient_email","event_type","provider_message_id","occurred_at"]} />
     </div>}
-    {tab === "suppression" && <Card><CardHeader><CardTitle className="text-base">Suppression overview</CardTitle></CardHeader><CardContent><p className="text-3xl font-semibold">{data.metrics.suppressed}</p><p className="text-sm text-muted-foreground">Addresses blocked after a bounce, complaint, or admin suppression. Resend webhook events update this list automatically.</p></CardContent></Card>}
+    {tab === "suppression" && <Card><CardHeader><CardTitle className="text-base">Suppression list · {data.metrics.suppressed}</CardTitle></CardHeader><CardContent className="space-y-2"><p className="text-sm text-muted-foreground">Remove a suppression only after resolving the underlying delivery or complaint issue. A future bounce or complaint will suppress the address again.</p>{(data.suppressions ?? []).map((row:any) => <div key={row.email} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"><div><p className="font-medium">{row.email}</p><p className="text-xs text-muted-foreground">{row.reason} · {row.source} · {new Date(row.created_at).toLocaleString()}</p></div><Button size="sm" variant="outline" disabled={removeSuppression.isPending} onClick={() => removeSuppression.mutate(row.email)}>Remove suppression</Button></div>)}{(data.suppressions ?? []).length === 0 && <p className="text-sm text-muted-foreground">No suppressed addresses in the latest 100 records.</p>}{removeSuppression.error && <p className="text-sm text-destructive">{removeSuppression.error.message}</p>}</CardContent></Card>}
   </WorkspaceGuard>;
 }
 function Metric({title,value,note}:{title:string;value:number;note:string}) {
