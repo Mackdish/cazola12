@@ -77,7 +77,7 @@ function EmailWorkspace() {
         <Input placeholder="Email subject" value={template.subject} onChange={e => setTemplate(v => ({...v,subject:e.target.value}))} />
         <Textarea rows={8} value={template.htmlBody} onChange={e => setTemplate(v => ({...v,htmlBody:e.target.value}))} />
         <Textarea rows={3} placeholder="Plain text fallback (optional)" value={template.textBody} onChange={e => setTemplate(v => ({...v,textBody:e.target.value}))} />
-        <p className="text-xs text-muted-foreground">Variables use double braces, e.g. {{'{{firstName}}'}}. Values are HTML-escaped.</p>
+        <p className="text-xs text-muted-foreground">Variables use double braces, e.g. {"{{firstName}}"}. Values are HTML-escaped.</p>
         <Button disabled={saveTemplate.isPending} onClick={() => saveTemplate.mutate()}><Send className="mr-2 size-4" />{saveTemplate.isPending ? "Saving…" : "Save and activate"}</Button>
         {saveTemplate.error && <p className="text-sm text-destructive">{saveTemplate.error.message}</p>}
       </CardContent></Card>
