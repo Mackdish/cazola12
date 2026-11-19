@@ -18,7 +18,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
     const db = await getAdminDb();
-    const [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions] = await Promise.all([
+    const [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions, suppressionRows] = await Promise.all([
       db.from("email_templates").select("*").order("updated_at", { ascending: false }),
       db.from("email_automations").select("*, email_automation_steps(id,step_order,delay_minutes,template_id,is_enabled)").order("created_at", { ascending: false }),
       db.from("email_campaigns").select("*").order("created_at", { ascending: false }).limit(50),
@@ -27,7 +27,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "queued"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "sent"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
-      db.from("email_suppressions").select("email", { count: "exact", head: true }),
+      db.from("email_suppressions").select("email,reason,source,created_at").order("created_at", { ascending: false }).limit(100),
     ]);
     for (const result of [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions]) {
       if (result.error) throw new Error("Unable to load email workspace data.");
@@ -35,7 +35,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
     return {
       templates: templates.data ?? [], automations: automations.data ?? [],
       campaigns: campaigns.data ?? [], queue: queue.data ?? [], logs: logs.data ?? [],
-      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, suppressed: suppressions.count ?? 0 },
+      suppressions: suppressionRows.data ?? [],\n      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, suppressed: suppressionRows.data?.length ?? 0 },
     };
   });
 
@@ -109,4 +109,71 @@ export const sendEmailCampaign = createServerFn({ method: "POST" })
     await assertEmailAdmin(context.userId, context.supabase);
     const { queueEmailCampaign } = await import("@/lib/email-delivery.server");
     return queueEmailCampaign(data.campaignId);
+  });
+
+export const createEmailAutomation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({
+    slug: z.string().min(3).max(100).regex(/^[a-z0-9-]+$/),
+    name: z.string().min(2).max(120), description: z.string().max(500).optional(),
+    audience: z.enum(["advertiser", "publisher", "both"]),
+    triggerEvent: z.string().min(3).max(120),
+    category: z.enum(["transactional", "marketing"]),
+    templateSlug: z.string().min(3).max(100),
+    delayMinutes: z.number().int().min(0).max(525600),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
+    const { data: template, error: templateError } = await db.from("email_templates")
+      .select("id,category").eq("slug", data.templateSlug).eq("is_active", true).maybeSingle();
+    if (templateError || !template || template.category !== data.category) throw new Error("Choose an active template with the same email category.");
+    const { data: automation, error } = await db.from("email_automations").insert({
+      slug: data.slug, name: data.name, description: data.description ?? null,
+      audience: data.audience, trigger_event: data.triggerEvent, category: data.category,
+      is_enabled: false, created_by: context.userId,
+    }).select("id").single();
+    if (error) throw new Error("Unable to create automation.");
+    const { error: stepError } = await db.from("email_automation_steps").insert({
+      automation_id: automation.id, step_order: 1, delay_minutes: data.delayMinutes,
+      template_id: template.id, is_enabled: true,
+    });
+    if (stepError) {
+      await db.from("email_automations").delete().eq("id", automation.id);
+      throw new Error("Unable to create automation step.");
+    }
+    return { ok: true };
+  });
+
+export const updateEmailCampaignStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({
+    campaignId: z.string().uuid(), status: z.enum(["scheduled", "paused", "cancelled"]),
+    scheduledAt: z.string().datetime().optional(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
+    const { error } = await db.from("email_campaigns").update({
+      status: data.status, scheduled_at: data.scheduledAt ?? null, updated_at: new Date().toISOString(),
+    }).eq("id", data.campaignId);
+    if (error) throw new Error("Unable to update campaign.");
+    if (data.status === "cancelled" || data.status === "paused") {
+      await db.from("email_queue").update({ status: "cancelled", last_error: "Campaign " + data.status + " by an administrator." })
+        .like("idempotency_key", "campaign:" + data.campaignId + ":%").eq("status", "queued");
+      await db.from("email_campaign_recipients").update({ status: "skipped" })
+        .eq("campaign_id", data.campaignId).in("status", ["pending", "queued"]);
+    }
+    return { ok: true };
+  });
+
+export const removeEmailSuppression = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ email: z.string().email() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
+    const { error } = await db.from("email_suppressions").delete().eq("email", data.email.toLowerCase());
+    if (error) throw new Error("Unable to remove suppression.");
+    return { ok: true };
   });
