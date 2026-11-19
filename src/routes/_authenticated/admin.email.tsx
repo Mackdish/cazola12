@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression, sendEmailTemplateTest } from "@/lib/email.functions";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression, sendEmailTemplateTest, retryFailedEmail, retryFailedEmails } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/email")({
   head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
@@ -23,6 +23,7 @@ function EmailWorkspace() {
   const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
   const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
   const [testRecipient, setTestRecipient] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduleAt, setScheduleAt] = useState(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16));
   const [automation, setAutomation] = useState({ slug: "", name: "", audience: "both" as "advertiser"|"publisher"|"both", triggerEvent: "", category: "transactional" as "transactional"|"marketing", templateSlug: "", delayMinutes: 0 });
   const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
@@ -33,6 +34,8 @@ function EmailWorkspace() {
   const saveAutomation = useMutation({ mutationFn: () => createEmailAutomation({ data: automation }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const scheduleCampaign = useMutation({ mutationFn: (campaignId: string) => scheduleEmailCampaign({ data: { campaignId, scheduledAt: new Date(scheduleAt).toISOString() } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const changeCampaignStatus = useMutation({ mutationFn: (input: {campaignId:string;status:"paused"|"cancelled"}) => updateEmailCampaignStatus({ data: input }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const retryOne = useMutation({ mutationFn: (id: string) => retryFailedEmail({ data: { id } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const retryBatch = useMutation({ mutationFn: () => retryFailedEmails({ data: { limit: 100 } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const removeSuppression = useMutation({ mutationFn: (email:string) => removeEmailSuppression({ data: {email} }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const toggleAutomation = useMutation({ mutationFn: (input: { id: string; enabled: boolean }) => setEmailAutomationEnabled({ data: input }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const data = query.data;
@@ -52,6 +55,8 @@ function EmailWorkspace() {
     {tab === "overview" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric title="Queued" value={data.metrics.queued} note="Waiting for worker" />
       <Metric title="Sent" value={data.metrics.sent} note="Accepted by Resend" />
+      <Metric title="Delivered" value={data.metrics.delivered} note="Confirmed by Resend webhook" />
+      <Metric title="Processing" value={data.metrics.processing} note="Currently claimed by worker" />
       <Metric title="Failed" value={data.metrics.failed} note="Terminal failures" />
       <Metric title="Suppressed" value={data.metrics.suppressed} note="Bounced or complained" />
       <Card className="sm:col-span-2 xl:col-span-4"><CardHeader><CardTitle className="text-base">Delivery setup</CardTitle></CardHeader><CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -77,6 +82,8 @@ function EmailWorkspace() {
         <Input placeholder="Email subject" value={template.subject} onChange={e => setTemplate(v => ({...v,subject:e.target.value}))} />
         <Textarea rows={8} value={template.htmlBody} onChange={e => setTemplate(v => ({...v,htmlBody:e.target.value}))} />
         <Textarea rows={3} placeholder="Plain text fallback (optional)" value={template.textBody} onChange={e => setTemplate(v => ({...v,textBody:e.target.value}))} />
+        <Button type="button" variant="outline" onClick={() => setPreviewOpen(v => !v)}>{previewOpen ? "Hide preview" : "Preview email"}</Button>
+        {previewOpen && <div className="space-y-2 rounded-lg border p-3"><p className="text-sm font-medium">Subject: {template.subject || "(no subject)"}</p><iframe title="Email template preview" sandbox="" srcDoc={template.htmlBody.replace(/{{\s*firstName\s*}}/g, "TradeMall user")} className="h-80 w-full rounded-md bg-white" /></div>}
         <p className="text-xs text-muted-foreground">Variables use double braces, e.g. {"{{firstName}}"}. Values are HTML-escaped.</p>
         <Button disabled={saveTemplate.isPending} onClick={() => saveTemplate.mutate()}><Send className="mr-2 size-4" />{saveTemplate.isPending ? "Saving…" : "Save and activate"}</Button>
         {saveTemplate.error && <p className="text-sm text-destructive">{saveTemplate.error.message}</p>}
@@ -115,10 +122,7 @@ function EmailWorkspace() {
         {saveCampaign.error && <p className="text-sm text-destructive">{saveCampaign.error.message}</p>}{sendCampaign.error && <p className="text-sm text-destructive">{sendCampaign.error.message}</p>}{sendCampaign.data && <p className="text-sm text-muted-foreground">Queued {sendCampaign.data.queued} opted-in recipients; skipped {sendCampaign.data.skipped}.</p>}
       </CardContent></Card>
     </div>}
-    {tab === "queue" && <div className="grid gap-5 xl:grid-cols-2">
-      <Rows title="Recent queue items" rows={data.queue ?? []} columns={["recipient_email","category","status","attempts"]} />
-      <Rows title="Delivery events" rows={data.logs ?? []} columns={["recipient_email","event_type","provider_message_id","occurred_at"]} />
-    </div>}
+    {tab === "queue" && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-medium">Failed message recovery</p><p className="text-sm text-muted-foreground">Retry up to 100 failed jobs. Consent and suppression checks run again before delivery.</p></div><Button disabled={retryBatch.isPending || data.metrics.failed === 0} onClick={() => retryBatch.mutate()}>{retryBatch.isPending ? "Queueing retries…" : "Retry up to 100 failed"}</Button></div>{retryBatch.error && <p className="text-sm text-destructive">{retryBatch.error.message}</p>}{retryBatch.data && <p className="text-sm text-muted-foreground">Queued {retryBatch.data.retried} failed messages for retry.</p>}<div className="grid gap-5 xl:grid-cols-2"><Rows title="Recent queue items" rows={data.queue ?? []} columns={["recipient_email","category","status","attempts","last_error"]} /><Rows title="Delivery events" rows={data.logs ?? []} columns={["recipient_email","event_type","provider_message_id","occurred_at"]} /></div>{(data.queue ?? []).filter((row: any) => row.status === "failed").map((row: any) => <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div className="min-w-0"><p className="font-medium">{row.recipient_email}</p><p className="text-xs text-muted-foreground">{row.last_error || "No failure detail recorded"} · {row.attempts} attempts</p></div><Button size="sm" variant="outline" disabled={retryOne.isPending} onClick={() => retryOne.mutate(row.id)}>Retry</Button></div>)}{retryOne.error && <p className="text-sm text-destructive">{retryOne.error.message}</p>}</div>}
     {tab === "suppression" && <Card><CardHeader><CardTitle className="text-base">Suppression list · {data.metrics.suppressed}</CardTitle></CardHeader><CardContent className="space-y-2"><p className="text-sm text-muted-foreground">Remove a suppression only after resolving the underlying delivery or complaint issue. A future bounce or complaint will suppress the address again.</p>{(data.suppressions ?? []).map((row:any) => <div key={row.email} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"><div><p className="font-medium">{row.email}</p><p className="text-xs text-muted-foreground">{row.reason} · {row.source} · {new Date(row.created_at).toLocaleString()}</p></div><Button size="sm" variant="outline" disabled={removeSuppression.isPending} onClick={() => removeSuppression.mutate(row.email)}>Remove suppression</Button></div>)}{(data.suppressions ?? []).length === 0 && <p className="text-sm text-muted-foreground">No suppressed addresses in the latest 100 records.</p>}{removeSuppression.error && <p className="text-sm text-destructive">{removeSuppression.error.message}</p>}</CardContent></Card>}
   </WorkspaceGuard>;
 }
