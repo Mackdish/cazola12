@@ -169,6 +169,48 @@ export const updateEmailCampaignStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const retryFailedEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
+    const { data: job, error: lookupError } = await db.from("email_queue")
+      .select("id,status").eq("id", data.id).maybeSingle();
+    if (lookupError) throw new Error("Unable to inspect the email job.");
+    if (!job || job.status !== "failed") throw new Error("Only failed email jobs can be retried.");
+    const { error } = await db.from("email_queue").update({
+      status: "queued", attempts: 0, max_attempts: 5, claimed_at: null,
+      scheduled_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString(),
+    }).eq("id", data.id).eq("status", "failed");
+    if (error) throw new Error("Unable to queue the email retry.");
+    await db.from("email_logs").insert({
+      queue_id: data.id, recipient_email: "retry-request",
+      category: "transactional", event_type: "manual_retry_requested",
+      event_payload: { admin_user_id: context.userId },
+    });
+    return { ok: true };
+  });
+
+export const retryFailedEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ limit: z.number().int().min(1).max(100).default(50) }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
+    const { data: jobs, error: lookupError } = await db.from("email_queue")
+      .select("id").eq("status", "failed").order("updated_at", { ascending: true }).limit(data.limit);
+    if (lookupError) throw new Error("Unable to find failed email jobs.");
+    const ids = (jobs ?? []).map((job: { id: string }) => job.id);
+    if (!ids.length) return { retried: 0 };
+    const { data: updated, error } = await db.from("email_queue").update({
+      status: "queued", attempts: 0, max_attempts: 5, claimed_at: null,
+      scheduled_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString(),
+    }).in("id", ids).eq("status", "failed").select("id");
+    if (error) throw new Error("Unable to queue failed email retries.");
+    return { retried: updated?.length ?? 0 };
+  });
+
 export const removeEmailSuppression = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: unknown) => z.object({ email: z.string().email() }).parse(data))
