@@ -164,8 +164,8 @@ begin
       and scheduled_at <= now()
       and attempts < max_attempts
     order by scheduled_at asc, created_at asc
-    for update skip locked
     limit greatest(1, least(coalesce(_limit, 25), 100))
+    for update skip locked
   )
   update public.email_queue q
   set status = 'processing',
@@ -226,6 +226,3 @@ create policy email_preferences_update_own
   on public.email_preferences for update to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
-create policy email_preferences_platform_staff_read
-  on public.email_preferences for select to authenticated
-  using (public.is_platform_staff(auth.uid()));
