@@ -120,6 +120,8 @@ export async function saveAdvertiserProfile(
 ) {
   await assertOrgMember(ctx, input.organizationId);
   const db = await admin();
+  const { data: existingProfile } = await db.from("advertisers").select("id").eq("organization_id", input.organizationId).maybeSingle();
+  const isNewProfile = !existingProfile;
   const { data, error } = await db.rpc("ensure_advertiser", {
     _organization_id: input.organizationId,
     _business_name: input.businessName,
@@ -135,7 +137,7 @@ export async function saveAdvertiserProfile(
     fail("We couldn't save your advertiser profile. Please try again.");
   }
   const advertiser = Array.isArray(data) ? data[0]! : data!;
-  try {
+  if (isNewProfile) try {
     const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
     await dispatchEmailEvent({
       eventKey: "advertiser-profile-created:" + advertiser.id,
