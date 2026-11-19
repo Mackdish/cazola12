@@ -156,6 +156,44 @@ export async function processEmailQueue(batchSize = 25) {
   }
   return result;
 }
+export async function dispatchEmailEvent(input: {
+  eventKey: string; eventName: string; userId: string; audience: "advertiser" | "publisher" | "both";
+  organizationId?: string; payload?: Record<string, unknown>;
+}): Promise<{ queued: number; duplicate: boolean }> {
+  const { data: event, error: eventError } = await db.from("email_events").insert({
+    event_key: input.eventKey, event_name: input.eventName, user_id: input.userId,
+    organization_id: input.organizationId ?? null, audience: input.audience, payload: input.payload ?? {},
+  }).select("id").single();
+  if (eventError?.code === "23505") return { queued: 0, duplicate: true };
+  if (eventError) throw eventError;
+  const [{ data: userResult, error: userError }, { data: automations, error: automationError }] = await Promise.all([
+    db.auth.admin.getUserById(input.userId),
+    db.from("email_automations").select("id,category,audience,email_automation_steps(id,delay_minutes,template_id,is_enabled)")
+      .eq("trigger_event", input.eventName).eq("is_enabled", true),
+  ]);
+  if (userError || automationError) throw new Error("Unable to evaluate email automations.");
+  const recipient = userResult?.user?.email;
+  if (!recipient) return { queued: 0, duplicate: false };
+  let queued = 0;
+  for (const automation of automations ?? []) {
+    if (automation.audience !== "both" && automation.audience !== input.audience) continue;
+    for (const step of (automation.email_automation_steps ?? []).filter((item: any) => item.is_enabled)) {
+      const { error } = await db.from("email_queue").upsert({
+        event_id: event.id, user_id: input.userId, recipient_email: recipient.toLowerCase(),
+        template_id: step.template_id, category: automation.category,
+        payload: input.payload ?? {},
+        idempotency_key: input.eventKey + ":" + automation.id + ":" + step.id,
+        scheduled_at: new Date(Date.now() + Number(step.delay_minutes ?? 0) * 60_000).toISOString(),
+        status: "queued",
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+      if (error) throw error;
+      queued++;
+    }
+  }
+  await db.from("email_events").update({ processed_at: new Date().toISOString() }).eq("id", event.id);
+  return { queued, duplicate: false };
+}
+
 export async function queueEmailCampaign(campaignId: string): Promise<{ queued: number; skipped: number }> {
   const { data: campaign, error: campaignError } = await db.from("email_campaigns")
     .select("*").eq("id", campaignId).maybeSingle();
