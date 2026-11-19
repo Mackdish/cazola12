@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/email/unsubscribe")({
       const body = contentType.includes("application/json")
         ? await request.json() as { token?: string }
         : Object.fromEntries(new URLSearchParams(await request.text()).entries());
-      const token = String((body as { token?: string }).token ?? "");
+      const token = String((body as { token?: string }).token ?? new URL(request.url).searchParams.get("token") ?? "");
       try { await unsubscribe(token); return jsonResponse({ ok: true, unsubscribed: true }); }
       catch { return jsonResponse({ ok: false, error: "invalid_unsubscribe_token" }, 400); }
     },
