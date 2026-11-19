@@ -11,6 +11,7 @@ import {
   Image,
   LayoutDashboard,
   Megaphone,
+  Mail,
   Receipt,
   Rocket,
   Settings,
@@ -86,6 +87,7 @@ export const WORKSPACE_NAV: Record<Workspace, NavSection[]> = {
     {
       title: "Platform",
       items: [
+        { label: "Email", to: "/admin/email", icon: Mail },
         { label: "Settings", to: "/admin/settings", icon: Settings },
         { label: "Blog", to: "/admin/blog", icon: FileText },
         { label: "Fraud Center", to: "/admin/fraud", icon: ShieldAlert },
