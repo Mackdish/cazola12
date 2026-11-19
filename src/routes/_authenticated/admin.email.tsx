@@ -1,0 +1,110 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Mail, Send, FileText, Workflow, Megaphone, ListChecks, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/patterns/page-header";
+import { LoadingState, ErrorState } from "@/components/patterns/states";
+import { WorkspaceGuard } from "@/components/shell/workspace-guard";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft } from "@/lib/email.functions";
+
+export const Route = createFileRoute("/_authenticated/admin/email")({
+  head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
+  component: EmailWorkspace,
+});
+
+type Template = { slug: string; name: string; category: "transactional" | "marketing"; subject: string; html_body: string; text_body?: string | null; is_active: boolean; version: number };
+function EmailWorkspace() {
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState("overview");
+  const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
+  const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
+  const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
+  const saveTemplate = useMutation({ mutationFn: () => saveEmailTemplate(template), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const saveCampaign = useMutation({ mutationFn: () => createEmailCampaignDraft(campaign), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const toggleAutomation = useMutation({ mutationFn: (input: { id: string; enabled: boolean }) => setEmailAutomationEnabled(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const data = query.data;
+  const templates = useMemo(() => data?.templates ?? [], [data]);
+  if (query.isLoading) return <WorkspaceGuard workspace="admin"><LoadingState rows={5} label="Loading email workspace" /></WorkspaceGuard>;
+  if (query.error || !data) return <WorkspaceGuard workspace="admin"><ErrorState title="Couldn't load email workspace" message={query.error?.message ?? "Please try again."} onRetry={() => void query.refetch()} /></WorkspaceGuard>;
+
+  const tabs = [
+    ["overview", "Overview", Mail], ["templates", "Templates", FileText], ["automations", "Automations", Workflow],
+    ["campaigns", "Campaigns", Megaphone], ["queue", "Queue & logs", ListChecks], ["suppression", "Suppressions", ShieldAlert],
+  ] as const;
+  return <WorkspaceGuard workspace="admin">
+    <PageHeader eyebrow="Platform Admin" title="Email workspace" description="Manage transactional notifications, lifecycle automations, broadcasts and delivery health." />
+    <div className="flex flex-wrap gap-2 border-b pb-3">
+      {tabs.map(([key,label,Icon]) => <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}><Icon className="mr-2 size-4" />{label}</Button>)}
+    </div>
+    {tab === "overview" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <Metric title="Queued" value={data.metrics.queued} note="Waiting for worker" />
+      <Metric title="Sent" value={data.metrics.sent} note="Accepted by Resend" />
+      <Metric title="Failed" value={data.metrics.failed} note="Terminal failures" />
+      <Metric title="Suppressed" value={data.metrics.suppressed} note="Bounced or complained" />
+      <Card className="sm:col-span-2 xl:col-span-4"><CardHeader><CardTitle className="text-base">Delivery setup</CardTitle></CardHeader><CardContent className="space-y-2 text-sm text-muted-foreground">
+        <p>Queue worker: POST /api/worker/email-delivery (Bearer EMAIL_WORKER_SECRET)</p>
+        <p>Resend webhook: POST /api/webhooks/resend (signed with RESEND_WEBHOOK_SECRET)</p>
+        <p>Schedule the worker every minute. Marketing messages require an explicit email_preferences consent record.</p>
+      </CardContent></Card>
+    </div>}
+    {tab === "templates" && <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+      <Card><CardHeader><CardTitle className="text-base">Template library</CardTitle></CardHeader><CardContent className="space-y-3">
+        {templates.map((item: Template) => <div key={item.slug} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+          <div className="min-w-0"><p className="truncate font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.slug} · {item.category} · v{item.version}</p></div>
+          <Button size="sm" variant="outline" onClick={() => setTemplate({ slug: item.slug, name: item.name, category: item.category, subject: item.subject, htmlBody: item.html_body, textBody: item.text_body ?? "" })}>Edit</Button>
+        </div>)}
+        {templates.length === 0 && <p className="text-sm text-muted-foreground">No templates created yet.</p>}
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Create or update template</CardTitle></CardHeader><CardContent className="space-y-3">
+        <Input placeholder="template-slug" value={template.slug} onChange={e => setTemplate(v => ({...v,slug:e.target.value}))} />
+        <Input placeholder="Template name" value={template.name} onChange={e => setTemplate(v => ({...v,name:e.target.value}))} />
+        <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={template.category} onChange={e => setTemplate(v => ({...v,category:e.target.value as "transactional"|"marketing"}))}><option value="transactional">Transactional</option><option value="marketing">Marketing</option></select>
+        <Input placeholder="Email subject" value={template.subject} onChange={e => setTemplate(v => ({...v,subject:e.target.value}))} />
+        <Textarea rows={8} value={template.htmlBody} onChange={e => setTemplate(v => ({...v,htmlBody:e.target.value}))} />
+        <Textarea rows={3} placeholder="Plain text fallback (optional)" value={template.textBody} onChange={e => setTemplate(v => ({...v,textBody:e.target.value}))} />
+        <p className="text-xs text-muted-foreground">Variables use double braces, e.g. {{'{{firstName}}'}}. Values are HTML-escaped.</p>
+        <Button disabled={saveTemplate.isPending} onClick={() => saveTemplate.mutate()}><Send className="mr-2 size-4" />{saveTemplate.isPending ? "Saving…" : "Save and activate"}</Button>
+        {saveTemplate.error && <p className="text-sm text-destructive">{saveTemplate.error.message}</p>}
+      </CardContent></Card>
+    </div>}
+    {tab === "automations" && <Card><CardHeader><CardTitle className="text-base">Lifecycle automations</CardTitle></CardHeader><CardContent className="space-y-3">
+      {(data.automations ?? []).map((item: any) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+        <div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.trigger_event} · {item.audience} · {item.email_automation_steps?.length ?? 0} steps</p></div>
+        <Button size="sm" variant={item.is_enabled ? "default" : "outline"} disabled={toggleAutomation.isPending} onClick={() => toggleAutomation.mutate({id:item.id,enabled:!item.is_enabled})}>{item.is_enabled ? "Enabled · Pause" : "Paused · Enable"}</Button>
+      </div>)}
+      {(data.automations ?? []).length === 0 && <p className="text-sm text-muted-foreground">No automations seeded yet. Automation controls will appear here as event journeys are added.</p>}
+    </CardContent></Card>}
+    {tab === "campaigns" && <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+      <Card><CardHeader><CardTitle className="text-base">Campaign drafts</CardTitle></CardHeader><CardContent className="space-y-3">
+        {(data.campaigns ?? []).map((item: any) => <div key={item.id} className="rounded-lg border p-3"><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.subject} · {item.audience} · {item.status}</p></div>)}
+        {(data.campaigns ?? []).length === 0 && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Create campaign draft</CardTitle></CardHeader><CardContent className="space-y-3">
+        <Input placeholder="Campaign name" value={campaign.name} onChange={e => setCampaign(v => ({...v,name:e.target.value}))} />
+        <Input placeholder="Subject" value={campaign.subject} onChange={e => setCampaign(v => ({...v,subject:e.target.value}))} />
+        <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={campaign.audience} onChange={e => setCampaign(v => ({...v,audience:e.target.value as "advertiser"|"publisher"|"both"}))}><option value="both">Advertisers and publishers</option><option value="advertiser">Advertisers</option><option value="publisher">Publishers</option></select>
+        <Textarea rows={8} value={campaign.htmlBody} onChange={e => setCampaign(v => ({...v,htmlBody:e.target.value}))} />
+        <Button disabled={saveCampaign.isPending} onClick={() => saveCampaign.mutate()}>{saveCampaign.isPending ? "Saving…" : "Save draft"}</Button>
+        {saveCampaign.error && <p className="text-sm text-destructive">{saveCampaign.error.message}</p>}
+      </CardContent></Card>
+    </div>}
+    {tab === "queue" && <div className="grid gap-5 xl:grid-cols-2">
+      <Rows title="Recent queue items" rows={data.queue ?? []} columns={["recipient_email","category","status","attempts"]} />
+      <Rows title="Delivery events" rows={data.logs ?? []} columns={["recipient_email","event_type","provider_message_id","occurred_at"]} />
+    </div>}
+    {tab === "suppression" && <Card><CardHeader><CardTitle className="text-base">Suppression overview</CardTitle></CardHeader><CardContent><p className="text-3xl font-semibold">{data.metrics.suppressed}</p><p className="text-sm text-muted-foreground">Addresses blocked after a bounce, complaint, or admin suppression. Resend webhook events update this list automatically.</p></CardContent></Card>}
+  </WorkspaceGuard>;
+}
+function Metric({title,value,note}:{title:string;value:number;note:string}) {
+  return <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">{title}</p><p className="mt-1 text-3xl font-semibold tabular-nums">{value.toLocaleString()}</p><p className="mt-1 text-xs text-muted-foreground">{note}</p></CardContent></Card>;
+}
+function Rows({title,rows,columns}:{title:string;rows:any[];columns:string[]}) {
+  return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="space-y-2">
+    {rows.slice(0,30).map((row,i) => <div key={row.id ?? i} className="rounded border p-2 text-xs">{columns.map(key => <p key={key}><span className="text-muted-foreground">{key}: </span>{String(row[key] ?? "—")}</p>)}</div>)}
+    {rows.length === 0 && <p className="text-sm text-muted-foreground">No records yet.</p>}
+  </CardContent></Card>;
+}
