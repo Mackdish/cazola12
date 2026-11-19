@@ -111,6 +111,72 @@ export async function processEmailQueue(batchSize = 25) {
   }
   return result;
 }
+export async function queueEmailCampaign(campaignId: string): Promise<{ queued: number; skipped: number }> {
+  const { data: campaign, error: campaignError } = await db.from("email_campaigns")
+    .select("*").eq("id", campaignId).maybeSingle();
+  if (campaignError) throw campaignError;
+  if (!campaign || !["draft", "scheduled", "paused"].includes(campaign.status)) {
+    throw new Error("Campaign is not in a sendable state.");
+  }
+  const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (usersError) throw usersError;
+  const userIds = (users?.users ?? []).map((user: any) => user.id);
+  if (userIds.length === 0) return { queued: 0, skipped: 0 };
+
+  const [{ data: memberships, error: membershipError }, { data: preferences, error: preferencesError }, { data: suppressions, error: suppressionError }] = await Promise.all([
+    db.from("organization_members").select("user_id, organizations!inner(type)").eq("status", "active").in("user_id", userIds),
+    db.from("email_preferences").select("user_id,marketing_enabled,unsubscribed_at").in("user_id", userIds),
+    db.from("email_suppressions").select("email"),
+  ]);
+  if (membershipError || preferencesError || suppressionError) throw new Error("Unable to resolve campaign audience.");
+  const audienceIds = new Set((memberships ?? [])
+    .filter((row: any) => campaign.audience === "both" || row.organizations?.type === campaign.audience)
+    .map((row: any) => row.user_id));
+  const optedIn = new Set((preferences ?? [])
+    .filter((row: any) => row.marketing_enabled && !row.unsubscribed_at).map((row: any) => row.user_id));
+  const suppressedEmails = new Set((suppressions ?? []).map((row: any) => String(row.email).toLowerCase()));
+  const eligible = (users?.users ?? []).filter((user: any) =>
+    user.email && audienceIds.has(user.id) && optedIn.has(user.id) && !suppressedEmails.has(user.email.toLowerCase()));
+  const { data: template, error: templateError } = await db.from("email_templates").upsert({
+    slug: "campaign-" + campaign.id, name: campaign.name, category: "marketing",
+    subject: campaign.subject, html_body: campaign.html_body, text_body: campaign.text_body ?? null,
+    is_active: true, updated_at: new Date().toISOString(),
+  }, { onConflict: "slug" }).select("id").single();
+  if (templateError) throw templateError;
+
+  const recipients = eligible.map((user: any) => ({
+    campaign_id: campaign.id, user_id: user.id, recipient_email: user.email.toLowerCase(), status: "queued",
+  }));
+  if (recipients.length) {
+    const { error: recipientError } = await db.from("email_campaign_recipients")
+      .upsert(recipients, { onConflict: "campaign_id,recipient_email", ignoreDuplicates: true });
+    if (recipientError) throw recipientError;
+  }
+  const queueRows = eligible.map((user: any) => ({
+    user_id: user.id, recipient_email: user.email.toLowerCase(), template_id: template.id,
+    category: "marketing", payload: { firstName: user.user_metadata?.first_name ?? user.user_metadata?.full_name ?? "there" },
+    idempotency_key: "campaign:" + campaign.id + ":" + user.id, status: "queued",
+  }));
+  if (queueRows.length) {
+    const { error: queueError } = await db.from("email_queue")
+      .upsert(queueRows, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    if (queueError) throw queueError;
+    const { data: queuedRows, error: queuedError } = await db.from("email_queue")
+      .select("id,user_id").eq("category", "marketing").like("idempotency_key", "campaign:" + campaign.id + ":%");
+    if (queuedError) throw queuedError;
+    for (const row of queuedRows ?? []) {
+      await db.from("email_campaign_recipients").update({ queue_id: row.id, status: "queued" })
+        .eq("campaign_id", campaign.id).eq("user_id", row.user_id);
+    }
+  }
+  await db.from("email_campaigns").update({
+    status: eligible.length ? "sending" : "sent",
+    started_at: new Date().toISOString(),
+    completed_at: eligible.length ? null : new Date().toISOString(),
+  }).eq("id", campaign.id);
+  return { queued: eligible.length, skipped: (users?.users ?? []).length - eligible.length };
+}
+
 export async function recordResendWebhook(event: Record<string, any>): Promise<void> {
   const eventId = String(event.id ?? "");
   if (!eventId) throw new Error("Webhook event ID is missing.");
