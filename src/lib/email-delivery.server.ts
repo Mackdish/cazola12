@@ -12,7 +12,9 @@ let client: Resend | null = null;
 function getResend(): Resend {
   if (!client) {
     if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured.");
-    client = new Resend(process.env.RESEND_API_KEY);
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error("RESEND_API_KEY is not configured.");
+    client = new Resend(apiKey);
   }
   return client;
 }
@@ -94,6 +96,23 @@ export async function processEmailQueue(batchSize = 25) {
   const result = { claimed: (jobs ?? []).length, sent: 0, skipped: 0, failed: 0 };
   for (const job of jobs ?? []) {
     try {
+      const campaignMatch = String(job.idempotency_key ?? "").match(/^campaign:([0-9a-f-]+):/i);
+      if (campaignMatch) {
+        const { data: campaign } = await db.from("email_campaigns").select("status").eq("id", campaignMatch[1]).maybeSingle();
+        if (campaign?.status === "paused") {
+          await db.from("email_queue").update({
+            status: "queued", scheduled_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", job.id);
+          continue;
+        }
+        if (campaign?.status === "cancelled") {
+          await db.from("email_queue").update({ status: "cancelled", last_error: "Campaign cancelled." }).eq("id", job.id);
+          await syncCampaignRecipient(job.id, "skipped");
+          result.skipped++;
+          continue;
+        }
+      }
       const email = String(job.recipient_email).trim().toLowerCase();
       if (await suppressed(email)) {
         await db.from("email_queue").update({ status: "cancelled", last_error: "Recipient suppressed." }).eq("id", job.id);
@@ -292,7 +311,7 @@ export async function queueEmailCampaign(campaignId: string): Promise<{ queued: 
       .upsert(queueRows, { onConflict: "idempotency_key", ignoreDuplicates: true });
     if (queueError) throw queueError;
     const { data: queuedRows, error: queuedError } = await db.from("email_queue")
-      .select("id,user_id").eq("category", "marketing").like("idempotency_key", "campaign:" + campaign.id + ":%");
+      .select("id,user_id").eq("category", "marketing").eq("status", "queued").like("idempotency_key", "campaign:" + campaign.id + ":%");
     if (queuedError) throw queuedError;
     for (const row of queuedRows ?? []) {
       await db.from("email_campaign_recipients").update({ queue_id: row.id, status: "queued" })
