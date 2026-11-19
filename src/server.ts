@@ -131,6 +131,17 @@ export default {
       console.error("[impression-buffer] scheduled flush failed", error);
     }
 
+    // Email delivery: drain scheduled lifecycle messages and campaign broadcasts every minute.
+    try {
+      if (process.env.RESEND_API_KEY) {
+        const { processEmailQueue } = await import("@/lib/email-delivery.server");
+        const emailResult = await processEmailQueue(25);
+        if (emailResult.claimed > 0) console.info("[email] scheduled delivery complete", emailResult);
+      }
+    } catch (error) {
+      console.error("[email] scheduled delivery failed", error);
+    }
+
     try {
       const now = new Date();
       if (now.getUTCHours() === 3) {
