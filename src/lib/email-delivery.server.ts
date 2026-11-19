@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { createHmac } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type EmailInput = {
@@ -26,6 +27,17 @@ function render(source: string, values: Record<string, unknown>): string {
     return escapeHtml(value);
   });
 }
+function createUnsubscribeUrl(userId: string, email: string): string {
+  const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET;
+  if (!secret) throw new Error("EMAIL_UNSUBSCRIBE_SECRET is not configured.");
+  const payload = Buffer.from(JSON.stringify({
+    userId, email: email.toLowerCase(), exp: Date.now() + 90 * 24 * 60 * 60 * 1000,
+  })).toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("hex");
+  const origin = process.env.APP_BASE_URL ?? "https://trademall.co.ke";
+  return origin + "/api/email/unsubscribe?token=" + payload + "." + signature;
+}
+
 async function suppressed(email: string): Promise<boolean> {
   const { data, error } = await db.from("email_suppressions").select("email")
     .eq("email", email.toLowerCase()).maybeSingle();
@@ -96,12 +108,22 @@ export async function processEmailQueue(batchSize = 25) {
       if (templateError) throw templateError;
       if (!template) throw new Error("Email template no longer exists.");
       const values = (job.payload ?? {}) as Record<string, unknown>;
+      const unsubscribeUrl = job.category === "marketing" && job.user_id
+        ? createUnsubscribeUrl(job.user_id, email) : undefined;
+      const renderedHtml = render(template.html_body, { ...values, unsubscribeUrl });
+      const html = unsubscribeUrl
+        ? renderedHtml + `<div style="font:12px Arial,sans-serif;color:#777;margin-top:28px"><p>You received this because you opted in to TradeMall updates.</p><p><a href="${escapeHtml(unsubscribeUrl)}">Unsubscribe</a></p></div>`
+        : renderedHtml;
+      const renderedText = template.text_body ? render(template.text_body, { ...values, unsubscribeUrl }) : undefined;
       const response = await getResend().emails.send({
         from: process.env.EMAIL_FROM ?? "TradeMall <no-reply@trademall.co.ke>",
         to: [email], subject: job.subject_override || render(template.subject, values),
-        html: render(template.html_body, values),
-        ...(template.text_body ? { text: render(template.text_body, values) } : {}),
-        headers: { "Idempotency-Key": job.idempotency_key },
+        html,
+        ...(renderedText ? { text: unsubscribeUrl ? renderedText + "\\nUnsubscribe: " + unsubscribeUrl : renderedText } : {}),
+        headers: {
+          "Idempotency-Key": job.idempotency_key,
+          ...(unsubscribeUrl ? { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : {}),
+        },
       });
       if (response.error) throw new Error(response.error.message);
       await db.from("email_queue").update({
