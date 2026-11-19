@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-const db = supabaseAdmin as any;
+async function getAdminDb() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as any;
+}
 async function assertEmailAdmin(userId: string, supabase: any) {
   const { data, error } = await supabase.from("platform_roles").select("role").eq("user_id", userId);
   if (error) throw new Error("Unable to verify platform permissions.");
@@ -16,6 +17,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
     const [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions] = await Promise.all([
       db.from("email_templates").select("*").order("updated_at", { ascending: false }),
       db.from("email_automations").select("*, email_automation_steps(id,step_order,delay_minutes,template_id,is_enabled)").order("created_at", { ascending: false }),
@@ -50,6 +52,7 @@ export const saveEmailTemplate = createServerFn({ method: "POST" })
   .validator((data: unknown) => templateSchema.parse(data))
   .handler(async ({ data, context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
     const { data: existing, error: lookupError } = await db.from("email_templates")
       .select("id,version").eq("slug", data.slug).maybeSingle();
     if (lookupError) throw new Error("Unable to check the existing template.");
@@ -72,6 +75,7 @@ export const setEmailAutomationEnabled = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ id: z.string().uuid(), enabled: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
     const { error } = await db.from("email_automations")
       .update({ is_enabled: data.enabled, updated_at: new Date().toISOString() }).eq("id", data.id);
     if (error) throw new Error("Unable to update automation.");
@@ -88,6 +92,7 @@ export const createEmailCampaignDraft = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data, context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
+    const db = await getAdminDb();
     const { error } = await db.from("email_campaigns").insert({
       name: data.name, subject: data.subject, html_body: data.htmlBody,
       audience: data.audience, segment: data.segment ?? {}, status: "draft",
