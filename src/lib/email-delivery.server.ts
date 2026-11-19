@@ -190,12 +190,19 @@ export async function dispatchEmailEvent(input: {
   eventKey: string; eventName: string; userId: string; audience: "advertiser" | "publisher" | "both";
   organizationId?: string; payload?: Record<string, unknown>;
 }): Promise<{ queued: number; duplicate: boolean }> {
-  const { data: event, error: eventError } = await db.from("email_events").insert({
+  const { data: insertedEvent, error: eventError } = await db.from("email_events").insert({
     event_key: input.eventKey, event_name: input.eventName, user_id: input.userId,
     organization_id: input.organizationId ?? null, audience: input.audience, payload: input.payload ?? {},
   }).select("id").single();
-  if (eventError?.code === "23505") return { queued: 0, duplicate: true };
-  if (eventError) throw eventError;
+  let eventId = insertedEvent?.id as string | undefined;
+  const duplicate = eventError?.code === "23505";
+  if (duplicate) {
+    const { data: existingEvent, error: existingError } = await db.from("email_events")
+      .select("id").eq("event_key", input.eventKey).single();
+    if (existingError) throw existingError;
+    eventId = existingEvent.id;
+  } else if (eventError) throw eventError;
+  if (!eventId) throw new Error("Unable to persist email event.");
   const [{ data: userResult, error: userError }, { data: automations, error: automationError }] = await Promise.all([
     db.auth.admin.getUserById(input.userId),
     db.from("email_automations").select("id,category,audience,email_automation_steps(id,delay_minutes,template_id,is_enabled)")
@@ -203,13 +210,13 @@ export async function dispatchEmailEvent(input: {
   ]);
   if (userError || automationError) throw new Error("Unable to evaluate email automations.");
   const recipient = userResult?.user?.email;
-  if (!recipient) return { queued: 0, duplicate: false };
+  if (!recipient) return { queued: 0, duplicate };
   let queued = 0;
   for (const automation of automations ?? []) {
     if (automation.audience !== "both" && automation.audience !== input.audience) continue;
     for (const step of (automation.email_automation_steps ?? []).filter((item: any) => item.is_enabled)) {
       const { error } = await db.from("email_queue").upsert({
-        event_id: event.id, user_id: input.userId, recipient_email: recipient.toLowerCase(),
+        event_id: eventId, user_id: input.userId, recipient_email: recipient.toLowerCase(),
         template_id: step.template_id, category: automation.category,
         payload: input.payload ?? {},
         idempotency_key: input.eventKey + ":" + automation.id + ":" + step.id,
@@ -220,8 +227,8 @@ export async function dispatchEmailEvent(input: {
       queued++;
     }
   }
-  await db.from("email_events").update({ processed_at: new Date().toISOString() }).eq("id", event.id);
-  return { queued, duplicate: false };
+  await db.from("email_events").update({ processed_at: new Date().toISOString() }).eq("id", eventId);
+  return { queued, duplicate };
 }
 
 export async function queueEmailCampaign(campaignId: string): Promise<{ queued: number; skipped: number }> {
@@ -231,9 +238,15 @@ export async function queueEmailCampaign(campaignId: string): Promise<{ queued: 
   if (!campaign || !["draft", "scheduled", "paused"].includes(campaign.status)) {
     throw new Error("Campaign is not in a sendable state.");
   }
-  const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (usersError) throw usersError;
-  const userIds = (users?.users ?? []).map((user: any) => user.id);
+  const allUsers: any[] = [];
+  for (let page = 1; page <= 100; page++) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const pageUsers = data?.users ?? [];
+    allUsers.push(...pageUsers);
+    if (pageUsers.length < 1000) break;
+  }
+  const userIds = allUsers.map((user: any) => user.id);
   if (userIds.length === 0) return { queued: 0, skipped: 0 };
 
   const [{ data: memberships, error: membershipError }, { data: preferences, error: preferencesError }, { data: suppressions, error: suppressionError }] = await Promise.all([
@@ -248,7 +261,7 @@ export async function queueEmailCampaign(campaignId: string): Promise<{ queued: 
   const optedIn = new Set((preferences ?? [])
     .filter((row: any) => row.marketing_enabled && !row.unsubscribed_at).map((row: any) => row.user_id));
   const suppressedEmails = new Set((suppressions ?? []).map((row: any) => String(row.email).toLowerCase()));
-  const eligible = (users?.users ?? []).filter((user: any) =>
+  const eligible = allUsers.filter((user: any) =>
     user.email && audienceIds.has(user.id) && optedIn.has(user.id) && !suppressedEmails.has(user.email.toLowerCase()));
   const { data: template, error: templateError } = await db.from("email_templates").upsert({
     slug: "campaign-" + campaign.id, name: campaign.name, category: "marketing",
@@ -287,7 +300,7 @@ export async function queueEmailCampaign(campaignId: string): Promise<{ queued: 
     started_at: new Date().toISOString(),
     completed_at: eligible.length ? null : new Date().toISOString(),
   }).eq("id", campaign.id);
-  return { queued: eligible.length, skipped: (users?.users ?? []).length - eligible.length };
+  return { queued: eligible.length, skipped: allUsers.length - eligible.length };
 }
 
 export async function recordResendWebhook(event: Record<string, any>): Promise<void> {
