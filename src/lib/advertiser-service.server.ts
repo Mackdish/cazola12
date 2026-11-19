@@ -134,7 +134,21 @@ export async function saveAdvertiserProfile(
       fail("This organization isn't an advertiser organization.");
     fail("We couldn't save your advertiser profile. Please try again.");
   }
-  return Array.isArray(data) ? data[0]! : data!;
+  const advertiser = Array.isArray(data) ? data[0]! : data!;
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "advertiser-profile-created:" + advertiser.id,
+      eventName: "advertiser.profile.created",
+      userId: ctx.userId,
+      organizationId: input.organizationId,
+      audience: "advertiser",
+      payload: { businessName: advertiser.business_name },
+    });
+  } catch (emailError) {
+    console.error("[email] advertiser profile event failed", emailError);
+  }
+  return advertiser;
 }
 
 
