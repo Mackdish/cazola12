@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft } from "@/lib/email.functions";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/email")({
   head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
@@ -25,6 +25,7 @@ function EmailWorkspace() {
   const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
   const saveTemplate = useMutation({ mutationFn: () => saveEmailTemplate(template), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const saveCampaign = useMutation({ mutationFn: () => createEmailCampaignDraft(campaign), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const sendCampaign = useMutation({ mutationFn: (campaignId: string) => sendEmailCampaign({ campaignId }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const toggleAutomation = useMutation({ mutationFn: (input: { id: string; enabled: boolean }) => setEmailAutomationEnabled(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const data = query.data;
   const templates = useMemo(() => data?.templates ?? [], [data]);
@@ -80,7 +81,7 @@ function EmailWorkspace() {
     </CardContent></Card>}
     {tab === "campaigns" && <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
       <Card><CardHeader><CardTitle className="text-base">Campaign drafts</CardTitle></CardHeader><CardContent className="space-y-3">
-        {(data.campaigns ?? []).map((item: any) => <div key={item.id} className="rounded-lg border p-3"><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.subject} · {item.audience} · {item.status}</p></div>)}
+        {(data.campaigns ?? []).map((item: any) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.subject} · {item.audience} · {item.status}</p></div><Button size="sm" disabled={sendCampaign.isPending || !["draft","paused","scheduled"].includes(item.status)} onClick={() => sendCampaign.mutate(item.id)}>Queue opted-in audience</Button></div>)}
         {(data.campaigns ?? []).length === 0 && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Create campaign draft</CardTitle></CardHeader><CardContent className="space-y-3">
@@ -89,7 +90,7 @@ function EmailWorkspace() {
         <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={campaign.audience} onChange={e => setCampaign(v => ({...v,audience:e.target.value as "advertiser"|"publisher"|"both"}))}><option value="both">Advertisers and publishers</option><option value="advertiser">Advertisers</option><option value="publisher">Publishers</option></select>
         <Textarea rows={8} value={campaign.htmlBody} onChange={e => setCampaign(v => ({...v,htmlBody:e.target.value}))} />
         <Button disabled={saveCampaign.isPending} onClick={() => saveCampaign.mutate()}>{saveCampaign.isPending ? "Saving…" : "Save draft"}</Button>
-        {saveCampaign.error && <p className="text-sm text-destructive">{saveCampaign.error.message}</p>}
+        {saveCampaign.error && <p className="text-sm text-destructive">{saveCampaign.error.message}</p>}{sendCampaign.error && <p className="text-sm text-destructive">{sendCampaign.error.message}</p>}{sendCampaign.data && <p className="text-sm text-muted-foreground">Queued {sendCampaign.data.queued} opted-in recipients; skipped {sendCampaign.data.skipped}.</p>}
       </CardContent></Card>
     </div>}
     {tab === "queue" && <div className="grid gap-5 xl:grid-cols-2">
