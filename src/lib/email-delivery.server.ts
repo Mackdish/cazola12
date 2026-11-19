@@ -98,11 +98,17 @@ export async function processEmailQueue(batchSize = 25) {
     try {
       const campaignMatch = String(job.idempotency_key ?? "").match(/^campaign:([0-9a-f-]+):/i);
       if (campaignMatch) {
-        const { data: campaign } = await db.from("email_campaigns").select("status").eq("id", campaignMatch[1]).maybeSingle();
+        const { data: campaign } = await db.from("email_campaigns").select("status,scheduled_at").eq("id", campaignMatch[1]).maybeSingle();
         if (campaign?.status === "paused") {
           await db.from("email_queue").update({
             status: "queued", scheduled_at: new Date(Date.now() + 5 * 60_000).toISOString(),
             updated_at: new Date().toISOString(),
+          }).eq("id", job.id);
+          continue;
+        }
+        if (campaign?.status === "scheduled" && campaign.scheduled_at && new Date(campaign.scheduled_at).getTime() > Date.now()) {
+          await db.from("email_queue").update({
+            status: "queued", scheduled_at: campaign.scheduled_at, updated_at: new Date().toISOString(),
           }).eq("id", job.id);
           continue;
         }
