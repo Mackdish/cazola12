@@ -1,6 +1,8 @@
 -- Add SELECT policy for public.publishers
 -- This allows users to view publisher profiles for organizations they belong to.
 
+DROP POLICY IF EXISTS publishers_select_own_org ON public.publishers;
+
 CREATE POLICY publishers_select_own_org
 ON public.publishers
 FOR SELECT
