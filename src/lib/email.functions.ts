@@ -179,3 +179,19 @@ export const removeEmailSuppression = createServerFn({ method: "POST" })
     if (error) throw new Error("Unable to remove suppression.");
     return { ok: true };
   });
+
+export const scheduleEmailCampaign = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({
+    campaignId: z.string().uuid(), scheduledAt: z.string().datetime(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    if (new Date(data.scheduledAt).getTime() <= Date.now()) throw new Error("Choose a future send time.");
+    const db = await getAdminDb();
+    const { error } = await db.from("email_campaigns").update({
+      status: "scheduled", scheduled_at: data.scheduledAt, updated_at: new Date().toISOString(),
+    }).eq("id", data.campaignId).in("status", ["draft", "paused"]);
+    if (error) throw new Error("Unable to schedule campaign.");
+    return { ok: true };
+  });
