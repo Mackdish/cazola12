@@ -195,3 +195,30 @@ export const scheduleEmailCampaign = createServerFn({ method: "POST" })
     if (error) throw new Error("Unable to schedule campaign.");
     return { ok: true };
   });
+
+export const getMyEmailPreferences = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.from("email_preferences")
+      .select("marketing_enabled,product_updates_enabled,unsubscribed_at")
+      .eq("user_id", context.userId).maybeSingle();
+    if (error) throw new Error("Unable to load email preferences.");
+    return data ?? { marketing_enabled: false, product_updates_enabled: false, unsubscribed_at: null };
+  });
+
+export const updateMyEmailPreferences = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({
+    marketingEnabled: z.boolean(), productUpdatesEnabled: z.boolean(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("email_preferences").upsert({
+      user_id: context.userId, marketing_enabled: data.marketingEnabled,
+      product_updates_enabled: data.productUpdatesEnabled,
+      unsubscribed_at: data.marketingEnabled || data.productUpdatesEnabled ? null : new Date().toISOString(),
+      unsubscribe_reason: data.marketingEnabled || data.productUpdatesEnabled ? null : "user_preferences",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (error) throw new Error("Unable to save email preferences.");
+    return { ok: true };
+  });
