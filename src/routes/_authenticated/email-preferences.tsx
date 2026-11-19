@@ -25,8 +25,10 @@ function PreferencesPage() {
   const [updates, setUpdates] = useState<boolean | null>(null);
   const save = useMutation({
     mutationFn: () => updateMyEmailPreferences({
-      marketingEnabled: marketing ?? Boolean(query.data?.marketing_enabled),
-      productUpdatesEnabled: updates ?? Boolean(query.data?.product_updates_enabled),
+      data: {
+        marketingEnabled: marketing ?? Boolean(query.data?.marketing_enabled),
+        productUpdatesEnabled: updates ?? Boolean(query.data?.product_updates_enabled),
+      },
     }),
     onSuccess: () => { setMarketing(null); setUpdates(null); void client.invalidateQueries({ queryKey: ["my-email-preferences"] }); },
   });
