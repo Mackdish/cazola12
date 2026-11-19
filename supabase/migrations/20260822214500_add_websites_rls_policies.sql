@@ -1,6 +1,13 @@
 -- Add RLS policies for public.websites
 -- The table has RLS enabled but no policies, which blocks all access.
 
+-- Make this migration safe when the policy names already exist
+-- (for example, when a project has received the policies manually).
+DROP POLICY IF EXISTS "Users can view websites in their organizations" ON public.websites;
+DROP POLICY IF EXISTS "Owners and admins can insert websites in approved organizations" ON public.websites;
+DROP POLICY IF EXISTS "Owners and admins can update websites in approved organizations" ON public.websites;
+DROP POLICY IF EXISTS "Owners and admins can delete websites in approved organizations" ON public.websites;
+
 CREATE POLICY "Users can view websites in their organizations" ON public.websites
   FOR SELECT
   TO authenticated
