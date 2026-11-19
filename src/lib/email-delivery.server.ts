@@ -64,6 +64,21 @@ async function syncCampaignRecipient(queueId: string, status: string): Promise<v
   }
 }
 
+async function syncCampaignRecipient(queueId: string, status: string): Promise<void> {
+  const { data: rows } = await db.from("email_campaign_recipients").select("campaign_id").eq("queue_id", queueId);
+  const campaignIds = [...new Set((rows ?? []).map((row: any) => row.campaign_id))];
+  if (campaignIds.length === 0) return;
+  await db.from("email_campaign_recipients").update({ status, updated_at: new Date().toISOString() }).eq("queue_id", queueId);
+  for (const campaignId of campaignIds) {
+    const { count, error } = await db.from("email_campaign_recipients")
+      .select("id", { count: "exact", head: true }).eq("campaign_id", campaignId)
+      .in("status", ["pending", "queued"]);
+    if (!error && count === 0) await db.from("email_campaigns").update({
+      status: "sent", completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).eq("id", campaignId);
+  }
+}
+
 export async function processEmailQueue(batchSize = 25) {
   const { data: jobs, error } = await db.rpc("claim_email_queue", { _limit: batchSize });
   if (error) throw error;
@@ -114,6 +129,7 @@ export async function processEmailQueue(batchSize = 25) {
         event_type: "sent",
       });
       await syncCampaignRecipient(job.id, "sent");
+      await syncCampaignRecipient(job.id, "sent");
       result.sent++;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -123,6 +139,7 @@ export async function processEmailQueue(batchSize = 25) {
         scheduled_at: new Date(Date.now() + Math.min(60, 2 ** Number(job.attempts ?? 1)) * 60_000).toISOString(),
         updated_at: new Date().toISOString(),
       }).eq("id", job.id);
+      if (terminal) await syncCampaignRecipient(job.id, "failed");
       if (terminal) await syncCampaignRecipient(job.id, "failed");
       await db.from("email_logs").insert({
         queue_id: job.id, user_id: job.user_id, recipient_email: job.recipient_email,
@@ -214,6 +231,19 @@ export async function recordResendWebhook(event: Record<string, any>): Promise<v
   if (messageId && email) {
     const { data: queueRow } = await db.from("email_queue").select("id")
       .eq("resend_id", messageId).maybeSingle();
+    const statusByEvent: Record<string, string> = {
+      "email.delivered": "delivered", "email.bounced": "bounced",
+      "email.complained": "complained", "email.failed": "failed",
+    };
+    const recipientStatus = statusByEvent[String(event.type ?? "")];
+    if (queueRow && recipientStatus) {
+      await db.from("email_campaign_recipients").update({
+        status: recipientStatus, updated_at: new Date().toISOString(),
+      }).eq("queue_id", queueRow.id);
+    }
+  }
+  if (messageId && email) {
+    const { data: queueRow } = await db.from("email_queue").select("id").eq("resend_id", messageId).maybeSingle();
     const statusByEvent: Record<string, string> = {
       "email.delivered": "delivered", "email.bounced": "bounced",
       "email.complained": "complained", "email.failed": "failed",
