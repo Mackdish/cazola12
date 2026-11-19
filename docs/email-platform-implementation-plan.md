@@ -105,3 +105,31 @@ Create an Email workspace with:
 - Non-admin users cannot read or mutate templates, automations, campaigns, queue, or logs.
 - Admins can preview and test a message before scheduling a real campaign.
 - No email secret is exposed to browser code.
+
+
+## Implementation progress (feature branch)
+
+The following working slices have now been added on `feature/trademall-email-platform`:
+
+- Server-only Resend adapter with database-backed queueing, escaped template interpolation, provider idempotency keys, exponential retry scheduling, and stale worker-lease recovery.
+- Cloudflare `scheduled()` handler drains up to 25 due messages every minute. The repository already has a one-minute Cron Trigger in `wrangler.jsonc`.
+- Authenticated fallback worker endpoint: `POST /api/worker/email-delivery`.
+- Signed Resend webhook endpoint: `POST /api/webhooks/resend`, with provider-event deduplication, delivery logs, and bounce/complaint suppression.
+- Signed unsubscribe endpoint: `/api/email/unsubscribe`, supporting browser GET and Resend one-click POST. Marketing sends include List-Unsubscribe headers and a footer link.
+- User self-service preferences page at `/email-preferences`, linked from admin, advertiser and publisher navigation.
+- Admin email workspace at `/admin/email`: template create/edit/activate, test sends, automation creation and enable/pause, campaign drafts, immediate sends, scheduling, pause/cancel, queue/log views, and suppression review/removal.
+- Consent-filtered campaign audience expansion across paginated Auth users; only active advertiser/publisher organization members with marketing consent and no suppression are queued.
+- Event dispatcher with event-key deduplication and configurable automation steps. Default advertiser/publisher welcome journeys are seeded.
+- Business events are wired for new advertiser/publisher profiles, website creation/review, ad-zone creation, campaign creation/submission/approval/rejection, advertiser wallet deposits, and publisher payout request/approval/rejection/payment.
+- Seeded transactional templates and automation journeys for the main advertiser and publisher lifecycle events.
+
+## Remaining before production rollout
+
+1. Run the full TypeScript, lint, unit and production build checks in the repository's normal development environment.
+2. Apply the three email migrations to the connected Supabase project and regenerate database types if required by the project's workflow.
+3. Configure Cloudflare secrets: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_WEBHOOK_SECRET`, and `EMAIL_UNSUBSCRIBE_SECRET`. The optional HTTP worker endpoint also needs `EMAIL_WORKER_SECRET`.
+4. Register `https://trademall.co.ke/api/webhooks/resend` in Resend and subscribe to delivery, bounce, complaint, open and click events.
+5. Verify the `trademall.co.ke` sending domain in Resend and send test messages to controlled inboxes.
+6. Add integration tests against a test Supabase project for worker concurrency, duplicate webhooks, unsubscribe, campaign scheduling/pause/cancel, role-based admin access, and retry recovery.
+
+The feature branch has not been deployed and the migrations have not been applied to production. The scheduled delivery hook is implemented, but real delivery depends on the environment secrets and verified Resend domain being configured.
