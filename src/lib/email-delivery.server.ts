@@ -76,7 +76,15 @@ async function syncCampaignRecipient(queueId: string, status: string): Promise<v
   }
 }
 
+async function queueDueCampaigns(): Promise<void> {
+  const { data, error } = await db.from("email_campaigns").select("id")
+    .eq("status", "scheduled").lte("scheduled_at", new Date().toISOString()).limit(10);
+  if (error) throw error;
+  for (const campaign of data ?? []) await queueEmailCampaign(campaign.id);
+}
+
 export async function processEmailQueue(batchSize = 25) {
+  await queueDueCampaigns();
   const { data: jobs, error } = await db.rpc("claim_email_queue", { _limit: batchSize });
   if (error) throw error;
   const result = { claimed: (jobs ?? []).length, sent: 0, skipped: 0, failed: 0 };
