@@ -92,6 +92,7 @@ import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
 import { Route as ApiWorkerImpressionFlushRouteImport } from './routes/api/worker/impression-flush'
 import { Route as ApiWorkerEmailDeliveryRouteImport } from './routes/api/worker/email-delivery'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
+import { Route as ApiEmailUnsubscribeRouteImport } from './routes/api/email/unsubscribe'
 import { Route as AuthenticatedAdminPoliciesContentRouteImport } from './routes/_authenticated/admin.policies.content'
 import { Route as AuthenticatedAdvertiserCampaignsIndexRouteImport } from './routes/_authenticated/advertiser.campaigns.index'
 import { Route as AuthenticatedAdvertiserCampaignsCampaignIdRouteImport } from './routes/_authenticated/advertiser.campaigns.$campaignId'
@@ -567,6 +568,9 @@ const ApiWorkerEmailDeliveryRoute = ApiWorkerEmailDeliveryRouteImport.update({
 const ApiWebhooksResendRoute = ApiWebhooksResendRouteImport.update({
   id: '/api/webhooks/resend', path: '/api/webhooks/resend', getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEmailUnsubscribeRoute = ApiEmailUnsubscribeRouteImport.update({
+  id: '/api/email/unsubscribe', path: '/api/email/unsubscribe', getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminPoliciesContentRoute =
   AuthenticatedAdminPoliciesContentRouteImport.update({
     id: '/content',
@@ -784,6 +788,7 @@ export interface FileRoutesByFullPath {
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
   '/api/worker/email-delivery': typeof ApiWorkerEmailDeliveryRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
+  '/api/email/unsubscribe': typeof ApiEmailUnsubscribeRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
@@ -1381,6 +1386,7 @@ export interface RootRouteChildren {
   ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
   ApiWorkerEmailDeliveryRoute: typeof ApiWorkerEmailDeliveryRoute
   ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
+  ApiEmailUnsubscribeRoute: typeof ApiEmailUnsubscribeRoute
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
@@ -2355,6 +2361,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,
   ApiWorkerEmailDeliveryRoute: ApiWorkerEmailDeliveryRoute,
   ApiWebhooksResendRoute: ApiWebhooksResendRoute,
+  ApiEmailUnsubscribeRoute: ApiEmailUnsubscribeRoute,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,
