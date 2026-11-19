@@ -18,7 +18,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
     const db = await getAdminDb();
-    const [templates, automations, campaigns, queue, logs, queued, sent, failed, processing, delivered, suppressionRows, suppressionCount] = await Promise.all([
+    const [templates, automations, campaigns, queue, logs, queued, sent, failed, processing, delivered, bounced, complained, suppressionRows, suppressionCount] = await Promise.all([
       db.from("email_templates").select("*").order("updated_at", { ascending: false }),
       db.from("email_automations").select("*, email_automation_steps(id,step_order,delay_minutes,template_id,is_enabled)").order("created_at", { ascending: false }),
       db.from("email_campaigns").select("*").order("created_at", { ascending: false }).limit(50),
@@ -29,17 +29,19 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "processing"),
       db.from("email_logs").select("id", { count: "exact", head: true }).eq("event_type", "email.delivered"),
+      db.from("email_logs").select("id", { count: "exact", head: true }).eq("event_type", "email.bounced"),
+      db.from("email_logs").select("id", { count: "exact", head: true }).eq("event_type", "email.complained"),
       db.from("email_suppressions").select("email,reason,source,created_at").order("created_at", { ascending: false }).limit(100),
       db.from("email_suppressions").select("email", { count: "exact", head: true }),
     ]);
-    for (const result of [templates, automations, campaigns, queue, logs, queued, sent, failed, processing, delivered, suppressionRows, suppressionCount]) {
+    for (const result of [templates, automations, campaigns, queue, logs, queued, sent, failed, processing, delivered, bounced, complained, suppressionRows, suppressionCount]) {
       if (result.error) throw new Error("Email workspace query failed: " + result.error.message);
     }
     return {
       templates: templates.data ?? [], automations: automations.data ?? [],
       campaigns: campaigns.data ?? [], queue: queue.data ?? [], logs: logs.data ?? [],
       suppressions: suppressionRows.data ?? [],
-      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, processing: processing.count ?? 0, delivered: delivered.count ?? 0, suppressed: suppressionCount.count ?? 0 },
+      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, processing: processing.count ?? 0, delivered: delivered.count ?? 0, bounced: bounced.count ?? 0, complained: complained.count ?? 0, suppressed: suppressionCount.count ?? 0 },
     };
   });
 
