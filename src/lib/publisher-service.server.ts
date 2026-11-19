@@ -121,6 +121,19 @@ export async function savePublisherProfile(
   await cacheBumpVersion("publisher", input.organizationId);
   await cacheDelete(`publisher:${input.organizationId}:profile`);
   await invalidateZoneContextForPublisher(publisher.id);
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "publisher-profile-created:" + publisher.id,
+      eventName: "publisher.profile.created",
+      userId: ctx.userId,
+      organizationId: input.organizationId,
+      audience: "publisher",
+      payload: { businessName: publisher.business_name },
+    });
+  } catch (emailError) {
+    console.error("[email] publisher profile event failed", emailError);
+  }
   return publisher;
 }
 
