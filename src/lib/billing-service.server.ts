@@ -281,6 +281,17 @@ export async function depositToWallet(
   } as never);
   if (error) translate(error.message, "We couldn't add funds to your wallet.");
   const result = (data ?? {}) as { ok?: boolean; duplicate?: boolean; balance?: number | string; currency?: string };
+  if (result.ok !== false && result.duplicate !== true) {
+    try {
+      const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+      await dispatchEmailEvent({
+        eventKey: "advertiser-wallet-deposit:" + input.idempotencyKey,
+        eventName: "advertiser.wallet.deposit_succeeded",
+        userId: ctx.userId, organizationId: input.organizationId, audience: "advertiser",
+        payload: { amount: input.amount, currency: result.currency ?? currency, balance: amount(result.balance) },
+      });
+    } catch (emailError) { console.error("[email] wallet deposit event failed", emailError); }
+  }
   return {
     ok: result.ok !== false,
     duplicate: result.duplicate === true,
@@ -397,7 +408,17 @@ export async function requestPayout(
     _destination: input.destination,
   });
   if (error) translate(error.message, "We couldn't submit your payout request.");
-  return Array.isArray(data) ? data[0]! : data!;
+  const payout = Array.isArray(data) ? data[0]! : data!;
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "publisher-payout-requested:" + payout.id,
+      eventName: "publisher.payout.requested",
+      userId: ctx.userId, organizationId: input.organizationId, audience: "publisher",
+      payload: { amount: payout.amount, method: input.method },
+    });
+  } catch (emailError) { console.error("[email] payout request event failed", emailError); }
+  return payout;
 }
 
 export async function adminListPayouts(ctx: Ctx) {
