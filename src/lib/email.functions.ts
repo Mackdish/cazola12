@@ -222,3 +222,15 @@ export const updateMyEmailPreferences = createServerFn({ method: "POST" })
     if (error) throw new Error("Unable to save email preferences.");
     return { ok: true };
   });
+
+export const sendEmailTemplateTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({
+    templateSlug: z.string().min(3).max(100), recipient: z.string().email(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const { sendTemplateTestEmail } = await import("@/lib/email-delivery.server");
+    await sendTemplateTestEmail(data.templateSlug, data.recipient);
+    return { ok: true };
+  });
