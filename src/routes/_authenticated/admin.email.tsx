@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression } from "@/lib/email.functions";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression, sendEmailTemplateTest } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/email")({
   head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
@@ -22,9 +22,11 @@ function EmailWorkspace() {
   const [tab, setTab] = useState("overview");
   const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
   const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
+  const [testRecipient, setTestRecipient] = useState("");
   const [scheduleAt, setScheduleAt] = useState(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16));
   const [automation, setAutomation] = useState({ slug: "", name: "", audience: "both" as "advertiser"|"publisher"|"both", triggerEvent: "", category: "transactional" as "transactional"|"marketing", templateSlug: "", delayMinutes: 0 });
   const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
+  const testTemplate = useMutation({ mutationFn: (templateSlug: string) => sendEmailTemplateTest({ templateSlug, recipient: testRecipient }), });
   const saveTemplate = useMutation({ mutationFn: () => saveEmailTemplate(template), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const saveCampaign = useMutation({ mutationFn: () => createEmailCampaignDraft(campaign), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const sendCampaign = useMutation({ mutationFn: (campaignId: string) => sendEmailCampaign({ campaignId }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
@@ -60,10 +62,12 @@ function EmailWorkspace() {
     </div>}
     {tab === "templates" && <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
       <Card><CardHeader><CardTitle className="text-base">Template library</CardTitle></CardHeader><CardContent className="space-y-3">
+        <Input type="email" placeholder="Test recipient email" value={testRecipient} onChange={e => setTestRecipient(e.target.value)} />
         {templates.map((item: Template) => <div key={item.slug} className="flex items-center justify-between gap-3 rounded-lg border p-3">
           <div className="min-w-0"><p className="truncate font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.slug} · {item.category} · v{item.version}</p></div>
-          <Button size="sm" variant="outline" onClick={() => setTemplate({ slug: item.slug, name: item.name, category: item.category, subject: item.subject, htmlBody: item.html_body, textBody: item.text_body ?? "" })}>Edit</Button>
+          <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!testRecipient || testTemplate.isPending} onClick={() => testTemplate.mutate(item.slug)}>Test</Button><Button size="sm" variant="outline" onClick={() => setTemplate({ slug: item.slug, name: item.name, category: item.category, subject: item.subject, htmlBody: item.html_body, textBody: item.text_body ?? "" })}>Edit</Button></div>
         </div>)}
+        {testTemplate.error && <p className="text-sm text-destructive">{testTemplate.error.message}</p>}{testTemplate.isSuccess && <p className="text-sm text-muted-foreground">Test message accepted by Resend.</p>}
         {templates.length === 0 && <p className="text-sm text-muted-foreground">No templates created yet.</p>}
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Create or update template</CardTitle></CardHeader><CardContent className="space-y-3">
