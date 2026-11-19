@@ -87,7 +87,7 @@ export async function processEmailQueue(batchSize = 25) {
   await db.from("email_queue").update({
     status: "failed", last_error: "Worker lease expired after the maximum number of attempts.",
     updated_at: new Date().toISOString(),
-  }).eq("status", "processing").lt("attempts", 0).lt("claimed_at", new Date(Date.now() - 10 * 60_000).toISOString());
+  }).eq("status", "processing").gte("attempts", 5).lt("claimed_at", new Date(Date.now() - 10 * 60_000).toISOString());
   await queueDueCampaigns();
   const { data: jobs, error } = await db.rpc("claim_email_queue", { _limit: batchSize });
   if (error) throw error;
