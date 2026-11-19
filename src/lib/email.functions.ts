@@ -160,7 +160,7 @@ export const updateEmailCampaignStatus = createServerFn({ method: "POST" })
       status: data.status, scheduled_at: data.scheduledAt ?? null, updated_at: new Date().toISOString(),
     }).eq("id", data.campaignId);
     if (error) throw new Error("Unable to update campaign.");
-    if (data.status === "cancelled" || data.status === "paused") {
+    if (data.status === "cancelled") {
       await db.from("email_queue").update({ status: "cancelled", last_error: "Campaign " + data.status + " by an administrator." })
         .like("idempotency_key", "campaign:" + data.campaignId + ":%").eq("status", "queued");
       await db.from("email_campaign_recipients").update({ status: "skipped" })
