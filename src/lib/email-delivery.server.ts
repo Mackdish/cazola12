@@ -340,40 +340,31 @@ export async function recordResendWebhook(event: Record<string, any>): Promise<v
   });
   if (error?.code === "23505") return;
   if (error) throw error;
+
   const data = event.data ?? {};
   const messageId = data.email_id ?? data.id;
   const email = String(data.to?.[0] ?? data.email ?? "").toLowerCase();
-  if (messageId && email) {
-    const { data: queueRow } = await db.from("email_queue").select("id")
-      .eq("resend_id", messageId).maybeSingle();
-    const statusByEvent: Record<string, string> = {
-      "email.delivered": "delivered", "email.bounced": "bounced",
-      "email.complained": "complained", "email.failed": "failed",
-    };
-    const recipientStatus = statusByEvent[String(event.type ?? "")];
-    if (queueRow && recipientStatus) {
-      await db.from("email_campaign_recipients").update({
-        status: recipientStatus, updated_at: new Date().toISOString(),
-      }).eq("queue_id", queueRow.id);
-    }
-  }
-  if (messageId && email) {
-    const { data: queueRow } = await db.from("email_queue").select("id").eq("resend_id", messageId).maybeSingle();
-    const statusByEvent: Record<string, string> = {
-      "email.delivered": "delivered", "email.bounced": "bounced",
-      "email.complained": "complained", "email.failed": "failed",
-    };
-    const recipientStatus = statusByEvent[String(event.type ?? "")];
-    if (queueRow && recipientStatus) {
-      await db.from("email_campaign_recipients").update({
-        status: recipientStatus, updated_at: new Date().toISOString(),
-      }).eq("queue_id", queueRow.id);
-    }
-  }
+  const { data: queueRow } = messageId
+    ? await db.from("email_queue").select("id,user_id,category,recipient_email").eq("resend_id", messageId).maybeSingle()
+    : { data: null };
+
   if (messageId) await db.from("email_logs").insert({
-    recipient_email: email || "unknown", category: "transactional", provider: "resend",
+    queue_id: queueRow?.id ?? null, user_id: queueRow?.user_id ?? null,
+    recipient_email: email || queueRow?.recipient_email || "unknown",
+    category: queueRow?.category ?? "transactional", provider: "resend",
     provider_message_id: messageId, event_type: String(event.type ?? "unknown"), event_payload: data,
   });
+
+  const statusByEvent: Record<string, string> = {
+    "email.delivered": "delivered", "email.bounced": "bounced",
+    "email.complained": "complained", "email.failed": "failed",
+  };
+  const recipientStatus = statusByEvent[String(event.type ?? "")];
+  if (queueRow && recipientStatus) {
+    await db.from("email_campaign_recipients").update({
+      status: recipientStatus, updated_at: new Date().toISOString(),
+    }).eq("queue_id", queueRow.id);
+  }
   if (email && ["email.bounced", "email.complained"].includes(String(event.type))) {
     await db.from("email_suppressions").upsert({
       email, reason: String(event.type), source: "resend_webhook", provider_event_id: eventId,
