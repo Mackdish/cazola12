@@ -55,6 +55,8 @@ function EmailWorkspace() {
     {tab === "overview" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric title="Queued" value={data.metrics.queued} note="Waiting for worker" />
       <Metric title="Sent" value={data.metrics.sent} note="Accepted by Resend" />
+      <Metric title="Delivered" value={data.metrics.delivered} note="Confirmed by Resend webhook" />
+      <Metric title="Processing" value={data.metrics.processing} note="Currently claimed by worker" />
       <Metric title="Failed" value={data.metrics.failed} note="Terminal failures" />
       <Metric title="Suppressed" value={data.metrics.suppressed} note="Bounced or complained" />
       <Card className="sm:col-span-2 xl:col-span-4"><CardHeader><CardTitle className="text-base">Delivery setup</CardTitle></CardHeader><CardContent className="space-y-2 text-sm text-muted-foreground">
