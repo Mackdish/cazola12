@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
-import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression, sendEmailTemplateTest } from "@/lib/email.functions";
+import { getEmailAdminData, saveEmailTemplate, setEmailAutomationEnabled, createEmailCampaignDraft, sendEmailCampaign, createEmailAutomation, scheduleEmailCampaign, updateEmailCampaignStatus, removeEmailSuppression, sendEmailTemplateTest, retryFailedEmail, retryFailedEmails } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/email")({
   head: () => ({ meta: [{ title: "Email — Platform Admin — TradeMall" }, { name: "robots", content: "noindex" }] }),
@@ -23,6 +23,7 @@ function EmailWorkspace() {
   const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
   const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
   const [testRecipient, setTestRecipient] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduleAt, setScheduleAt] = useState(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16));
   const [automation, setAutomation] = useState({ slug: "", name: "", audience: "both" as "advertiser"|"publisher"|"both", triggerEvent: "", category: "transactional" as "transactional"|"marketing", templateSlug: "", delayMinutes: 0 });
   const [campaign, setCampaign] = useState({ name: "", subject: "", audience: "both" as "advertiser" | "publisher" | "both", htmlBody: "<div><h1>TradeMall update</h1><p>Your campaign message.</p></div>" });
@@ -33,6 +34,8 @@ function EmailWorkspace() {
   const saveAutomation = useMutation({ mutationFn: () => createEmailAutomation({ data: automation }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const scheduleCampaign = useMutation({ mutationFn: (campaignId: string) => scheduleEmailCampaign({ data: { campaignId, scheduledAt: new Date(scheduleAt).toISOString() } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const changeCampaignStatus = useMutation({ mutationFn: (input: {campaignId:string;status:"paused"|"cancelled"}) => updateEmailCampaignStatus({ data: input }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const retryOne = useMutation({ mutationFn: (id: string) => retryFailedEmail({ data: { id } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
+  const retryBatch = useMutation({ mutationFn: () => retryFailedEmails({ data: { limit: 100 } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const removeSuppression = useMutation({ mutationFn: (email:string) => removeEmailSuppression({ data: {email} }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const toggleAutomation = useMutation({ mutationFn: (input: { id: string; enabled: boolean }) => setEmailAutomationEnabled({ data: input }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-email-workspace"] }) });
   const data = query.data;
@@ -77,6 +80,8 @@ function EmailWorkspace() {
         <Input placeholder="Email subject" value={template.subject} onChange={e => setTemplate(v => ({...v,subject:e.target.value}))} />
         <Textarea rows={8} value={template.htmlBody} onChange={e => setTemplate(v => ({...v,htmlBody:e.target.value}))} />
         <Textarea rows={3} placeholder="Plain text fallback (optional)" value={template.textBody} onChange={e => setTemplate(v => ({...v,textBody:e.target.value}))} />
+        <Button type="button" variant="outline" onClick={() => setPreviewOpen(v => !v)}>{previewOpen ? "Hide preview" : "Preview email"}</Button>
+        {previewOpen && <div className="space-y-2 rounded-lg border p-3"><p className="text-sm font-medium">Subject: {template.subject || "(no subject)"}</p><iframe title="Email template preview" sandbox="" srcDoc={template.htmlBody.replace(/{{\\s*firstName\\s*}}/g, "TradeMall user")} className="h-80 w-full rounded-md bg-white" /></div>}
         <p className="text-xs text-muted-foreground">Variables use double braces, e.g. {"{{firstName}}"}. Values are HTML-escaped.</p>
         <Button disabled={saveTemplate.isPending} onClick={() => saveTemplate.mutate()}><Send className="mr-2 size-4" />{saveTemplate.isPending ? "Saving…" : "Save and activate"}</Button>
         {saveTemplate.error && <p className="text-sm text-destructive">{saveTemplate.error.message}</p>}
