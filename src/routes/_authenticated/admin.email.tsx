@@ -20,7 +20,7 @@ type Template = { slug: string; name: string; category: "transactional" | "marke
 function EmailWorkspace() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("overview");
-  const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData() });
+  const query = useQuery({ queryKey: ["admin-email-workspace"], queryFn: () => getEmailAdminData(), refetchInterval: 30_000, refetchOnWindowFocus: true });
   const [template, setTemplate] = useState({ slug: "", name: "", category: "transactional" as "transactional" | "marketing", subject: "", htmlBody: "<div><h1>Hello {{firstName}}</h1><p>Your message here.</p></div>", textBody: "" });
   const [testRecipient, setTestRecipient] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -49,6 +49,7 @@ function EmailWorkspace() {
   ] as const;
   return <WorkspaceGuard workspace="admin">
     <PageHeader eyebrow="Platform Admin" title="Email workspace" description="Manage transactional notifications, lifecycle automations, broadcasts and delivery health." />
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>Updated {query.dataUpdatedAt ? new Date(query.dataUpdatedAt).toLocaleTimeString() : "—"} · Auto-refreshes every 30 seconds</span><Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? "Refreshing…" : "Refresh now"}</Button></div>
     <div className="flex flex-wrap gap-2 border-b pb-3">
       {tabs.map(([key,label,Icon]) => <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}><Icon className="mr-2 size-4" />{label}</Button>)}
     </div>
@@ -56,6 +57,8 @@ function EmailWorkspace() {
       <Metric title="Queued" value={data.metrics.queued} note="Waiting for worker" />
       <Metric title="Sent" value={data.metrics.sent} note="Accepted by Resend" />
       <Metric title="Delivered" value={data.metrics.delivered} note="Confirmed by Resend webhook" />
+      <Metric title="Bounced" value={data.metrics.bounced} note="Rejected by recipient mail servers" />
+      <Metric title="Complaints" value={data.metrics.complained} note="Marked as spam by recipients" />
       <Metric title="Processing" value={data.metrics.processing} note="Currently claimed by worker" />
       <Metric title="Failed" value={data.metrics.failed} note="Terminal failures" />
       <Metric title="Suppressed" value={data.metrics.suppressed} note="Bounced or complained" />
