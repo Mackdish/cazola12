@@ -838,6 +838,7 @@ export interface FileRoutesByTo {
   '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/email': typeof AuthenticatedAdminEmailRoute
   '/admin/api': typeof AuthenticatedAdminApiRoute
   '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
