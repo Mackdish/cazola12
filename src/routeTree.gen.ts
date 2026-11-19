@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminAdsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAdminAdsTxtRouteImport } from './routes/_authenticated/admin.ads-txt'
 import { Route as AuthenticatedAdminAdvertisersRouteImport } from './routes/_authenticated/admin.advertisers'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminEmailRouteImport } from './routes/_authenticated/admin.email'
 import { Route as AuthenticatedAdminApiRouteImport } from './routes/_authenticated/admin.api'
 import { Route as AuthenticatedAdminApiDocsRouteImport } from './routes/_authenticated/admin.api-docs'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin.blog'
@@ -297,6 +298,11 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEmailRoute = AuthenticatedAdminEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminApiRoute = AuthenticatedAdminApiRouteImport.update({
   id: '/api',
   path: '/api',
@@ -725,6 +731,7 @@ export interface FileRoutesByFullPath {
   '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/email': typeof AuthenticatedAdminEmailRoute
   '/admin/api': typeof AuthenticatedAdminApiRoute
   '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -939,6 +946,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/_authenticated/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/email': typeof AuthenticatedAdminEmailRoute
   '/_authenticated/admin/api': typeof AuthenticatedAdminApiRoute
   '/_authenticated/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -2127,6 +2135,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdsTxtRoute: typeof AuthenticatedAdminAdsTxtRoute
   AuthenticatedAdminAdvertisersRoute: typeof AuthenticatedAdminAdvertisersRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminEmailRoute: typeof AuthenticatedAdminEmailRoute
   AuthenticatedAdminApiRoute: typeof AuthenticatedAdminApiRoute
   AuthenticatedAdminApiDocsRoute: typeof AuthenticatedAdminApiDocsRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
@@ -2153,6 +2162,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAdsTxtRoute: AuthenticatedAdminAdsTxtRoute,
   AuthenticatedAdminAdvertisersRoute: AuthenticatedAdminAdvertisersRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminEmailRoute: AuthenticatedAdminEmailRoute,
   AuthenticatedAdminApiRoute: AuthenticatedAdminApiRoute,
   AuthenticatedAdminApiDocsRoute: AuthenticatedAdminApiDocsRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
