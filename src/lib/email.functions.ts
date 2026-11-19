@@ -101,3 +101,12 @@ export const createEmailCampaignDraft = createServerFn({ method: "POST" })
     if (error) throw new Error("Unable to save campaign draft.");
     return { ok: true };
   });
+
+export const sendEmailCampaign = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => z.object({ campaignId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertEmailAdmin(context.userId, context.supabase);
+    const { queueEmailCampaign } = await import("@/lib/email-delivery.server");
+    return queueEmailCampaign(data.campaignId);
+  });
