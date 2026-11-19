@@ -27,6 +27,8 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "queued"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "sent"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
+      db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "processing"),
+      db.from("email_logs").select("id", { count: "exact", head: true }).eq("event_type", "email.delivered"),
       db.from("email_suppressions").select("email,reason,source,created_at").order("created_at", { ascending: false }).limit(100),
       db.from("email_suppressions").select("email", { count: "exact", head: true }),
     ]);
