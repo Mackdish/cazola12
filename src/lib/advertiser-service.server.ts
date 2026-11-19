@@ -120,6 +120,8 @@ export async function saveAdvertiserProfile(
 ) {
   await assertOrgMember(ctx, input.organizationId);
   const db = await admin();
+  const { data: existingProfile } = await db.from("advertisers").select("id").eq("organization_id", input.organizationId).maybeSingle();
+  const isNewProfile = !existingProfile;
   const { data, error } = await db.rpc("ensure_advertiser", {
     _organization_id: input.organizationId,
     _business_name: input.businessName,
@@ -134,7 +136,21 @@ export async function saveAdvertiserProfile(
       fail("This organization isn't an advertiser organization.");
     fail("We couldn't save your advertiser profile. Please try again.");
   }
-  return Array.isArray(data) ? data[0]! : data!;
+  const advertiser = Array.isArray(data) ? data[0]! : data!;
+  if (isNewProfile) try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "advertiser-profile-created:" + advertiser.id,
+      eventName: "advertiser.profile.created",
+      userId: ctx.userId,
+      organizationId: input.organizationId,
+      audience: "advertiser",
+      payload: { businessName: advertiser.business_name },
+    });
+  } catch (emailError) {
+    console.error("[email] advertiser profile event failed", emailError);
+  }
+  return advertiser;
 }
 
 
@@ -342,6 +358,15 @@ export async function createCampaign(
     fail(`Could not create campaign targeting: ${targetingError.message}`);
   }
 
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "advertiser-campaign-created:" + data!.id,
+      eventName: "advertiser.campaign.created",
+      userId: ctx.userId, organizationId: input.organizationId, audience: "advertiser",
+      payload: { campaignName: data!.name, campaignId: data!.id },
+    });
+  } catch (emailError) { console.error("[email] campaign created event failed", emailError); }
   return data!;
 }
 
@@ -468,6 +493,17 @@ export async function setCampaignStatus(
     .maybeSingle();
   if (error) fail("We couldn't update that campaign.");
   if (!data) fail("That campaign doesn't exist, or you don't have access to it.");
+  if (input.status === "pending_review") {
+    try {
+      const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+      await dispatchEmailEvent({
+        eventKey: "advertiser-campaign-submitted:" + data.id,
+        eventName: "advertiser.campaign.submitted",
+        userId: ctx.userId, organizationId: data.organization_id, audience: "advertiser",
+        payload: { campaignName: data.name, campaignId: data.id },
+      });
+    } catch (emailError) { console.error("[email] campaign submitted event failed", emailError); }
+  }
   return data;
 }
 
@@ -923,6 +959,22 @@ export async function adminReviewCampaign(
     }
   }
 
+  if (["approve", "reject"].includes(input.action)) {
+    try {
+      const { data: member } = await service.from("organization_members")
+        .select("user_id").eq("organization_id", current.data.organization_id)
+        .eq("status", "active").in("role", ["owner", "admin"]).limit(1).maybeSingle();
+      if (member?.user_id) {
+        const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+        await dispatchEmailEvent({
+          eventKey: "admin-campaign-" + input.action + ":" + data.id + ":" + data.reviewed_at,
+          eventName: "advertiser.campaign." + (input.action === "approve" ? "approved" : "rejected"),
+          userId: member.user_id, organizationId: current.data.organization_id, audience: "advertiser",
+          payload: { campaignName: current.data.name, campaignId: data.id, reason: input.reason ?? null },
+        });
+      }
+    } catch (emailError) { console.error("[email] campaign review event failed", emailError); }
+  }
   return data;
 }
 

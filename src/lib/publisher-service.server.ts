@@ -94,6 +94,8 @@ export async function savePublisherProfile(
 ) {
   await assertOrgMember(ctx, input.organizationId);
   const db = await admin();
+  const { data: existingProfile } = await db.from("publishers").select("id").eq("organization_id", input.organizationId).maybeSingle();
+  const isNewProfile = !existingProfile;
   const { data, error } = await db.rpc("ensure_publisher", {
     _organization_id: input.organizationId,
     _business_name: input.businessName,
@@ -121,6 +123,19 @@ export async function savePublisherProfile(
   await cacheBumpVersion("publisher", input.organizationId);
   await cacheDelete(`publisher:${input.organizationId}:profile`);
   await invalidateZoneContextForPublisher(publisher.id);
+  if (isNewProfile) try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "publisher-profile-created:" + publisher.id,
+      eventName: "publisher.profile.created",
+      userId: ctx.userId,
+      organizationId: input.organizationId,
+      audience: "publisher",
+      payload: { businessName: publisher.business_name },
+    });
+  } catch (emailError) {
+    console.error("[email] publisher profile event failed", emailError);
+  }
   return publisher;
 }
 
@@ -243,6 +258,15 @@ export async function createWebsite(
       fail("You don't have permission to add websites for this organization.");
     fail("We couldn't add that website. Please try again.");
   }
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "publisher-website-created:" + data!.id,
+      eventName: "publisher.website.created",
+      userId: ctx.userId, organizationId: input.organizationId, audience: "publisher",
+      payload: { websiteName: data!.name, domain: data!.domain, websiteId: data!.id },
+    });
+  } catch (emailError) { console.error("[email] website created event failed", emailError); }
   return data!;
 }
 
@@ -491,6 +515,15 @@ export async function createAdZone(
   await cacheBumpVersion("org", website.organization_id);
   await cacheDelete(`org:${website.organization_id}:ad_zones`);
   await invalidateZoneContextForWebsite(website.id);
+  try {
+    const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+    await dispatchEmailEvent({
+      eventKey: "publisher-ad-zone-created:" + data!.id,
+      eventName: "publisher.ad_zone.created",
+      userId: ctx.userId, organizationId: website.organization_id, audience: "publisher",
+      payload: { zoneName: data!.name, websiteId: website.id, adZoneId: data!.id },
+    });
+  } catch (emailError) { console.error("[email] ad zone created event failed", emailError); }
   return data!;
 }
 

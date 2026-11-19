@@ -44,6 +44,8 @@ import { Route as AuthenticatedAdminAdsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAdminAdsTxtRouteImport } from './routes/_authenticated/admin.ads-txt'
 import { Route as AuthenticatedAdminAdvertisersRouteImport } from './routes/_authenticated/admin.advertisers'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminEmailRouteImport } from './routes/_authenticated/admin.email'
+import { Route as AuthenticatedEmailPreferencesRouteImport } from './routes/_authenticated/email-preferences'
 import { Route as AuthenticatedAdminApiRouteImport } from './routes/_authenticated/admin.api'
 import { Route as AuthenticatedAdminApiDocsRouteImport } from './routes/_authenticated/admin.api-docs'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin.blog'
@@ -89,6 +91,9 @@ import { Route as ApiV1AnalyticsRouteImport } from './routes/api/v1/analytics'
 import { Route as ApiV1PayRouteImport } from './routes/api/v1/pay'
 import { Route as ApiV1WalletRouteImport } from './routes/api/v1/wallet'
 import { Route as ApiWorkerImpressionFlushRouteImport } from './routes/api/worker/impression-flush'
+import { Route as ApiWorkerEmailDeliveryRouteImport } from './routes/api/worker/email-delivery'
+import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
+import { Route as ApiEmailUnsubscribeRouteImport } from './routes/api/email/unsubscribe'
 import { Route as AuthenticatedAdminPoliciesContentRouteImport } from './routes/_authenticated/admin.policies.content'
 import { Route as AuthenticatedAdvertiserCampaignsIndexRouteImport } from './routes/_authenticated/advertiser.campaigns.index'
 import { Route as AuthenticatedAdvertiserCampaignsCampaignIdRouteImport } from './routes/_authenticated/advertiser.campaigns.$campaignId'
@@ -297,6 +302,14 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedEmailPreferencesRoute = AuthenticatedEmailPreferencesRouteImport.update({
+  id: '/email-preferences', path: '/email-preferences', getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminEmailRoute = AuthenticatedAdminEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminApiRoute = AuthenticatedAdminApiRouteImport.update({
   id: '/api',
   path: '/api',
@@ -553,6 +566,15 @@ const ApiWorkerImpressionFlushRoute =
     path: '/api/worker/impression-flush',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiWorkerEmailDeliveryRoute = ApiWorkerEmailDeliveryRouteImport.update({
+  id: '/api/worker/email-delivery', path: '/api/worker/email-delivery', getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksResendRoute = ApiWebhooksResendRouteImport.update({
+  id: '/api/webhooks/resend', path: '/api/webhooks/resend', getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmailUnsubscribeRoute = ApiEmailUnsubscribeRouteImport.update({
+  id: '/api/email/unsubscribe', path: '/api/email/unsubscribe', getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminPoliciesContentRoute =
   AuthenticatedAdminPoliciesContentRouteImport.update({
     id: '/content',
@@ -725,6 +747,8 @@ export interface FileRoutesByFullPath {
   '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/email': typeof AuthenticatedAdminEmailRoute
+  '/email-preferences': typeof AuthenticatedEmailPreferencesRoute
   '/admin/api': typeof AuthenticatedAdminApiRoute
   '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -767,6 +791,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/pay': typeof ApiV1PayRoute
   '/api/v1/wallet': typeof ApiV1WalletRouteWithChildren
   '/api/worker/impression-flush': typeof ApiWorkerImpressionFlushRoute
+  '/api/worker/email-delivery': typeof ApiWorkerEmailDeliveryRoute
+  '/api/webhooks/resend': typeof ApiWebhooksResendRoute
+  '/api/email/unsubscribe': typeof ApiEmailUnsubscribeRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
@@ -831,6 +858,7 @@ export interface FileRoutesByTo {
   '/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/email': typeof AuthenticatedAdminEmailRoute
   '/admin/api': typeof AuthenticatedAdminApiRoute
   '/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -939,6 +967,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/ads-txt': typeof AuthenticatedAdminAdsTxtRoute
   '/_authenticated/admin/advertisers': typeof AuthenticatedAdminAdvertisersRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/email': typeof AuthenticatedAdminEmailRoute
+  '/_authenticated/email-preferences': typeof AuthenticatedEmailPreferencesRoute
   '/_authenticated/admin/api': typeof AuthenticatedAdminApiRoute
   '/_authenticated/admin/api-docs': typeof AuthenticatedAdminApiDocsRoute
   '/_authenticated/admin/campaigns': typeof AuthenticatedAdminCampaignsRoute
@@ -1360,6 +1390,9 @@ export interface RootRouteChildren {
   ApiV1PayRoute: typeof ApiV1PayRoute
   ApiV1WalletRoute: typeof ApiV1WalletRouteWithChildren
   ApiWorkerImpressionFlushRoute: typeof ApiWorkerImpressionFlushRoute
+  ApiWorkerEmailDeliveryRoute: typeof ApiWorkerEmailDeliveryRoute
+  ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
+  ApiEmailUnsubscribeRoute: typeof ApiEmailUnsubscribeRoute
   ApiPublicPayCallbackRoute: typeof ApiPublicPayCallbackRoute
   ApiV1AdZonesIdRoute: typeof ApiV1AdZonesIdRoute
   ApiV1AdsIdRoute: typeof ApiV1AdsIdRoute
@@ -2127,6 +2160,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdsTxtRoute: typeof AuthenticatedAdminAdsTxtRoute
   AuthenticatedAdminAdvertisersRoute: typeof AuthenticatedAdminAdvertisersRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminEmailRoute: typeof AuthenticatedAdminEmailRoute
   AuthenticatedAdminApiRoute: typeof AuthenticatedAdminApiRoute
   AuthenticatedAdminApiDocsRoute: typeof AuthenticatedAdminApiDocsRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
@@ -2153,6 +2187,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAdsTxtRoute: AuthenticatedAdminAdsTxtRoute,
   AuthenticatedAdminAdvertisersRoute: AuthenticatedAdminAdvertisersRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminEmailRoute: AuthenticatedAdminEmailRoute,
   AuthenticatedAdminApiRoute: AuthenticatedAdminApiRoute,
   AuthenticatedAdminApiDocsRoute: AuthenticatedAdminApiDocsRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
@@ -2216,6 +2251,7 @@ const AuthenticatedPublisherRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedEmailPreferencesRoute: typeof AuthenticatedEmailPreferencesRoute
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
@@ -2233,6 +2269,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedEmailPreferencesRoute: AuthenticatedEmailPreferencesRoute,
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
@@ -2330,6 +2367,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PayRoute: ApiV1PayRoute,
   ApiV1WalletRoute: ApiV1WalletRouteWithChildren,
   ApiWorkerImpressionFlushRoute: ApiWorkerImpressionFlushRoute,
+  ApiWorkerEmailDeliveryRoute: ApiWorkerEmailDeliveryRoute,
+  ApiWebhooksResendRoute: ApiWebhooksResendRoute,
+  ApiEmailUnsubscribeRoute: ApiEmailUnsubscribeRoute,
   ApiPublicPayCallbackRoute: ApiPublicPayCallbackRoute,
   ApiV1AdZonesIdRoute: ApiV1AdZonesIdRoute,
   ApiV1AdsIdRoute: ApiV1AdsIdRoute,
