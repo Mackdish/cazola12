@@ -18,7 +18,7 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertEmailAdmin(context.userId, context.supabase);
     const db = await getAdminDb();
-    const [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions, suppressionRows] = await Promise.all([
+    const [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressionRows, suppressionCount] = await Promise.all([
       db.from("email_templates").select("*").order("updated_at", { ascending: false }),
       db.from("email_automations").select("*, email_automation_steps(id,step_order,delay_minutes,template_id,is_enabled)").order("created_at", { ascending: false }),
       db.from("email_campaigns").select("*").order("created_at", { ascending: false }).limit(50),
@@ -28,14 +28,16 @@ export const getEmailAdminData = createServerFn({ method: "GET" })
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "sent"),
       db.from("email_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
       db.from("email_suppressions").select("email,reason,source,created_at").order("created_at", { ascending: false }).limit(100),
+      db.from("email_suppressions").select("email", { count: "exact", head: true }),
     ]);
-    for (const result of [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressions]) {
+    for (const result of [templates, automations, campaigns, queue, logs, queued, sent, failed, suppressionRows, suppressionCount]) {
       if (result.error) throw new Error("Unable to load email workspace data.");
     }
     return {
       templates: templates.data ?? [], automations: automations.data ?? [],
       campaigns: campaigns.data ?? [], queue: queue.data ?? [], logs: logs.data ?? [],
-      suppressions: suppressionRows.data ?? [],\n      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, suppressed: suppressionRows.data?.length ?? 0 },
+      suppressions: suppressionRows.data ?? [],
+      metrics: { queued: queued.count ?? 0, sent: sent.count ?? 0, failed: failed.count ?? 0, suppressed: suppressionCount.count ?? 0 },
     };
   });
 
