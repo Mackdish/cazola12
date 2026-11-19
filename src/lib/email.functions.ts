@@ -176,7 +176,7 @@ export const retryFailedEmail = createServerFn({ method: "POST" })
     await assertEmailAdmin(context.userId, context.supabase);
     const db = await getAdminDb();
     const { data: job, error: lookupError } = await db.from("email_queue")
-      .select("id,status").eq("id", data.id).maybeSingle();
+      .select("id,status,recipient_email,category,user_id").eq("id", data.id).maybeSingle();
     if (lookupError) throw new Error("Unable to inspect the email job.");
     if (!job || job.status !== "failed") throw new Error("Only failed email jobs can be retried.");
     const { error } = await db.from("email_queue").update({
@@ -185,8 +185,8 @@ export const retryFailedEmail = createServerFn({ method: "POST" })
     }).eq("id", data.id).eq("status", "failed");
     if (error) throw new Error("Unable to queue the email retry.");
     await db.from("email_logs").insert({
-      queue_id: data.id, recipient_email: "retry-request",
-      category: "transactional", event_type: "manual_retry_requested",
+      queue_id: data.id, user_id: job.user_id, recipient_email: job.recipient_email,
+      category: job.category, event_type: "manual_retry_requested",
       event_payload: { admin_user_id: context.userId },
     });
     return { ok: true };
