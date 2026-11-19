@@ -94,6 +94,8 @@ export async function savePublisherProfile(
 ) {
   await assertOrgMember(ctx, input.organizationId);
   const db = await admin();
+  const { data: existingProfile } = await db.from("publishers").select("id").eq("organization_id", input.organizationId).maybeSingle();
+  const isNewProfile = !existingProfile;
   const { data, error } = await db.rpc("ensure_publisher", {
     _organization_id: input.organizationId,
     _business_name: input.businessName,
@@ -121,7 +123,7 @@ export async function savePublisherProfile(
   await cacheBumpVersion("publisher", input.organizationId);
   await cacheDelete(`publisher:${input.organizationId}:profile`);
   await invalidateZoneContextForPublisher(publisher.id);
-  try {
+  if (isNewProfile) try {
     const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
     await dispatchEmailEvent({
       eventKey: "publisher-profile-created:" + publisher.id,
