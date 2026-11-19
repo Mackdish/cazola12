@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/patterns/page-header";
 import { LoadingState, ErrorState } from "@/components/patterns/states";
 import { WorkspaceGuard } from "@/components/shell/workspace-guard";
+import { useAuth } from "@/lib/auth-context";
+import { canAccessWorkspace } from "@/lib/authorization";
 import { getMyEmailPreferences, updateMyEmailPreferences } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/email-preferences")({
@@ -13,6 +15,10 @@ export const Route = createFileRoute("/_authenticated/email-preferences")({
   component: PreferencesPage,
 });
 function PreferencesPage() {
+  const { memberships, platformRoles } = useAuth();
+  const workspace = canAccessWorkspace("admin", memberships, platformRoles)
+    ? "admin"
+    : canAccessWorkspace("publisher", memberships, platformRoles) ? "publisher" : "advertiser";
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["my-email-preferences"], queryFn: () => getMyEmailPreferences() });
   const [marketing, setMarketing] = useState<boolean | null>(null);
@@ -24,7 +30,7 @@ function PreferencesPage() {
     }),
     onSuccess: () => { setMarketing(null); setUpdates(null); void client.invalidateQueries({ queryKey: ["my-email-preferences"] }); },
   });
-  if (query.isLoading) return <WorkspaceGuard workspace="advertiser"><LoadingState rows={3} label="Loading preferences" /></WorkspaceGuard>;
+  if (query.isLoading) return <WorkspaceGuard workspace={workspace}><LoadingState rows={3} label="Loading preferences" /></WorkspaceGuard>;
   if (query.error || !query.data) return <WorkspaceGuard workspace="advertiser"><ErrorState title="Couldn't load preferences" message={query.error?.message ?? "Please try again."} onRetry={() => void query.refetch()} /></WorkspaceGuard>;
   const marketingValue = marketing ?? Boolean(query.data.marketing_enabled);
   const updatesValue = updates ?? Boolean(query.data.product_updates_enabled);
