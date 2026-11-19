@@ -455,6 +455,7 @@ export async function adminReviewPayout(
   await requireStaff(ctx);
   await checkAdminRateLimit(ctx.supabase as never, ctx.userId);
   const db = await admin();
+  const { data: payoutBefore } = await db.from("payouts").select("organization_id").eq("id", input.payoutId).maybeSingle();
   const { data, error } = await db.rpc("review_payout", {
     _payout_id: input.payoutId,
     _status: input.status,
@@ -471,7 +472,22 @@ export async function adminReviewPayout(
     targetId: input.payoutId,
     metadata: { reason: input.reason ?? null, paymentReference: input.paymentReference ?? null },
   });
-
+  if (payoutBefore?.organization_id && ["approved", "rejected", "paid"].includes(input.status)) {
+    try {
+      const { data: member } = await db.from("organization_members").select("user_id")
+        .eq("organization_id", payoutBefore.organization_id).eq("status", "active")
+        .in("role", ["owner", "admin"]).limit(1).maybeSingle();
+      if (member?.user_id) {
+        const { dispatchEmailEvent } = await import("@/lib/email-delivery.server");
+        await dispatchEmailEvent({
+          eventKey: "publisher-payout-" + input.status + ":" + input.payoutId + ":" + (result.updated_at ?? new Date().toISOString()),
+          eventName: "publisher.payout." + input.status,
+          userId: member.user_id, organizationId: payoutBefore.organization_id, audience: "publisher",
+          payload: { payoutId: input.payoutId, status: input.status, paymentReference: input.paymentReference ?? null, reason: input.reason ?? null },
+        });
+      }
+    } catch (emailError) { console.error("[email] payout status event failed", emailError); }
+  }
   return result;
 }
 
