@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/webhooks/resend")({
       };
       try {
         const { Resend } = await import("resend");
-        const verifier = new Resend(process.env.RESEND_API_KEY);
+        const verifier = new Resend(process.env.RESEND_API_KEY ?? "");
         const event = await verifier.webhooks.verify({ payload, headers, webhookSecret: secret });
         const { recordResendWebhook } = await import("@/lib/email-delivery.server");
         await recordResendWebhook(event as unknown as Record<string, unknown>);
