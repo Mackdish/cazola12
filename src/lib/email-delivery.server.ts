@@ -164,6 +164,28 @@ export async function processEmailQueue(batchSize = 25) {
   }
   return result;
 }
+export async function sendTemplateTestEmail(templateSlug: string, recipient: string): Promise<void> {
+  const { data: template, error } = await db.from("email_templates")
+    .select("subject,html_body,text_body").eq("slug", templateSlug).eq("is_active", true).maybeSingle();
+  if (error) throw error;
+  if (!template) throw new Error("Template not found or inactive.");
+  const sample = {
+    firstName: "TradeMall user", businessName: "Sample business", campaignName: "Sample campaign",
+    websiteName: "Sample website", domain: "example.com", zoneName: "Sample ad zone",
+    amount: "1,000", currency: "KES", balance: "5,000", payoutId: "TEST-PAYOUT",
+    reason: "Sample reviewer feedback", paymentReference: "TEST-REF",
+    dashboardUrl: "https://trademall.co.ke", websiteId: "sample",
+    unsubscribeUrl: "https://trademall.co.ke",
+  };
+  const response = await getResend().emails.send({
+    from: process.env.EMAIL_FROM ?? "TradeMall <no-reply@trademall.co.ke>",
+    to: [recipient], subject: "[TEST] " + render(template.subject, sample),
+    html: render(template.html_body, sample),
+    ...(template.text_body ? { text: render(template.text_body, sample) } : {}),
+  });
+  if (response.error) throw new Error(response.error.message);
+}
+
 export async function dispatchEmailEvent(input: {
   eventKey: string; eventName: string; userId: string; audience: "advertiser" | "publisher" | "both";
   organizationId?: string; payload?: Record<string, unknown>;
